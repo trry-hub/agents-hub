@@ -7,7 +7,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'agentsHub.sidebar';
 
   private view?: vscode.WebviewView;
-  private activeSession?: Session;
+  /** Active prompt session per CLI id */
+  private activeSessions = new Map<string, Session>();
   private disposables: vscode.Disposable[] = [];
 
   constructor(
@@ -28,8 +29,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     };
 
     webviewView.webview.html = this.getHtml(webviewView.webview);
-
-    // Send available profiles
     this.sendProfiles();
 
     webviewView.webview.onDidReceiveMessage(async (message) => {
@@ -38,105 +37,76 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           await this.handleSend(message.cliId, message.text);
           break;
         case 'stop':
-          this.handleStop();
+          this.handleStop(message.cliId);
           break;
         case 'checkProfiles':
           this.sendProfiles();
           break;
-        case 'openTerminal':
-          this.openInTerminal(message.cliId);
-          break;
       }
     });
 
-    webviewView.onDidDispose(() => {
-      this.dispose();
-    });
+    webviewView.onDidDispose(() => { this.dispose(); });
   }
 
   private async sendProfiles() {
     const profiles = await this.cliManager.getProfilesWithStatus();
-    this.view?.webview.postMessage({
-      command: 'profiles',
-      profiles,
-    });
+    this.view?.webview.postMessage({ command: 'profiles', profiles });
   }
 
   private async handleSend(cliId: string, text: string) {
-    // If we have an active session for a different CLI, stop it
-    if (this.activeSession && this.activeSession.profile.id !== cliId) {
-      this.cliManager.stop(this.activeSession.id);
-      this.activeSession = undefined;
-    }
+    let session = this.activeSessions.get(cliId);
 
-    // If no active session, start one
-    if (!this.activeSession) {
-      const session = this.cliManager.start(cliId);
-      if (!session) {
+    // Start a new prompt session if none exists or previous ended
+    if (!session || session.process.exitCode !== null) {
+      if (session) { this.activeSessions.delete(cliId); }
+      const newSession = this.cliManager.startPrompt(cliId);
+      if (!newSession) {
         this.view?.webview.postMessage({
-          command: 'error',
+          command: 'error', cliId,
           text: `Failed to start ${cliId}`,
         });
         return;
       }
-      this.activeSession = session;
+      session = newSession;
+      this.activeSessions.set(cliId, newSession);
 
-      // Wire up output streaming
-      this.disposables.push(
-        session.onOutput.event((data) => {
-          this.view?.webview.postMessage({
-            command: 'output',
-            text: data,
-            sessionId: session.id,
-          });
-        })
-      );
-      this.disposables.push(
-        session.onError.event((data) => {
-          this.view?.webview.postMessage({
-            command: 'output',
-            text: data,
-            sessionId: session.id,
-            isError: true,
-          });
-        })
-      );
-      this.disposables.push(
-        session.onEnd.event((code) => {
-          this.view?.webview.postMessage({
-            command: 'sessionEnd',
-            exitCode: code,
-            sessionId: session.id,
-          });
-          this.activeSession = undefined;
-        })
-      );
+      // Wire streaming output
+      const d1 = newSession.onOutput.event((data) => {
+        this.view?.webview.postMessage({
+          command: 'output', cliId, text: data, sessionId: newSession.id,
+        });
+      });
+      const d2 = newSession.onError.event((data) => {
+        this.view?.webview.postMessage({
+          command: 'output', cliId, text: data, sessionId: newSession.id, isError: true,
+        });
+      });
+      const d3 = newSession.onEnd.event((code) => {
+        this.view?.webview.postMessage({
+          command: 'sessionEnd', cliId, exitCode: code, sessionId: newSession.id,
+        });
+        this.activeSessions.delete(cliId);
+      });
+      this.disposables.push(d1, d2, d3);
     }
 
-    // Send user input to CLI
-    const sent = this.cliManager.sendInput(this.activeSession.id, text);
+    // Send input
+    const sent = this.cliManager.sendInput(session.id, text);
     if (!sent) {
       this.view?.webview.postMessage({
-        command: 'error',
+        command: 'error', cliId,
         text: 'Failed to send input to CLI process',
       });
     }
   }
 
-  private handleStop() {
-    if (this.activeSession) {
-      this.cliManager.stop(this.activeSession.id);
-      this.activeSession = undefined;
-      this.view?.webview.postMessage({
-        command: 'stopped',
-      });
+  private handleStop(cliId: string) {
+    const session = this.activeSessions.get(cliId);
+    if (session) {
+      this.cliManager.stop(session.id);
+      this.activeSessions.delete(cliId);
+      this.view?.webview.postMessage({ command: 'stopped', cliId });
     }
-  }
-
-  private openInTerminal(cliId: string) {
-    const terminal = vscode.window.createTerminal(`AI CLI: ${cliId}`);
-    terminal.show();
-    terminal.sendText(cliId);
   }
 
   private getHtml(webview: vscode.Webview): string {
@@ -144,8 +114,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     let html = fs.readFileSync(htmlPath, 'utf8');
 
     const nonce = getNonce();
-
-    // Inject CSP
     const csp = [
       `default-src 'none'`,
       `style-src ${webview.cspSource} 'unsafe-inline'`,
@@ -155,15 +123,14 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
     html = html.replace('__CSP__', csp);
     html = html.replace(/__NONCE__/g, nonce);
-
     return html;
   }
 
   dispose() {
-    if (this.activeSession) {
-      this.cliManager.stop(this.activeSession.id);
-      this.activeSession = undefined;
+    for (const [, session] of this.activeSessions) {
+      this.cliManager.stop(session.id);
     }
+    this.activeSessions.clear();
     this.disposables.forEach((d) => d.dispose());
     this.disposables = [];
   }

@@ -19,62 +19,76 @@
       overflow: hidden;
     }
 
-    /* Header / CLI Selector */
-    .header {
-      padding: 8px 10px;
-      border-bottom: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.3));
+    /* ── Tool Tab Bar ── */
+    .tab-bar {
       display: flex;
-      gap: 6px;
+      gap: 0;
+      padding: 6px 6px 0;
+      border-bottom: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.25));
+      flex-shrink: 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tab-bar::-webkit-scrollbar { display: none; }
+
+    .tab-item {
+      display: flex;
       align-items: center;
+      gap: 5px;
+      padding: 5px 10px;
+      border: none;
+      background: transparent;
+      color: var(--vscode-descriptionForeground);
+      font-family: inherit;
+      font-size: 12px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+      transition: color 0.15s, border-color 0.15s;
+      position: relative;
+    }
+    .tab-item:hover { color: var(--vscode-foreground); }
+    .tab-item.active {
+      color: var(--vscode-foreground);
+      border-bottom-color: var(--active-accent, var(--vscode-focusBorder));
+    }
+
+    .tab-icon {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
       flex-shrink: 0;
     }
 
-    .cli-select {
-      flex: 1;
-      padding: 4px 8px;
-      background: var(--vscode-dropdown-background);
-      color: var(--vscode-dropdown-foreground);
-      border: 1px solid var(--vscode-dropdown-border);
-      border-radius: 4px;
-      font-family: inherit;
-      font-size: inherit;
-      cursor: pointer;
-      outline: none;
-    }
-
-    .cli-select:focus {
-      border-color: var(--vscode-focusBorder);
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
+    .tab-status {
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
       background: var(--vscode-errorForeground);
       flex-shrink: 0;
     }
+    .tab-status.ok { background: #4ec9b0; }
 
-    .status-dot.installed {
-      background: #4ec9b0;
+    /* ── Chat Area ── */
+    .chat-area {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
     }
 
-    .terminal-btn {
-      padding: 3px 8px;
-      background: var(--vscode-button-secondaryBackground);
-      color: var(--vscode-button-secondaryForeground);
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-family: inherit;
-      font-size: 11px;
-      white-space: nowrap;
+    .chat-panel {
+      display: none;
+      flex-direction: column;
+      height: 100%;
     }
+    .chat-panel.active { display: flex; }
 
-    .terminal-btn:hover {
-      background: var(--vscode-button-secondaryHoverBackground);
-    }
-
-    /* Messages */
     .messages {
       flex: 1;
       overflow-y: auto;
@@ -84,473 +98,544 @@
       gap: 8px;
     }
 
-    .message {
-      max-width: 90%;
+    .msg {
+      max-width: 92%;
       padding: 6px 10px;
       border-radius: 8px;
       word-wrap: break-word;
       white-space: pre-wrap;
-      font-size: 13px;
       line-height: 1.5;
     }
-
-    .message.user {
+    .msg.user {
       align-self: flex-end;
       background: var(--vscode-button-background);
       color: var(--vscode-button-foreground);
       border-radius: 8px 8px 2px 8px;
     }
-
-    .message.assistant {
+    .msg.assistant {
       align-self: flex-start;
-      background: var(--vscode-editorWidget-background, var(--vscode-textCodeBlock-background, rgba(128,128,128,0.1)));
+      background: var(--vscode-editorWidget-background, rgba(128,128,128,0.1));
       color: var(--vscode-editor-foreground);
       border-radius: 8px 8px 8px 2px;
     }
-
-    .message.error {
+    .msg.error {
       align-self: flex-start;
-      background: var(--vscode-inputValidation-errorBackground, rgba(200,50,50,0.2));
-      color: var(--vscode-errorForeground, #f44);
+      background: var(--vscode-inputValidation-errorBackground, rgba(200,50,50,0.15));
+      color: var(--vscode-errorForeground);
       border-radius: 8px 8px 8px 2px;
     }
-
-    .message.system {
+    .msg.system {
       align-self: center;
       background: transparent;
       color: var(--vscode-descriptionForeground);
       font-size: 12px;
-      padding: 4px 0;
+      padding: 2px 0;
     }
-
-    .message code {
+    .msg code {
       font-family: var(--vscode-editor-font-family);
-      background: var(--vscode-textCodeBlock-background, rgba(0,0,0,0.2));
+      background: var(--vscode-textCodeBlock-background, rgba(0,0,0,0.15));
       padding: 1px 4px;
       border-radius: 3px;
       font-size: 12px;
     }
-
-    .message pre {
+    .msg pre {
       background: var(--vscode-editor-background);
       padding: 8px;
       border-radius: 4px;
       overflow-x: auto;
       margin: 4px 0;
-      border: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.2));
+      border: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.15));
+    }
+    .msg pre code { background: none; padding: 0; }
+
+    .spinner {
+      display: inline-block; width: 14px; height: 14px;
+      border: 2px solid var(--vscode-foreground);
+      border-top-color: transparent; border-radius: 50%;
+      animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .messages::-webkit-scrollbar { width: 6px; }
+    .messages::-webkit-scrollbar-thumb {
+      background: var(--vscode-scrollbarSlider-background); border-radius: 3px;
     }
 
-    .message pre code {
-      background: none;
-      padding: 0;
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; flex: 1;
+      color: var(--vscode-descriptionForeground);
+      gap: 10px; padding: 20px; text-align: center;
+    }
+    .empty-state .big-icon {
+      width: 48px; height: 48px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; font-weight: 700; color: #fff;
+    }
+    .empty-state p { font-size: 12px; line-height: 1.6; }
+    .empty-state .hint { font-size: 11px; opacity: 0.6; }
+
+    /* ── Branded Bottom Bar ── */
+    .bottom-bar {
+      border-top: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.25));
+      flex-shrink: 0;
+      position: relative;
     }
 
-    /* Input Area */
-    .input-area {
+    .bar-accent {
+      height: 2px;
+      background: var(--bar-accent, var(--vscode-focusBorder));
+      opacity: 0.7;
+    }
+
+    .bar-body {
       padding: 8px 10px;
-      border-top: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.3));
       display: flex;
       gap: 6px;
-      flex-shrink: 0;
+      align-items: flex-end;
     }
 
-    .input-field {
+    .bar-input {
       flex: 1;
       padding: 6px 10px;
       background: var(--vscode-input-background);
       color: var(--vscode-input-foreground);
       border: 1px solid var(--vscode-input-border);
-      border-radius: 4px;
+      border-radius: 6px;
       font-family: inherit;
       font-size: inherit;
       outline: none;
       resize: none;
       min-height: 32px;
-      max-height: 120px;
+      max-height: 100px;
+      transition: border-color 0.15s;
     }
-
-    .input-field:focus {
-      border-color: var(--vscode-focusBorder);
+    .bar-input:focus {
+      border-color: var(--bar-accent, var(--vscode-focusBorder));
     }
-
-    .input-field::placeholder {
+    .bar-input::placeholder {
       color: var(--vscode-input-placeholderForeground);
     }
-
-    .send-btn, .stop-btn {
-      width: 36px;
-      height: 32px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .send-btn {
-      background: var(--vscode-button-background);
-      color: var(--vscode-button-foreground);
-    }
-
-    .send-btn:hover {
-      background: var(--vscode-button-hoverBackground);
-    }
-
-    .send-btn:disabled {
+    .bar-input:disabled {
       opacity: 0.5;
-      cursor: not-allowed;
     }
 
-    .stop-btn {
+    .btn-send, .btn-stop {
+      width: 34px; height: 32px;
+      border: none; border-radius: 6px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: opacity 0.15s;
+    }
+    .btn-send {
+      background: var(--bar-accent, var(--vscode-button-background));
+      color: #fff;
+    }
+    .btn-send:hover { opacity: 0.85; }
+    .btn-send:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-stop {
       background: var(--vscode-errorForeground, #c00);
       color: #fff;
       display: none;
     }
+    .btn-stop.show { display: flex; }
+    .btn-stop:hover { opacity: 0.85; }
 
-    .stop-btn.visible {
+    .bar-footer {
+      padding: 2px 12px 4px;
       display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .bar-label {
+      font-size: 11px;
+      color: var(--vscode-descriptionForeground);
+      opacity: 0.7;
+    }
+    .bar-shortcut {
+      font-size: 10px;
+      color: var(--vscode-descriptionForeground);
+      opacity: 0.5;
     }
 
-    .stop-btn:hover {
-      opacity: 0.8;
-    }
-
-    /* Spinner */
-    .spinner {
-      display: inline-block;
-      width: 14px;
-      height: 14px;
-      border: 2px solid var(--vscode-foreground);
-      border-top-color: transparent;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      vertical-align: middle;
-      margin-right: 6px;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    /* Scrollbar */
-    .messages::-webkit-scrollbar {
-      width: 6px;
-    }
-    .messages::-webkit-scrollbar-thumb {
-      background: var(--vscode-scrollbarSlider-background);
-      border-radius: 3px;
-    }
-    .messages::-webkit-scrollbar-thumb:hover {
-      background: var(--vscode-scrollbarSlider-hoverBackground);
-    }
-
-    /* Empty state */
-    .empty-state {
-      display: flex;
+    /* Not installed overlay */
+    .not-installed {
+      display: none;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       flex: 1;
-      color: var(--vscode-descriptionForeground);
-      gap: 8px;
-      padding: 20px;
+      gap: 12px;
+      padding: 24px 16px;
       text-align: center;
+      color: var(--vscode-descriptionForeground);
     }
-
-    .empty-state svg {
-      width: 40px;
-      height: 40px;
-      opacity: 0.4;
+    .not-installed.show { display: flex; }
+    .not-installed p { font-size: 12px; line-height: 1.5; }
+    .not-installed code {
+      font-family: var(--vscode-editor-font-family);
+      background: var(--vscode-textCodeBlock-background, rgba(0,0,0,0.15));
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 11px;
+      display: inline-block;
+      margin-top: 4px;
     }
-
-    .empty-state p {
-      font-size: 12px;
-      line-height: 1.5;
+    .not-installed .install-cmd {
+      background: var(--vscode-editor-background);
+      border: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.2));
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 11px;
+      max-width: 100%;
+      overflow-x: auto;
+      word-break: break-all;
+      user-select: all;
     }
   </style>
 </head>
 <body>
-  <div class="header">
-    <div class="status-dot" id="statusDot" title="CLI not detected"></div>
-    <select class="cli-select" id="cliSelect">
-      <option value="">Loading...</option>
-    </select>
-    <button class="terminal-btn" id="terminalBtn" title="Open in Terminal">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-        <path d="M6 11L2 8l4-3v6zm4-3v1h4V8h-4zm-2 4h2V7H8v5z"/>
-      </svg>
-    </button>
-  </div>
+  <!-- Tab Bar -->
+  <div class="tab-bar" id="tabBar"></div>
 
-  <div class="messages" id="messages">
-    <div class="empty-state" id="emptyState">
-      <svg viewBox="0 0 24 24" fill="currentColor">
-        <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12z"/>
-        <path d="M7 9h2v2H7zm4 0h2v2h-2zm4 0h2v2h-2z"/>
-      </svg>
-      <p>Select an AI CLI tool above, then type a message to start a session.</p>
-      <p>Supported: Claude Code, Gemini CLI, Codex, Cursor Agent</p>
+  <!-- Chat Area -->
+  <div class="chat-area" id="chatArea"></div>
+
+  <!-- Bottom Bar (rebuilt on tab switch) -->
+  <div class="bottom-bar" id="bottomBar">
+    <div class="bar-accent" id="barAccent"></div>
+    <div class="bar-body">
+      <textarea class="bar-input" id="barInput" placeholder="Type a message..." rows="1"></textarea>
+      <button class="btn-send" id="btnSend" title="Send (Enter)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M1.5 1.3l13 6.7-13 6.7V9.5L10 8 1.5 6.5V1.3z"/>
+        </svg>
+      </button>
+      <button class="btn-stop" id="btnStop" title="Stop">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+          <rect x="3" y="3" width="10" height="10" rx="1"/>
+        </svg>
+      </button>
     </div>
-  </div>
-
-  <div class="input-area">
-    <textarea class="input-field" id="inputField" placeholder="Type your message..." rows="1"></textarea>
-    <button class="send-btn" id="sendBtn" title="Send">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-        <path d="M1.5 1.3l13 6.7-13 6.7V9.5L10 8 1.5 6.5V1.3z"/>
-      </svg>
-    </button>
-    <button class="stop-btn" id="stopBtn" title="Stop">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-        <rect x="3" y="3" width="10" height="10" rx="1"/>
-      </svg>
-    </button>
+    <div class="bar-footer">
+      <span class="bar-label" id="barLabel"></span>
+      <span class="bar-shortcut">Enter to send</span>
+    </div>
   </div>
 
   <script nonce="__NONCE__">
     const vscode = acquireVsCodeApi();
-    const cliSelect = document.getElementById('cliSelect');
-    const messagesEl = document.getElementById('messages');
-    const emptyState = document.getElementById('emptyState');
-    const inputField = document.getElementById('inputField');
-    const sendBtn = document.getElementById('sendBtn');
-    const stopBtn = document.getElementById('stopBtn');
-    const statusDot = document.getElementById('statusDot');
-    const terminalBtn = document.getElementById('terminalBtn');
+
+    // DOM refs
+    const tabBar = document.getElementById('tabBar');
+    const chatArea = document.getElementById('chatArea');
+    const bottomBar = document.getElementById('bottomBar');
+    const barAccent = document.getElementById('barAccent');
+    const barInput = document.getElementById('barInput');
+    const barLabel = document.getElementById('barLabel');
+    const btnSend = document.getElementById('btnSend');
+    const btnStop = document.getElementById('btnStop');
 
     let profiles = [];
-    let isRunning = false;
-    let currentAssistantMsg = null;
+    let activeTab = '';
+    let running = new Set(); // cliIds that are currently running
+    let chatPanels = {};     // cliId -> { messagesEl, assistantMsg, data }
+    let assistantMsgMap = {}; // cliId -> current assistant DOM element
 
     // Restore state
-    const state = vscode.getState();
-    if (state) {
-      profiles = state.profiles || [];
-      if (state.messages) {
-        emptyState.style.display = 'none';
-        state.messages.forEach(m => appendMessage(m.role, m.content, false));
+    const saved = vscode.getState();
+    if (saved) {
+      profiles = saved.profiles || [];
+      activeTab = saved.activeTab || '';
+      if (saved.chats) {
+        for (const [cliId, msgs] of Object.entries(saved.chats)) {
+          ensurePanel(cliId);
+          msgs.forEach(m => appendMsg(cliId, m.role, m.content, false));
+        }
       }
     }
 
-    // Messages from extension
+    // ── Messages from extension ──
     window.addEventListener('message', event => {
       const msg = event.data;
       switch (msg.command) {
-        case 'profiles':
-          handleProfiles(msg.profiles);
-          break;
-        case 'output':
-          handleOutput(msg.text, msg.isError);
-          break;
-        case 'sessionEnd':
-          handleSessionEnd(msg.exitCode);
-          break;
-        case 'error':
-          appendMessage('error', msg.text);
-          break;
-        case 'stopped':
-          handleStopped();
-          break;
+        case 'profiles': handleProfiles(msg.profiles); break;
+        case 'output': handleOutput(msg.cliId, msg.text, msg.isError); break;
+        case 'sessionEnd': handleSessionEnd(msg.cliId, msg.exitCode); break;
+        case 'error': if (msg.cliId) appendMsg(msg.cliId, 'error', msg.text); break;
+        case 'stopped': handleStopped(msg.cliId); break;
       }
     });
 
+    // ── Profile handling ──
     function handleProfiles(list) {
       profiles = list;
-      const current = cliSelect.value;
-      cliSelect.innerHTML = '';
-      list.forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p.id;
-        opt.textContent = (p.installed ? '✓ ' : '✗ ') + p.name;
-        opt.disabled = !p.installed;
-        cliSelect.appendChild(opt);
-      });
-      if (current && list.find(p => p.id === current)) {
-        cliSelect.value = current;
+      if (!activeTab || !list.find(p => p.id === activeTab)) {
+        activeTab = list[0]?.id || '';
       }
-      updateStatus();
+      renderTabs();
+      activateTab(activeTab);
+    }
+
+    // ── Tab rendering ──
+    function renderTabs() {
+      tabBar.innerHTML = '';
+      profiles.forEach(p => {
+        const btn = document.createElement('button');
+        btn.className = 'tab-item' + (p.id === activeTab ? ' active' : '');
+        btn.style.setProperty('--active-accent', p.accent);
+        btn.innerHTML = `
+          <span class="tab-icon" style="background:${p.accent}">${p.icon}</span>
+          <span>${p.name}</span>
+          <span class="tab-status ${p.installed ? 'ok' : ''}" title="${p.installed ? 'Installed' : 'Not found'}"></span>
+        `;
+        btn.onclick = () => activateTab(p.id);
+        tabBar.appendChild(btn);
+      });
+    }
+
+    // ── Tab activation ──
+    function activateTab(cliId) {
+      activeTab = cliId;
+      const profile = profiles.find(p => p.id === cliId);
+      if (!profile) return;
+
+      // Update tabs
+      tabBar.querySelectorAll('.tab-item').forEach((el, i) => {
+        el.classList.toggle('active', profiles[i]?.id === cliId);
+      });
+
+      // Show correct chat panel
+      ensurePanel(cliId);
+      for (const [id, panel] of Object.entries(chatPanels)) {
+        panel.root.classList.toggle('active', id === cliId);
+      }
+
+      // Update bottom bar accent
+      document.documentElement.style.setProperty('--bar-accent', profile.accent);
+      barLabel.textContent = profile.installed ? profile.name : profile.name + ' (not installed)';
+
+      // Update input state
+      const isRunning = running.has(cliId);
+      barInput.disabled = !profile.installed;
+      barInput.placeholder = profile.installed
+        ? `Message ${profile.name}...`
+        : `${profile.name} is not installed`;
+
+      btnSend.style.display = isRunning ? 'none' : 'flex';
+      btnStop.classList.toggle('show', isRunning);
+
       saveState();
     }
 
-    function updateStatus() {
-      const selected = profiles.find(p => p.id === cliSelect.value);
-      if (selected && selected.installed) {
-        statusDot.classList.add('installed');
-        statusDot.title = selected.name + ' is installed';
-      } else {
-        statusDot.classList.remove('installed');
-        statusDot.title = selected ? selected.name + ' not found' : 'No CLI selected';
-      }
+    // ── Ensure chat panel exists ──
+    function ensurePanel(cliId) {
+      if (chatPanels[cliId]) return;
+      const profile = profiles.find(p => p.id === cliId) || { id: cliId, name: cliId, accent: '#888', icon: '?', installed: false, installHint: '' };
+
+      const root = document.createElement('div');
+      root.className = 'chat-panel';
+      root.dataset.cli = cliId;
+
+      const emptyState = document.createElement('div');
+      emptyState.className = 'empty-state';
+      emptyState.innerHTML = `
+        <div class="big-icon" style="background:${profile.accent}">${profile.icon}</div>
+        <p><strong>${profile.name}</strong></p>
+        <p class="hint">${profile.installed ? 'Type a message below to start.' : 'CLI not detected.'}</p>
+        ${!profile.installed ? `<div class="install-cmd">${escHtml(profile.installHint)}</div>` : ''}
+      `;
+
+      const notInstalled = document.createElement('div');
+      notInstalled.className = 'not-installed';
+      notInstalled.innerHTML = `
+        <p><strong>${profile.name}</strong> is not installed.</p>
+        <p>Install it to get started:</p>
+        <div class="install-cmd">${escHtml(profile.installHint)}</div>
+      `;
+
+      const messagesEl = document.createElement('div');
+      messagesEl.className = 'messages';
+
+      root.appendChild(emptyState);
+      root.appendChild(notInstalled);
+      root.appendChild(messagesEl);
+      chatArea.appendChild(root);
+
+      chatPanels[cliId] = { root, emptyState, notInstalled, messagesEl };
+      assistantMsgMap[cliId] = null;
     }
 
-    cliSelect.addEventListener('change', updateStatus);
-
-    // Send
-    sendBtn.addEventListener('click', sendMessage);
-    inputField.addEventListener('keydown', e => {
+    // ── Send message ──
+    btnSend.addEventListener('click', sendMsg);
+    barInput.addEventListener('keydown', e => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        sendMessage();
+        sendMsg();
       }
     });
-
-    // Auto-resize textarea
-    inputField.addEventListener('input', () => {
-      inputField.style.height = 'auto';
-      inputField.style.height = Math.min(inputField.scrollHeight, 120) + 'px';
+    barInput.addEventListener('input', () => {
+      barInput.style.height = 'auto';
+      barInput.style.height = Math.min(barInput.scrollHeight, 100) + 'px';
     });
 
-    function sendMessage() {
-      const text = inputField.value.trim();
-      if (!text || !cliSelect.value) return;
+    btnStop.addEventListener('click', () => {
+      vscode.postMessage({ command: 'stop', cliId: activeTab });
+    });
 
-      emptyState.style.display = 'none';
-      appendMessage('user', text);
-      inputField.value = '';
-      inputField.style.height = 'auto';
+    function sendMsg() {
+      const text = barInput.value.trim();
+      const profile = profiles.find(p => p.id === activeTab);
+      if (!text || !profile || !profile.installed) return;
 
-      setRunning(true);
-      vscode.postMessage({
-        command: 'send',
-        cliId: cliSelect.value,
-        text: text,
-      });
+      ensurePanel(activeTab);
+      const panel = chatPanels[activeTab];
+      panel.emptyState.style.display = 'none';
+
+      appendMsg(activeTab, 'user', text);
+      barInput.value = '';
+      barInput.style.height = 'auto';
+
+      setRunning(activeTab, true);
+      vscode.postMessage({ command: 'send', cliId: activeTab, text });
     }
 
-    // Stop
-    stopBtn.addEventListener('click', () => {
-      vscode.postMessage({ command: 'stop' });
-    });
+    // ── Running state ──
+    function setRunning(cliId, isRunning) {
+      if (isRunning) running.add(cliId); else running.delete(cliId);
+      if (cliId !== activeTab) return;
 
-    // Terminal
-    terminalBtn.addEventListener('click', () => {
-      if (cliSelect.value) {
-        vscode.postMessage({ command: 'openTerminal', cliId: cliSelect.value });
-      }
-    });
+      btnSend.style.display = isRunning ? 'none' : 'flex';
+      btnStop.classList.toggle('show', isRunning);
+      barInput.disabled = isRunning || !(profiles.find(p => p.id === cliId)?.installed);
 
-    function setRunning(running) {
-      isRunning = running;
-      sendBtn.style.display = running ? 'none' : 'flex';
-      stopBtn.classList.toggle('visible', running);
-      if (running) {
-        // Add thinking indicator
-        currentAssistantMsg = document.createElement('div');
-        currentAssistantMsg.className = 'message assistant';
-        currentAssistantMsg.innerHTML = '<span class="spinner"></span> Thinking...';
-        messagesEl.appendChild(currentAssistantMsg);
-        scrollToBottom();
+      if (isRunning) {
+        ensurePanel(cliId);
+        const panel = chatPanels[cliId];
+        panel.emptyState.style.display = 'none';
+
+        const el = document.createElement('div');
+        el.className = 'msg assistant';
+        el.innerHTML = '<span class="spinner"></span> Thinking...';
+        panel.messagesEl.appendChild(el);
+        assistantMsgMap[cliId] = el;
+        scrollBottom(cliId);
       }
     }
 
-    function handleOutput(text, isError) {
+    // ── Output streaming ──
+    function handleOutput(cliId, text, isError) {
+      ensurePanel(cliId);
+      const panel = chatPanels[cliId];
+
       if (isError) {
-        if (currentAssistantMsg) {
-          currentAssistantMsg.remove();
-          currentAssistantMsg = null;
+        if (assistantMsgMap[cliId]) {
+          assistantMsgMap[cliId].remove();
+          assistantMsgMap[cliId] = null;
         }
-        appendMessage('error', text);
+        appendMsg(cliId, 'error', text);
         return;
       }
 
-      if (currentAssistantMsg) {
-        // Replace spinner with actual content
-        const existing = currentAssistantMsg.getAttribute('data-content') || '';
+      const el = assistantMsgMap[cliId];
+      if (el) {
+        const existing = el.getAttribute('data-content') || '';
         const content = existing + text;
-        currentAssistantMsg.setAttribute('data-content', content);
-        currentAssistantMsg.innerHTML = formatOutput(content);
+        el.setAttribute('data-content', content);
+        el.innerHTML = formatOutput(content);
       } else {
-        currentAssistantMsg = document.createElement('div');
-        currentAssistantMsg.className = 'message assistant';
-        currentAssistantMsg.setAttribute('data-content', text);
-        currentAssistantMsg.innerHTML = formatOutput(text);
-        messagesEl.appendChild(currentAssistantMsg);
+        const newEl = document.createElement('div');
+        newEl.className = 'msg assistant';
+        newEl.setAttribute('data-content', text);
+        newEl.innerHTML = formatOutput(text);
+        panel.messagesEl.appendChild(newEl);
+        assistantMsgMap[cliId] = newEl;
       }
-      scrollToBottom();
+      scrollBottom(cliId);
     }
 
-    function handleSessionEnd(exitCode) {
-      setRunning(false);
-      if (currentAssistantMsg) {
-        const content = currentAssistantMsg.getAttribute('data-content') || '';
+    function handleSessionEnd(cliId, exitCode) {
+      setRunning(cliId, false);
+      if (assistantMsgMap[cliId]) {
+        const content = assistantMsgMap[cliId].getAttribute('data-content') || '';
         if (!content) {
-          currentAssistantMsg.innerHTML = `<span style="color:var(--vscode-descriptionForeground)">Session ended (exit code: ${exitCode})</span>`;
+          assistantMsgMap[cliId].innerHTML = `<span style="color:var(--vscode-descriptionForeground)">Session ended (${exitCode})</span>`;
         }
-        currentAssistantMsg = null;
-      }
-      if (exitCode !== 0) {
-        appendMessage('system', `Process exited with code ${exitCode}`);
+        assistantMsgMap[cliId] = null;
       }
       saveState();
     }
 
-    function handleStopped() {
-      setRunning(false);
-      if (currentAssistantMsg) {
-        const content = currentAssistantMsg.getAttribute('data-content') || '';
-        if (!content) {
-          currentAssistantMsg.remove();
-        }
-        currentAssistantMsg = null;
+    function handleStopped(cliId) {
+      setRunning(cliId, false);
+      if (assistantMsgMap[cliId]) {
+        const content = assistantMsgMap[cliId].getAttribute('data-content') || '';
+        if (!content) assistantMsgMap[cliId].remove();
+        assistantMsgMap[cliId] = null;
       }
-      appendMessage('system', 'Stopped.');
+      appendMsg(cliId, 'system', 'Stopped.');
       saveState();
     }
 
-    function appendMessage(role, content, shouldSave = true) {
+    // ── Message append ──
+    function appendMsg(cliId, role, content, shouldSave = true) {
+      ensurePanel(cliId);
+      const panel = chatPanels[cliId];
+      panel.emptyState.style.display = 'none';
+
       const el = document.createElement('div');
-      el.className = 'message ' + role;
+      el.className = 'msg ' + role;
       if (role === 'assistant') {
         el.setAttribute('data-content', content);
         el.innerHTML = formatOutput(content);
       } else {
         el.textContent = content;
       }
-      messagesEl.appendChild(el);
-      scrollToBottom();
+      panel.messagesEl.appendChild(el);
+      scrollBottom(cliId);
       if (shouldSave) saveState();
     }
 
+    // ── Helpers ──
     function formatOutput(text) {
-      // Simple formatting: code blocks and inline code
-      let html = escapeHtml(text);
-      // Code blocks: ```...```
-      html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
-        return '<pre><code>' + code.trim() + '</code></pre>';
-      });
-      // Inline code: `...`
+      let html = escHtml(text);
+      html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) =>
+        '<pre><code>' + code.trim() + '</code></pre>');
       html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
       return html;
     }
 
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
+    function escHtml(text) {
+      const d = document.createElement('div');
+      d.textContent = text;
+      return d.innerHTML;
     }
 
-    function scrollToBottom() {
-      messagesEl.scrollTop = messagesEl.scrollHeight;
+    function scrollBottom(cliId) {
+      const panel = chatPanels[cliId];
+      if (panel) panel.messagesEl.scrollTop = panel.messagesEl.scrollHeight;
     }
 
     function saveState() {
-      const msgs = [];
-      messagesEl.querySelectorAll('.message').forEach(el => {
-        const role = el.classList.contains('user') ? 'user'
-          : el.classList.contains('error') ? 'error'
-          : el.classList.contains('system') ? 'system'
-          : 'assistant';
-        const content = el.getAttribute('data-content') || el.textContent;
-        if (role !== 'system' || !content.startsWith('Process exited')) {
+      const chats = {};
+      for (const [cliId, panel] of Object.entries(chatPanels)) {
+        const msgs = [];
+        panel.messagesEl.querySelectorAll('.msg').forEach(el => {
+          const role = el.classList.contains('user') ? 'user'
+            : el.classList.contains('error') ? 'error'
+            : el.classList.contains('system') ? 'system'
+            : 'assistant';
+          const content = el.getAttribute('data-content') || el.textContent;
           msgs.push({ role, content });
-        }
-      });
-      vscode.setState({ profiles, messages: msgs });
+        });
+        if (msgs.length) chats[cliId] = msgs;
+      }
+      vscode.setState({ profiles, activeTab, chats });
     }
 
-    // Init: request profiles
+    // Init
     vscode.postMessage({ command: 'checkProfiles' });
   </script>
 </body>

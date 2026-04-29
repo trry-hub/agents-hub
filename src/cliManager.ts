@@ -4,6 +4,7 @@ import { CliProfile, getCliProfile } from './cliProfiles';
 
 export interface Session {
   id: string;
+  cliId: string;
   profile: CliProfile;
   process: ChildProcess;
   onOutput: vscode.EventEmitter<string>;
@@ -13,7 +14,7 @@ export interface Session {
 
 export class CliManager {
   private sessions = new Map<string, Session>();
-  private counter = 0;
+  private counters = new Map<string, number>();
 
   getWorkspaceRoot(): string {
     const folders = vscode.workspace.workspaceFolders;
@@ -49,25 +50,25 @@ export class CliManager {
     return results;
   }
 
-  start(profileId: string): Session | null {
-    const profile = getCliProfile(profileId);
+  /** Start a CLI in prompt (non-interactive) mode. Stdin is kept open for multi-turn. */
+  startPrompt(cliId: string): Session | null {
+    const profile = getCliProfile(cliId);
     if (!profile) { return null; }
 
     const cwd = this.getWorkspaceRoot();
-    const sessionId = `${profileId}-${++this.counter}`;
+    const n = (this.counters.get(cliId) ?? 0) + 1;
+    this.counters.set(cliId, n);
+    const sessionId = `${cliId}-${n}`;
 
-    const proc = spawn(profile.command, profile.args, {
+    const proc = spawn(profile.command, profile.promptArgs, {
       cwd,
-      env: {
-        ...process.env,
-        ...profile.env,
-      },
+      env: { ...process.env, ...profile.env },
       stdio: ['pipe', 'pipe', 'pipe'],
-      shell: false,
     });
 
     const session: Session = {
       id: sessionId,
+      cliId,
       profile,
       process: proc,
       onOutput: new vscode.EventEmitter<string>(),
@@ -100,9 +101,20 @@ export class CliManager {
 
   sendInput(sessionId: string, text: string): boolean {
     const session = this.sessions.get(sessionId);
-    if (!session || !session.process.stdin) { return false; }
+    if (!session || !session.process.stdin || session.process.stdin.destroyed) { return false; }
     session.process.stdin.write(text + '\n');
     return true;
+  }
+
+  /** Get the active session for a specific CLI tool (latest one) */
+  getSessionForCli(cliId: string): Session | undefined {
+    let latest: Session | undefined;
+    for (const session of this.sessions.values()) {
+      if (session.cliId === cliId) {
+        latest = session;
+      }
+    }
+    return latest;
   }
 
   stop(sessionId: string): void {
