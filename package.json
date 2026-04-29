@@ -1,0 +1,57 @@
+{
+  "name": "agents-hub",
+  "displayName": "AI CLI Hub",
+  "description": "Unified GUI for multiple AI CLI tools (Claude Code, Gemini CLI, Codex, Cursor Agent)",
+  "version": "0.1.0",
+  "publisher": "agents-hub",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": [
+    "onView:agentsHub.sidebar"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "agentsHub",
+          "title": "AI CLI Hub",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "agentsHub": [
+        {
+          "id": "agentsHub.sidebar",
+          "name": "AI CLI Hub",
+          "type": "webview"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "agentsHub.openPanel",
+        "title": "AI CLI Hub: Open Panel"
+      },
+      {
+        "command": "agentsHub.stopAll",
+        "title": "AI CLI Hub: Stop All Processes"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "compile": "npm run build",
+    "package": "npm run build && npx @vscode/vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.3.0"
+  }
+}
