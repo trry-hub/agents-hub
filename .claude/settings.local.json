@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__context7__resolve-library-id",
+      "WebFetch(domain:code.visualstudio.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(npx tsc *)",
+      "Bash(git init *)",
+      "Bash(gh auth *)",
+      "Bash(brew install *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(gh repo *)",
+      "WebFetch(domain:docs.anthropic.com)",
+      "WebFetch(domain:aider.chat)",
+      "WebFetch(domain:docs.cursor.com)",
+      "WebFetch(domain:cursor.com)",
+      "WebFetch(domain:block.github.io)",
+      "WebFetch(domain:developers.openai.com)",
+      "WebFetch(domain:goose-docs.ai)",
+      "Bash(git reset *)",
+      "Bash(git push *)"
+    ]
+  }
+}

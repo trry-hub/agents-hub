@@ -1,7 +1,7 @@
 {
   "name": "agents-hub",
-  "displayName": "AI CLI Hub",
-  "description": "Unified GUI for multiple AI CLI tools (Claude Code, Gemini CLI, Codex, Cursor Agent)",
+  "displayName": "%extension.displayName%",
+  "description": "%extension.description%",
   "version": "0.1.0",
   "publisher": "agents-hub",
   "engines": {
@@ -9,7 +9,14 @@
   },
   "categories": ["Other"],
   "activationEvents": [
-    "onView:agentsHub.sidebar"
+    "onView:agentsHub.sidebar",
+    "onCommand:agentsHub.openPanel",
+    "onCommand:agentsHub.reloadWindow",
+    "onCommand:agentsHub.stopAll",
+    "onCommand:agentsHub.explainSelection",
+    "onCommand:agentsHub.reviewFile",
+    "onCommand:agentsHub.generateTests",
+    "onCommand:agentsHub.refactorSelection"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -17,7 +24,7 @@
       "activitybar": [
         {
           "id": "agentsHub",
-          "title": "AI CLI Hub",
+          "title": "%viewContainer.title%",
           "icon": "media/icon.svg"
         }
       ]
@@ -26,7 +33,7 @@
       "agentsHub": [
         {
           "id": "agentsHub.sidebar",
-          "name": "AI CLI Hub",
+          "name": "%view.sidebar.name%",
           "type": "webview"
         }
       ]
@@ -34,16 +41,109 @@
     "commands": [
       {
         "command": "agentsHub.openPanel",
-        "title": "AI CLI Hub: Open Panel"
+        "title": "%command.openPanel.title%"
+      },
+      {
+        "command": "agentsHub.reloadWindow",
+        "title": "%command.reloadWindow.title%"
       },
       {
         "command": "agentsHub.stopAll",
-        "title": "AI CLI Hub: Stop All Processes"
+        "title": "%command.stopAll.title%"
+      },
+      {
+        "command": "agentsHub.explainSelection",
+        "title": "%command.explainSelection.title%"
+      },
+      {
+        "command": "agentsHub.reviewFile",
+        "title": "%command.reviewFile.title%"
+      },
+      {
+        "command": "agentsHub.generateTests",
+        "title": "%command.generateTests.title%"
+      },
+      {
+        "command": "agentsHub.refactorSelection",
+        "title": "%command.refactorSelection.title%"
       }
-    ]
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "agentsHub.explainSelection",
+          "when": "editorHasSelection",
+          "group": "navigation@10"
+        },
+        {
+          "command": "agentsHub.refactorSelection",
+          "when": "editorHasSelection",
+          "group": "navigation@11"
+        },
+        {
+          "command": "agentsHub.reviewFile",
+          "group": "navigation@12"
+        },
+        {
+          "command": "agentsHub.generateTests",
+          "group": "navigation@13"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "%config.title%",
+      "properties": {
+        "agentsHub.defaultProvider": {
+          "type": "string",
+          "default": "codex",
+          "enum": ["claude", "gemini", "codex", "opencode", "goose", "aider"],
+          "description": "%config.defaultProvider.description%"
+        },
+        "agentsHub.context.includeWorkspace": {
+          "type": "boolean",
+          "default": true,
+          "description": "%config.includeWorkspace.description%"
+        },
+        "agentsHub.context.includeCurrentFile": {
+          "type": "boolean",
+          "default": true,
+          "description": "%config.includeCurrentFile.description%"
+        },
+        "agentsHub.context.includeSelection": {
+          "type": "boolean",
+          "default": true,
+          "description": "%config.includeSelection.description%"
+        },
+        "agentsHub.context.includeDiagnostics": {
+          "type": "boolean",
+          "default": true,
+          "description": "%config.includeDiagnostics.description%"
+        },
+        "agentsHub.context.maxFileChars": {
+          "type": "number",
+          "default": 12000,
+          "minimum": 1000,
+          "description": "%config.maxFileChars.description%"
+        },
+        "agentsHub.context.maxSelectionChars": {
+          "type": "number",
+          "default": 8000,
+          "minimum": 1000,
+          "description": "%config.maxSelectionChars.description%"
+        },
+        "agentsHub.context.maxDiagnostics": {
+          "type": "number",
+          "default": 12,
+          "minimum": 0,
+          "description": "%config.maxDiagnostics.description%"
+        }
+      }
+    }
   },
   "scripts": {
     "build": "node esbuild.mjs",
+    "build:test": "tsc -p tsconfig.json --outDir .test-dist --rootDir src --module commonjs",
+    "test": "npm run build:test && node --test tests/*.test.mjs",
     "watch": "node esbuild.mjs --watch",
     "compile": "npm run build",
     "package": "npm run build && npx @vscode/vsce package"

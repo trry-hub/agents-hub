@@ -1,0 +1,22 @@
+{
+  "extension.displayName": "AI Assistant Hub",
+  "extension.description": "用于上下文感知聊天和外部编码 Agent 的 VS Code AI 助手工作台",
+  "viewContainer.title": "AI 助手",
+  "view.sidebar.name": "AI 助手",
+  "command.openPanel.title": "AI 助手：打开面板",
+  "command.reloadWindow.title": "AI 助手：重新加载窗口",
+  "command.stopAll.title": "AI 助手：停止所有进程",
+  "command.explainSelection.title": "AI 助手：解释选区",
+  "command.reviewFile.title": "AI 助手：审查当前文件",
+  "command.generateTests.title": "AI 助手：生成测试",
+  "command.refactorSelection.title": "AI 助手：重构选区",
+  "config.title": "AI Assistant Hub",
+  "config.defaultProvider.description": "编辑器命令默认使用的 AI 提供方。",
+  "config.includeWorkspace.description": "向助手请求附加工作区元数据。",
+  "config.includeCurrentFile.description": "向助手请求附加当前活动文件。",
+  "config.includeSelection.description": "向助手请求附加当前编辑器选区。",
+  "config.includeDiagnostics.description": "向助手请求附加当前文件的问题诊断。",
+  "config.maxFileChars.description": "助手请求中附加的活动文件上下文最大字符数。",
+  "config.maxSelectionChars.description": "助手请求中附加的选中代码最大字符数。",
+  "config.maxDiagnostics.description": "助手请求中附加的活动文件诊断最大数量。"
+}

@@ -1,10 +1,20 @@
 import * as vscode from 'vscode';
 import { SidebarProvider } from './sidebarProvider';
 import { CliManager } from './cliManager';
+import { resolveRuntimeLocale, runtimeT } from './localization';
 
 export function activate(context: vscode.ExtensionContext) {
+  const locale = resolveRuntimeLocale(vscode.env.language);
   const cliManager = new CliManager();
-  const sidebarProvider = new SidebarProvider(context.extensionUri, cliManager);
+  const sidebarProvider = new SidebarProvider(context.extensionUri, cliManager, {
+    extensionMode: context.extensionMode,
+  });
+  const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 90);
+  statusBar.text = runtimeT(locale, 'statusBar.text');
+  statusBar.tooltip = runtimeT(locale, 'statusBar.tooltip');
+  statusBar.command = 'agentsHub.openPanel';
+  statusBar.show();
+  context.subscriptions.push(statusBar);
 
   // Register sidebar webview provider
   context.subscriptions.push(
@@ -23,9 +33,40 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
+    vscode.commands.registerCommand('agentsHub.reloadWindow', async () => {
+      sidebarProvider.stopAll();
+      await vscode.commands.executeCommand('workbench.action.reloadWindow');
+    })
+  );
+
+  context.subscriptions.push(
     vscode.commands.registerCommand('agentsHub.stopAll', () => {
-      cliManager.stopAll();
-      vscode.window.showInformationMessage('All AI CLI processes stopped.');
+      sidebarProvider.stopAll();
+      vscode.window.showInformationMessage(runtimeT(locale, 'notification.stoppedAll'));
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('agentsHub.explainSelection', () => {
+      void sidebarProvider.runEditorAction('explainSelection');
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('agentsHub.reviewFile', () => {
+      void sidebarProvider.runEditorAction('reviewFile');
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('agentsHub.generateTests', () => {
+      void sidebarProvider.runEditorAction('generateTests');
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('agentsHub.refactorSelection', () => {
+      void sidebarProvider.runEditorAction('refactorSelection');
     })
   );
 
@@ -33,7 +74,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push({
     dispose: () => {
       cliManager.stopAll();
-      sidebarProvider.dispose();
+      sidebarProvider.dispose({ disposeContextCollector: true });
     },
   });
 }

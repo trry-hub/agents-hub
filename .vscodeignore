@@ -1,8 +1,15 @@
 .vscode/**
 .vscode-test/**
+.playwright-mcp/**
+.claude/**
+.test-dist/**
+docs/**
+tests/**
 src/**
+scripts/**
 node_modules/**
 .gitignore
 tsconfig.json
 esbuild.mjs
 **/*.map
+*.vsix
