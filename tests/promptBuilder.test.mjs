@@ -1075,8 +1075,11 @@ test('webview renders permissions as a Code X style option menu', () => {
   assert.match(css, /body\[data-provider="codex"\] \.permission-menu \.option-summary/);
 });
 
-test('extension contributes provider logo buttons to the native view title', () => {
+test('webview renders installed provider logo buttons as a header button group', () => {
   const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  const html = readFileSync(new URL('../media/main.html', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../media/main.css', import.meta.url), 'utf8');
+  const script = readFileSync(new URL('../media/main.js', import.meta.url), 'utf8');
   const extensionSource = readFileSync(new URL('../src/extension.ts', import.meta.url), 'utf8');
   const sidebarSource = readFileSync(new URL('../src/sidebarProvider.ts', import.meta.url), 'utf8');
   const providers = ['claude', 'gemini', 'codex', 'opencode', 'goose', 'aider'];
@@ -1089,8 +1092,21 @@ test('extension contributes provider logo buttons to the native view title', () 
     aider: { light: 'media/provider-icons/aider.png', dark: 'media/provider-icons/aider.png' },
   };
   const commands = manifest.contributes.commands;
-  const titleActions = manifest.contributes.menus['view/title'];
+  const titleActions = manifest.contributes.menus['view/title'] || [];
   const commandPalette = manifest.contributes.menus.commandPalette;
+
+  assert.match(html, /<div class="provider-button-group" id="providerButtonGroup" role="group" hidden data-i18n-aria="provider.switcher"><\/div>/);
+  assert.match(css, /\.provider-button-group\s*\{\s*[^}]*display:\s*inline-flex;/s);
+  assert.match(css, /\.provider-logo-button\s*\{/);
+  assert.match(css, /\.provider-logo-button \+ \.provider-logo-button\s*\{/);
+  assert.match(css, /\.provider-logo-button\.is-active\s*\{/);
+  assert.match(script, /const providerButtonGroup = document\.getElementById\('providerButtonGroup'\);/);
+  assert.match(script, /function renderProviderButtonGroup\(\) \{[\s\S]*const availableProfiles = installedProfiles\(\);/);
+  assert.match(script, /for \(const profile of availableProfiles\) \{/);
+  assert.match(script, /button\.dataset\.providerId = profile\.id;/);
+  assert.match(script, /providerButtonGroup\.addEventListener\('click',/);
+  assert.doesNotMatch(script, /for \(const profile of profiles\) \{[\s\S]*providerButtonGroup/);
+  assert.doesNotMatch(titleActions.map((item) => item.command).join('\n'), /agentsHub\.switchProvider/);
 
   for (const provider of providers) {
     const command = commands.find((item) => item.command === `agentsHub.switchProvider.${provider}`);
@@ -1108,14 +1124,9 @@ test('extension contributes provider logo buttons to the native view title', () 
         assert.equal(icon.subarray(1, 4).toString('ascii'), 'PNG');
       }
     }
-    assert.ok(titleActions.some((item) => (
+    assert.ok(commandPalette.some((item) => (
       item.command === `agentsHub.switchProvider.${provider}` &&
-      item.when.includes('view == agentsHub.sidebar') &&
-      item.when.includes(`agentsHub.activeProvider != ${provider}`)
-    )));
-    assert.ok(titleActions.some((item) => (
-      item.command === `agentsHub.switchProviderActive.${provider}` &&
-      item.when.includes(`agentsHub.activeProvider == ${provider}`)
+      item.when === 'false'
     )));
     assert.ok(commandPalette.some((item) => (
       item.command === `agentsHub.switchProviderActive.${provider}` &&
@@ -1126,6 +1137,7 @@ test('extension contributes provider logo buttons to the native view title', () 
   assert.match(extensionSource, /registerCommand\(`agentsHub\.switchProvider\.\$\{profile\.id\}`/);
   assert.match(extensionSource, /registerCommand\(`agentsHub\.switchProviderActive\.\$\{profile\.id\}`/);
   assert.match(sidebarSource, /executeCommand\('setContext', 'agentsHub\.activeProvider', providerId\)/);
+  assert.match(sidebarSource, /iconUris:\s*webview\s*\?\s*this\.providerIconUris\(webview, profile\.id\)/);
   assert.match(sidebarSource, /postMessage\(\{ command: 'switchProvider', providerId \}\)/);
 });
 

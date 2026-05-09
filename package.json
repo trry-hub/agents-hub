@@ -179,87 +179,49 @@
       }
     ],
     "menus": {
-      "view/title": [
+      "commandPalette": [
         {
           "command": "agentsHub.switchProvider.claude",
-          "when": "view == agentsHub.sidebar && agentsHub.activeProvider != claude",
-          "group": "navigation@1"
+          "when": "false"
         },
         {
           "command": "agentsHub.switchProviderActive.claude",
-          "when": "view == agentsHub.sidebar && agentsHub.activeProvider == claude",
-          "group": "navigation@1"
+          "when": "false"
         },
         {
           "command": "agentsHub.switchProvider.gemini",
-          "when": "view == agentsHub.sidebar && agentsHub.activeProvider != gemini",
-          "group": "navigation@2"
+          "when": "false"
         },
         {
           "command": "agentsHub.switchProviderActive.gemini",
-          "when": "view == agentsHub.sidebar && agentsHub.activeProvider == gemini",
-          "group": "navigation@2"
+          "when": "false"
         },
         {
           "command": "agentsHub.switchProvider.codex",
-          "when": "view == agentsHub.sidebar && agentsHub.activeProvider != codex",
-          "group": "navigation@3"
+          "when": "false"
         },
         {
           "command": "agentsHub.switchProviderActive.codex",
-          "when": "view == agentsHub.sidebar && agentsHub.activeProvider == codex",
-          "group": "navigation@3"
+          "when": "false"
         },
         {
           "command": "agentsHub.switchProvider.opencode",
-          "when": "view == agentsHub.sidebar && agentsHub.activeProvider != opencode",
-          "group": "navigation@4"
+          "when": "false"
         },
         {
           "command": "agentsHub.switchProviderActive.opencode",
-          "when": "view == agentsHub.sidebar && agentsHub.activeProvider == opencode",
-          "group": "navigation@4"
+          "when": "false"
         },
         {
           "command": "agentsHub.switchProvider.goose",
-          "when": "view == agentsHub.sidebar && agentsHub.activeProvider != goose",
-          "group": "navigation@5"
+          "when": "false"
         },
         {
           "command": "agentsHub.switchProviderActive.goose",
-          "when": "view == agentsHub.sidebar && agentsHub.activeProvider == goose",
-          "group": "navigation@5"
+          "when": "false"
         },
         {
           "command": "agentsHub.switchProvider.aider",
-          "when": "view == agentsHub.sidebar && agentsHub.activeProvider != aider",
-          "group": "navigation@6"
-        },
-        {
-          "command": "agentsHub.switchProviderActive.aider",
-          "when": "view == agentsHub.sidebar && agentsHub.activeProvider == aider",
-          "group": "navigation@6"
-        }
-      ],
-      "commandPalette": [
-        {
-          "command": "agentsHub.switchProviderActive.claude",
-          "when": "false"
-        },
-        {
-          "command": "agentsHub.switchProviderActive.gemini",
-          "when": "false"
-        },
-        {
-          "command": "agentsHub.switchProviderActive.codex",
-          "when": "false"
-        },
-        {
-          "command": "agentsHub.switchProviderActive.opencode",
-          "when": "false"
-        },
-        {
-          "command": "agentsHub.switchProviderActive.goose",
           "when": "false"
         },
         {
