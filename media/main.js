@@ -22,7 +22,7 @@
   let activeRuntimeByProvider = saved.activeRuntimeByProvider || {};
   let activePermissionByProvider = saved.activePermissionByProvider || {};
   let apiProviderSettings = { customProviders: [], defaultProviderId: '', agentProviderByCliId: {} };
-  let homeAgentSettings = { visibleAgentIds: [] };
+  let homeAgentSettings = { visibleAgentIds: [], agentOrder: [] };
   let apiProviderEnvStatusById = {};
   let editingApiProviderId = '';
   let activeSettingsSection = 'agents';
@@ -447,8 +447,23 @@
     return profiles.filter((profile) => profile.installed);
   }
 
-  function visibleInstalledProfiles() {
+  function orderedInstalledProfiles() {
     const installed = installedProfiles();
+    const orderIds = normalizeHomeAgentSettings(homeAgentSettings).agentOrder;
+    if (orderIds.length === 0) {
+      return installed;
+    }
+
+    const byId = new Map(installed.map((profile) => [profile.id, profile]));
+    const ordered = orderIds
+      .map((id) => byId.get(id))
+      .filter(Boolean);
+    const orderedIds = new Set(ordered.map((profile) => profile.id));
+    return ordered.concat(installed.filter((profile) => !orderedIds.has(profile.id)));
+  }
+
+  function visibleInstalledProfiles() {
+    const installed = orderedInstalledProfiles();
     const visibleIds = normalizeHomeAgentSettings(homeAgentSettings).visibleAgentIds;
     if (visibleIds.length === 0) {
       return installed;
@@ -1169,9 +1184,15 @@
 
   function normalizeHomeAgentSettings(value) {
     const record = value && typeof value === 'object' ? value : {};
-    const rawIds = Array.isArray(record.visibleAgentIds) ? record.visibleAgentIds : [];
+    const visibleAgentIds = normalizeHomeAgentIds(record.visibleAgentIds);
+    const agentOrder = normalizeHomeAgentIds(record.agentOrder);
+    return { visibleAgentIds, agentOrder };
+  }
+
+  function normalizeHomeAgentIds(value) {
+    const rawIds = Array.isArray(value) ? value : [];
     const seen = new Set();
-    const visibleAgentIds = rawIds
+    return rawIds
       .map((id) => String(id || '').trim())
       .filter((id) => {
         if (!id || seen.has(id)) {
@@ -1180,7 +1201,6 @@
         seen.add(id);
         return true;
       });
-    return { visibleAgentIds };
   }
 
   function openSettingsPage(section = 'agents') {
@@ -1235,11 +1255,14 @@
     }
 
     const selectedIds = homeAgentSelectionForUi();
-    availableProfiles.forEach((profile) => {
-      const row = document.createElement('label');
+    const orderedProfiles = orderedInstalledProfiles();
+    orderedProfiles.forEach((profile, index) => {
+      const row = document.createElement('div');
       row.className = 'home-agent-item';
+      row.dataset.homeAgentId = profile.id;
 
       const checkbox = document.createElement('input');
+      checkbox.id = `homeAgent-${profile.id}`;
       checkbox.type = 'checkbox';
       checkbox.dataset.homeAgentId = profile.id;
       checkbox.checked = selectedIds.has(profile.id);
@@ -1259,8 +1282,9 @@
       }
       row.appendChild(icon);
 
-      const copy = document.createElement('span');
+      const copy = document.createElement('label');
       copy.className = 'home-agent-copy';
+      copy.htmlFor = checkbox.id;
       const name = document.createElement('span');
       name.className = 'home-agent-name';
       name.textContent = profile.name;
@@ -1275,12 +1299,35 @@
       copy.appendChild(meta);
       row.appendChild(copy);
 
+      const sort = document.createElement('span');
+      sort.className = 'home-agent-sort';
+      sort.appendChild(createHomeAgentMoveButton(profile, 'up', index === 0));
+      sort.appendChild(createHomeAgentMoveButton(profile, 'down', index === orderedProfiles.length - 1));
+      row.appendChild(sort);
+
       homeAgentList.appendChild(row);
     });
   }
 
+  function createHomeAgentMoveButton(profile, direction, disabled) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'home-agent-sort-button';
+    button.dataset.homeAgentId = profile.id;
+    button.dataset.homeAgentMove = direction;
+    button.disabled = disabled;
+    const labelKey = direction === 'up' ? 'homeAgents.moveUp' : 'homeAgents.moveDown';
+    const label = i18n.t(labelKey, { name: profile.name });
+    button.setAttribute('aria-label', label);
+    button.title = label;
+    button.innerHTML = direction === 'up'
+      ? '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 9.5 8 6l3.5 3.5"/></svg>'
+      : '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4.5 6.5 3.5 3.5 3.5-3.5"/></svg>';
+    return button;
+  }
+
   function homeAgentSelectionForUi() {
-    const installedIds = installedProfiles().map((profile) => profile.id);
+    const installedIds = orderedInstalledProfiles().map((profile) => profile.id);
     const configured = normalizeHomeAgentSettings(homeAgentSettings).visibleAgentIds;
     const selectedIds = configured.length > 0
       ? configured.filter((id) => installedIds.includes(id))
@@ -1292,9 +1339,32 @@
     const checkedIds = Array.from(homeAgentList?.querySelectorAll('input[data-home-agent-id]:checked') || [])
       .map((input) => input.dataset.homeAgentId)
       .filter(Boolean);
-    const installedIds = installedProfiles().map((profile) => profile.id);
+    const agentOrder = Array.from(homeAgentList?.querySelectorAll('.home-agent-item[data-home-agent-id]') || [])
+      .map((item) => item.dataset.homeAgentId)
+      .filter(Boolean);
+    const installedIds = orderedInstalledProfiles().map((profile) => profile.id);
     const allSelected = installedIds.length > 0 && checkedIds.length === installedIds.length;
-    return normalizeHomeAgentSettings({ visibleAgentIds: allSelected ? [] : checkedIds });
+    return normalizeHomeAgentSettings({ visibleAgentIds: allSelected ? [] : checkedIds, agentOrder });
+  }
+
+  function moveHomeAgent(agentId, direction) {
+    const settings = collectHomeAgentSettings();
+    const order = settings.agentOrder.length > 0
+      ? settings.agentOrder.slice()
+      : orderedInstalledProfiles().map((profile) => profile.id);
+    const fromIndex = order.indexOf(agentId);
+    const toIndex = direction === 'up' ? fromIndex - 1 : fromIndex + 1;
+    if (fromIndex < 0 || toIndex < 0 || toIndex >= order.length) {
+      return;
+    }
+
+    [order[fromIndex], order[toIndex]] = [order[toIndex], order[fromIndex]];
+    homeAgentSettings = normalizeHomeAgentSettings({ ...settings, agentOrder: order });
+    renderAll();
+    renderHomeAgentSettings();
+    homeAgentList
+      ?.querySelector(`button[data-home-agent-id="${agentId}"][data-home-agent-move="${direction}"]`)
+      ?.focus();
   }
 
   function saveHomeAgentSettings() {
@@ -3632,6 +3702,16 @@
     }
     activeSettingsSection = button.dataset.settingsSection === 'apiProviders' ? 'apiProviders' : 'agents';
     renderSettingsPage();
+  });
+
+  homeAgentList?.addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-home-agent-move]');
+    if (!button) {
+      return;
+    }
+
+    event.preventDefault();
+    moveHomeAgent(button.dataset.homeAgentId, button.dataset.homeAgentMove);
   });
 
   homeAgentsReset?.addEventListener('click', () => {

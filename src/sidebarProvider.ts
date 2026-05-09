@@ -60,6 +60,11 @@ interface SidebarProviderOptions {
   storageUri?: vscode.Uri;
 }
 
+interface HomeAgentSettings {
+  visibleAgentIds: string[];
+  agentOrder: string[];
+}
+
 const MAX_IMAGE_ATTACHMENTS = 8;
 const MAX_IMAGE_ATTACHMENT_BYTES = 12 * 1024 * 1024;
 const DEFAULT_CLI_ID = 'opencode';
@@ -310,6 +315,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     const settings = this.normalizeHomeAgentSettings(rawSettings);
     const config = vscode.workspace.getConfiguration('agentsHub.home');
     await config.update('visibleAgentIds', settings.visibleAgentIds, vscode.ConfigurationTarget.Global);
+    await config.update('agentOrder', settings.agentOrder, vscode.ConfigurationTarget.Global);
     await this.sendHomeAgentSettings();
     await this.sendProfiles();
   }
@@ -340,19 +346,28 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     });
   }
 
-  private getHomeAgentSettings(): { visibleAgentIds: string[] } {
+  private getHomeAgentSettings(): HomeAgentSettings {
     const config = vscode.workspace.getConfiguration('agentsHub.home');
     return this.normalizeHomeAgentSettings({
       visibleAgentIds: config.get<string[]>('visibleAgentIds', []),
+      agentOrder: config.get<string[]>('agentOrder', []),
     });
   }
 
-  private normalizeHomeAgentSettings(rawSettings: unknown): { visibleAgentIds: string[] } {
+  private normalizeHomeAgentSettings(rawSettings: unknown): HomeAgentSettings {
     const knownIds = new Set(CLI_PROFILES.map((profile) => profile.id));
-    const record = rawSettings && typeof rawSettings === 'object' ? rawSettings as { visibleAgentIds?: unknown } : {};
+    const record = rawSettings && typeof rawSettings === 'object'
+      ? rawSettings as { visibleAgentIds?: unknown; agentOrder?: unknown }
+      : {};
+    const visibleAgentIds = this.normalizeHomeAgentIds(record.visibleAgentIds, knownIds);
+    const agentOrder = this.normalizeHomeAgentIds(record.agentOrder, knownIds);
+    return { visibleAgentIds, agentOrder };
+  }
+
+  private normalizeHomeAgentIds(value: unknown, knownIds: Set<string>): string[] {
     const seen = new Set<string>();
-    const visibleAgentIds = Array.isArray(record.visibleAgentIds)
-      ? record.visibleAgentIds
+    return Array.isArray(value)
+      ? value
           .map((id) => String(id || '').trim())
           .filter((id) => {
             if (!knownIds.has(id) || seen.has(id)) {
@@ -362,7 +377,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             return true;
           })
       : [];
-    return { visibleAgentIds };
   }
 
   private async updateProviderTitleContexts(

@@ -1184,6 +1184,8 @@ test('manifest exposes title actions and custom API provider settings', () => {
   const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
   const html = readFileSync(new URL('../media/main.html', import.meta.url), 'utf8');
   const script = readFileSync(new URL('../media/main.js', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../media/main.css', import.meta.url), 'utf8');
+  const sidebarSource = readFileSync(new URL('../src/sidebarProvider.ts', import.meta.url), 'utf8');
   const commands = JSON.stringify(manifest.contributes.commands);
   const titleActions = JSON.stringify(manifest.contributes.menus['view/title']);
   const properties = manifest.contributes.configuration.properties;
@@ -1197,6 +1199,7 @@ test('manifest exposes title actions and custom API provider settings', () => {
   assert.ok(properties['agentsHub.apiProviders.defaultProviderId']);
   assert.ok(properties['agentsHub.apiProviders.agentProviderByCliId']);
   assert.ok(properties['agentsHub.home.visibleAgentIds']);
+  assert.ok(properties['agentsHub.home.agentOrder']);
   assert.match(html, /id="settingsNavAgents"/);
   assert.match(html, /id="settingsNavApiProviders"/);
   assert.match(html, /id="homeAgentList"/);
@@ -1205,7 +1208,15 @@ test('manifest exposes title actions and custom API provider settings', () => {
   assert.match(html, /id="apiProviderApiKeyEnv"/);
   assert.doesNotMatch(html, /id="apiProviderApiKey"/);
   assert.match(script, /function visibleInstalledProfiles\(\)/);
+  assert.match(script, /function orderedInstalledProfiles\(\)/);
   assert.match(script, /function renderHomeAgentSettings\(\)/);
+  assert.match(script, /function moveHomeAgent\(/);
+  assert.match(script, /data-home-agent-move/);
+  assert.match(script, /agentOrder/);
+  assert.match(sidebarSource, /config\.get<string\[]>\('agentOrder', \[]\)/);
+  assert.match(sidebarSource, /config\.update\('agentOrder', settings\.agentOrder/);
+  assert.match(css, /body\.is-api-settings-open \.toolbar,\s*body\.is-api-settings-open \.messages,\s*body\.is-api-settings-open \.composer\s*\{\s*[^}]*display:\s*none;/s);
+  assert.match(css, /\.home-agent-sort\s*\{/);
   assert.match(script, /saveApiProviderSettings/);
   assert.match(script, /saveHomeAgentSettings/);
   assert.match(script, /refreshApiProviderSettings/);

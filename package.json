@@ -186,6 +186,22 @@
             ]
           }
         },
+        "agentsHub.home.agentOrder": {
+          "type": "array",
+          "default": [],
+          "description": "%config.home.agentOrder.description%",
+          "items": {
+            "type": "string",
+            "enum": [
+              "claude",
+              "gemini",
+              "codex",
+              "opencode",
+              "goose",
+              "aider"
+            ]
+          }
+        },
         "agentsHub.apiProviders.customProviders": {
           "type": "array",
           "default": [],

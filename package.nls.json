@@ -22,6 +22,7 @@
   "config.maxSelectionChars.description": "Maximum characters of selected code attached to assistant requests.",
   "config.maxDiagnostics.description": "Maximum number of active-file diagnostics attached to assistant requests.",
   "config.home.visibleAgentIds.description": "Installed CLI agents shown on the AI Assistant home header. Leave empty to show all installed agents.",
+  "config.home.agentOrder.description": "Display order for installed CLI agents in the AI Assistant home header.",
   "config.apiProviders.customProviders.description": "Custom API providers that can be used by multiple CLI agents. API keys are referenced by environment variable name.",
   "config.apiProviders.defaultProviderId.description": "Global default custom API provider ID.",
   "config.apiProviders.agentProviderByCliId.description": "Per-agent custom API provider overrides. Use inherit to follow the global default."
