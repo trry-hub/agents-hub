@@ -1936,35 +1936,37 @@
   }
 
   function appendEmptyState(titleText, subtitleText, showSetupAction = false) {
-      const empty = document.createElement('div');
-      empty.className = 'empty-state';
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
 
-      const title = document.createElement('div');
-      title.className = 'empty-title';
-      title.textContent = titleText;
-      empty.appendChild(title);
+    const title = document.createElement('div');
+    title.className = 'empty-title';
+    title.textContent = titleText;
+    empty.appendChild(title);
 
-      const subtitle = document.createElement('div');
-      subtitle.className = 'empty-subtitle';
-      subtitle.textContent = subtitleText;
-      empty.appendChild(subtitle);
+    const subtitle = document.createElement('div');
+    subtitle.className = 'empty-subtitle';
+    subtitle.textContent = subtitleText;
+    empty.appendChild(subtitle);
 
-      const suggestions = document.createElement('div');
-      suggestions.className = 'suggestion-list';
-      const suggestionActions = [
+    const suggestions = document.createElement('div');
+    suggestions.className = 'suggestion-list';
+
+    const suggestionActions = showSetupAction
+      ? [['openSettings', 'empty.configureProviders']]
+      : [
         ['explainSelection', 'empty.explain'],
         ['reviewFile', 'empty.review'],
         ['generateTests', 'empty.tests'],
         ['refactorSelection', 'empty.refactor'],
       ];
 
-      if (showSetupAction) {
-        suggestionActions.push(['openSettings', 'empty.configureProviders']);
-      }
-
-      for (const [action, labelKey] of suggestionActions) {
+    for (const [action, labelKey] of suggestionActions) {
       const button = document.createElement('button');
       button.className = 'suggestion-button';
+      if (action === 'openSettings') {
+        button.classList.add('suggestion-button--primary');
+      }
       button.dataset.action = action;
       button.textContent = i18n.t(labelKey);
       if (actionRequiresSelection(action) && !hasSelectionContext()) {
@@ -1974,8 +1976,8 @@
       suggestions.appendChild(button);
     }
 
-      empty.appendChild(suggestions);
-      messages.appendChild(empty);
+    empty.appendChild(suggestions);
+    messages.appendChild(empty);
   }
 
   function appendLoadingMessage(text) {

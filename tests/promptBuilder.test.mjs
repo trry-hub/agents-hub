@@ -789,12 +789,14 @@ test('webview includes an advanced controls toggle for composer settings', () =>
   assert.match(script, /setComposerAdvancedVisible\(true\);/);
   assert.match(css, /\.advanced-toggle\s*\{/s);
   assert.match(css, /\.prompt-shell\[data-advanced="false"\] \.option-menu,/s);
+  assert.match(css, /\.suggestion-button--primary\s*\{/s);
   assert.match(i18nScript, /'composer\.advanced': 'Advanced'/);
   assert.match(i18nScript, /'composer\.advancedHide': 'Hide advanced'/);
 
   assert.match(script, /appendEmptyState\(titleText, subtitleText, showSetupAction = false\)/);
-  assert.match(script, /if \(showSetupAction\) \{/);
+  assert.match(script, /const suggestionActions = showSetupAction[\s\S]*'openSettings', 'empty\.configureProviders'/);
   assert.match(script, /'openSettings'/);
+  assert.match(script, /button\.classList\.add\('suggestion-button--primary'\)/);
   assert.match(sidebarSource, /case 'openSettings':/);
   assert.match(extensionSource, /agentsHub\.openSettings/);
   assert.match(i18nScript, /'empty\.configureProviders': 'Open provider settings'/);

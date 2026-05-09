@@ -907,6 +907,18 @@ textarea:focus {
   border-color: var(--assistant-border);
 }
 
+.suggestion-button--primary {
+  border-color: color-mix(in srgb, var(--assistant-accent) 50%, var(--assistant-border));
+  background: color-mix(in srgb, var(--assistant-accent) 16%, var(--assistant-panel));
+  color: color-mix(in srgb, var(--vscode-foreground) 95%, black);
+  font-weight: 600;
+}
+
+.suggestion-button--primary:hover {
+  background: color-mix(in srgb, var(--assistant-accent) 25%, var(--assistant-panel));
+  border-color: color-mix(in srgb, var(--assistant-accent) 75%, var(--assistant-border));
+}
+
 .message {
   max-width: 100%;
   display: grid;
