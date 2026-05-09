@@ -1822,20 +1822,36 @@
     const conversation = ensureConversation(activeId);
     const activeThread = ensureActiveThread(activeId);
     const isPending = Boolean(pendingByProvider[activeId]);
+    const selectedProfile = activeProfile();
     messages.innerHTML = '';
 
-    if (!activeId) {
+    if (!activeId || !selectedProfile) {
       const firstInstallHintProfile = profiles.find((profile) => profile?.installHint && !profile.installed);
       const noProviderSubtitle = firstInstallHintProfile
         ? providerUnavailableMessage(firstInstallHintProfile)
         : i18n.t('provider.unavailable');
       syncMessageStatusTimer(false);
-      appendEmptyState(i18n.t('provider.noInstalled'), noProviderSubtitle, true);
+      appendEmptyState(
+        i18n.t('provider.noInstalled'),
+        noProviderSubtitle,
+        true,
+        firstInstallHintProfile?.installHint
+      );
       return;
     }
 
     if (conversation.length === 0 && !isPending) {
       syncMessageStatusTimer(false);
+      if (!selectedProfile.installed) {
+        appendEmptyState(
+          i18n.t('provider.noInstalled'),
+          providerUnavailableMessage(selectedProfile),
+          true,
+          selectedProfile.installHint
+        );
+        return;
+      }
+
       appendEmptyState(i18n.t('empty.title'), i18n.t('empty.subtitle'));
       return;
     }
@@ -1939,7 +1955,7 @@
     container.appendChild(wrap);
   }
 
-  function appendEmptyState(titleText, subtitleText, showSetupAction = false) {
+  function appendEmptyState(titleText, subtitleText, showSetupAction = false, installHint) {
     const empty = document.createElement('div');
     empty.className = 'empty-state';
 
@@ -1964,6 +1980,9 @@
         ['generateTests', 'empty.tests'],
         ['refactorSelection', 'empty.refactor'],
       ];
+    if (showSetupAction && installHint) {
+      suggestionActions.push(['copyInstall', 'empty.copyInstall']);
+    }
 
     for (const [action, labelKey] of suggestionActions) {
       const button = document.createElement('button');
@@ -1972,6 +1991,9 @@
         button.classList.add('suggestion-button--primary');
       }
       button.dataset.action = action;
+      if (action === 'copyInstall' && installHint) {
+        button.dataset.installCommand = installHint;
+      }
       button.textContent = i18n.t(labelKey);
       if (actionRequiresSelection(action) && !hasSelectionContext()) {
         button.disabled = true;
@@ -3197,7 +3219,19 @@
 
     const action = button.dataset.action;
     if (action === 'openSettings') {
+      event.preventDefault();
+      event.stopPropagation();
       vscode.postMessage({ command: 'openSettings' });
+      return;
+    }
+
+    if (action === 'copyInstall') {
+      event.preventDefault();
+      event.stopPropagation();
+      vscode.postMessage({
+        command: 'copyInstallCommand',
+        installCommand: button.dataset.installCommand,
+      });
       return;
     }
 

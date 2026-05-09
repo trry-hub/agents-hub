@@ -115,6 +115,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case 'openProviderExtension':
           await this.openProviderExtension(this.resolveCliId(message));
           break;
+        case 'copyInstallCommand':
+          await this.copyInstallCommand(message.installCommand);
+          break;
         case 'reloadWindow':
           await vscode.commands.executeCommand('agentsHub.reloadWindow');
           break;
@@ -519,6 +522,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     vscode.window.showWarningMessage(
       runtimeT(this.locale, 'providerExtension.openFailed', { extension: bridge.displayName })
     );
+  }
+
+  private async copyInstallCommand(installCommand: unknown): Promise<void> {
+    const text = typeof installCommand === 'string' ? installCommand.trim() : '';
+    if (!text) {
+      return;
+    }
+    await vscode.env.clipboard.writeText(text);
+    vscode.window.showInformationMessage(runtimeT(this.locale, 'notification.installCommandCopied'));
   }
 
   private resolveCliId(message: AssistantWebviewRequest): string {
