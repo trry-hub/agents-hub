@@ -341,18 +341,18 @@ select {
 
 .provider-tabs {
   min-width: 0;
-  max-width: min(50vw, 270px);
-  height: 34px;
+  max-width: min(46vw, 220px);
+  height: 28px;
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 2px;
-  padding: 2px;
+  gap: 1px;
+  padding: 1px;
   flex: 0 1 auto;
   overflow-x: auto;
   overflow-y: hidden;
   border: 1px solid color-mix(in srgb, var(--assistant-border) 88%, transparent);
-  border-radius: 8px;
+  border-radius: 7px;
   background: color-mix(in srgb, var(--assistant-panel) 56%, var(--assistant-surface));
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--assistant-surface) 40%, transparent);
   scrollbar-width: none;
@@ -368,18 +368,18 @@ select {
 }
 
 .provider-tab-button {
-  --provider-tab-collapsed-width: 34px;
+  --provider-tab-collapsed-width: 28px;
   position: relative;
   width: var(--provider-tab-collapsed-width);
   min-width: var(--provider-tab-collapsed-width);
-  height: 28px;
+  height: 24px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0;
   padding: 0;
   border: 0;
-  border-radius: 6px;
+  border-radius: 5px;
   color: var(--assistant-muted);
   background: transparent;
   cursor: pointer;
@@ -397,11 +397,11 @@ select {
 
 .provider-tab-button:first-child {
   border-left: 0;
-  border-radius: 6px;
+  border-radius: 5px;
 }
 
 .provider-tab-button:last-child {
-  border-radius: 6px;
+  border-radius: 5px;
 }
 
 .provider-tab-button:hover {
@@ -423,8 +423,7 @@ select {
   background: var(--vscode-input-background, var(--assistant-surface));
   box-shadow:
     inset 0 0 0 1px color-mix(in srgb, var(--assistant-border) 34%, transparent),
-    0 1px 2px rgba(0, 0, 0, 0.08),
-    0 3px 8px rgba(0, 0, 0, 0.1);
+    0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 .provider-tab-button.is-active:hover {
@@ -437,8 +436,8 @@ select {
 }
 
 .provider-tab-logo {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   display: block;
   object-fit: contain;
   flex: 0 0 auto;
@@ -2324,24 +2323,24 @@ body[data-provider="opencode"] .prompt-shell:focus-within {
 
 body[data-provider="opencode"] .composer {
   gap: 5px;
-  padding: 6px 16px 10px;
+  padding: 6px 16px 7px;
 }
 
 body[data-provider="opencode"] textarea {
-  min-height: 40px;
-  max-height: 104px;
-  padding: 10px 14px 8px;
+  min-height: 34px;
+  max-height: 96px;
+  padding: 8px 14px 4px;
   font-family: var(--vscode-editor-font-family);
   font-size: 13px;
   line-height: 18px;
 }
 
 body[data-provider="opencode"] .prompt-actions {
-  min-height: 36px;
+  min-height: 30px;
   grid-template-columns: minmax(0, 1fr) 30px;
   gap: 6px;
   align-items: center;
-  padding: 5px 7px 2px 8px;
+  padding: 3px 7px 4px 8px;
   border-top: 1px solid color-mix(in srgb, var(--assistant-border) 82%, transparent);
 }
 
@@ -2483,8 +2482,8 @@ body[data-provider="opencode"] .prompt-tools {
 
 body[data-provider="opencode"] .send-button,
 body[data-provider="opencode"] .stop-button {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   border-radius: 6px;
 }
 
@@ -3304,15 +3303,15 @@ textarea:disabled {
 
   .provider-tabs {
     max-width: min(58vw, 220px);
-    height: 32px;
-    border-radius: 8px;
-    padding: 2px;
+    height: 28px;
+    border-radius: 7px;
+    padding: 1px;
   }
 
   .provider-tab-button {
-    min-width: 30px;
-    height: 26px;
-    --provider-tab-collapsed-width: 30px;
+    min-width: 28px;
+    height: 24px;
+    --provider-tab-collapsed-width: 28px;
     padding: 0;
   }
 

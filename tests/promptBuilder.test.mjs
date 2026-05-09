@@ -897,6 +897,8 @@ test('webview composer follows the selected provider identity', () => {
   assert.match(i18nScript, /'input\.placeholderProvider': '向 \{provider\} 发送任务\.\.\.'/);
   assert.match(css, /body\[data-provider="codex"\] \.mode-summary/);
   assert.match(css, /body\[data-provider="opencode"\] \.prompt-shell/);
+  assert.match(css, /body\[data-provider="opencode"\] textarea\s*\{\s*[^}]*min-height:\s*34px;/s);
+  assert.match(css, /body\[data-provider="opencode"\] textarea\s*\{\s*[^}]*padding:\s*8px 14px 4px;/s);
   assert.match(css, /body\[data-provider="opencode"\] \.model-menu\.is-visible,\s*body\[data-provider="opencode"\] \.mode-menu\.is-visible/s);
   assert.match(css, /body\[data-provider="opencode"\] \.model-menu \.option-summary::before\s*\{\s*[^}]*display:\s*none;/s);
   assert.match(html, /class="context-row"[\s\S]*class="context-menu"/);
@@ -909,6 +911,8 @@ test('webview composer follows the selected provider identity', () => {
   assert.match(css, /body\[data-provider="opencode"\] \.context-summary \.chip-prefix\s*\{\s*[^}]*width:\s*11px;/s);
   assert.match(css, /body\[data-provider="opencode"\] \.context-summary \.chip-prefix\s*\{\s*[^}]*border:\s*2px solid color-mix\(in srgb, var\(--assistant-muted\) 48%, transparent\);/s);
   assert.match(css, /body\[data-provider="opencode"\] \.prompt-actions\s*\{\s*[^}]*border-top:/s);
+  assert.match(css, /body\[data-provider="opencode"\] \.prompt-actions\s*\{\s*[^}]*min-height:\s*30px;/s);
+  assert.match(css, /body\[data-provider="opencode"\] \.prompt-actions\s*\{\s*[^}]*padding:\s*3px 7px 4px 8px;/s);
   assert.match(css, /body\[data-provider="opencode"\] \.send-button\s*\{[^}]*var\(--assistant-accent, #a855f7\)/s);
   assert.match(css, /body\[data-provider="opencode"\] \.send-button:disabled\s*\{[^}]*opacity:\s*1;/s);
   assert.match(css, /body\[data-provider="opencode"\] \.send-button:disabled svg\s*\{[^}]*stroke-width:\s*2;/s);
@@ -1106,10 +1110,14 @@ test('webview renders installed provider logo tabs in the header', () => {
   assert.match(JSON.stringify(titleActions), /agentsHub\.refreshProviders/);
   assert.match(JSON.stringify(titleActions), /agentsHub\.openProviderSettings/);
   assert.match(css, /\.provider-tabs\s*\{/);
+  assert.match(css, /\.provider-tabs\s*\{\s*[^}]*height:\s*28px;/s);
   assert.match(css, /\.provider-tab-button\s*\{/);
+  assert.match(css, /\.provider-tab-button\s*\{\s*[^}]*--provider-tab-collapsed-width:\s*28px;/s);
+  assert.match(css, /\.provider-tab-button\s*\{\s*[^}]*height:\s*24px;/s);
   assert.match(css, /\.provider-tab-button\.is-active\s*\{/);
   assert.match(css, /\.provider-tab-button\.is-active\s*\{\s*[^}]*width:\s*var\(--provider-tab-collapsed-width\);/s);
   assert.match(css, /\.provider-tab-logo\s*\{/);
+  assert.match(css, /\.provider-tab-logo\s*\{\s*[^}]*width:\s*18px;/s);
   assert.match(css, /\.provider-tab-version\s*\{/);
   assert.match(css, /\.provider-tab-version\s*\{\s*[^}]*display:\s*none;/s);
   assert.doesNotMatch(css, /\.provider-tab-version\s*\{[^}]*text-overflow:\s*ellipsis;/s);
