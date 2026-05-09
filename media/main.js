@@ -8,13 +8,25 @@
   const INTERNAL_PROMPT_START = 'You are an AI coding assistant embedded in VS Code.';
   const INTERNAL_PROMPT_END_MARKER =
     '- If context is missing, say what is missing and proceed with the best available information.';
+  const MAX_IMAGE_ATTACHMENTS = 8;
+  const MAX_IMAGE_ATTACHMENT_BYTES = 12 * 1024 * 1024;
+  const TASK_STATUSES = ['preparing', 'running', 'completed', 'failed', 'stopped'];
+  const TASK_ACTIVE_STATUSES = ['preparing', 'running'];
+  const VISUAL_TASK_BOARD_ENABLED = false;
 
   const saved = vscode.getState() || {};
   let profiles = [];
   let activeId = saved.activeId || '';
   let activeAgentModeByProvider = saved.activeAgentModeByProvider || {};
+  let activeModelByProvider = saved.activeModelByProvider || {};
+  let customModelByProvider = saved.customModelByProvider || {};
+  let activeRuntimeByProvider = saved.activeRuntimeByProvider || {};
+  let activePermissionByProvider = saved.activePermissionByProvider || {};
+  let claudeTerminalBannerDismissed = Boolean(saved.claudeTerminalBannerDismissed);
+  let taskBoardDismissed = Boolean(saved.taskBoardDismissed);
   let legacyWorkflowMode = saved.workflowMode || (saved.mode === 'agent' ? 'execute' : undefined);
   let threadsByProvider = normalizeSavedThreads(saved.threadsByProvider, saved.conversations);
+  let tasks = normalizeSavedTasks(saved.tasks);
   let activeThreadByProvider = saved.activeThreadByProvider || {};
   let contextOptions = saved.contextOptions || {
     includeWorkspace: true,
@@ -24,23 +36,59 @@
   };
   let contextSummary = null;
   let streamTargets = {};
+  let taskBySessionId = {};
+  let pendingTaskByProvider = {};
   let runningByProvider = {};
   let pendingByProvider = {};
   let pendingThreadByProvider = {};
+  let messageStatusTimer = undefined;
+  let promptAttachments = [];
 
+  const taskBoard = document.getElementById('taskBoard');
   const providerSelect = document.getElementById('providerSelect');
   const providerHint = document.getElementById('providerHint');
+  const modelSelect = document.getElementById('modelSelect');
+  const modelSummaryLabel = document.getElementById('modelSummaryLabel');
+  const modelOptionList = document.getElementById('modelOptionList');
+  const customModelField = document.getElementById('customModelField');
+  const customModelInput = document.getElementById('customModelInput');
+  const runtimeSelect = document.getElementById('runtimeSelect');
+  const runtimeSummaryLabel = document.getElementById('runtimeSummaryLabel');
+  const runtimeOptionList = document.getElementById('runtimeOptionList');
+  const permissionSelect = document.getElementById('permissionSelect');
+  const permissionSummaryLabel = document.getElementById('permissionSummaryLabel');
+  const permissionOptionList = document.getElementById('permissionOptionList');
   const agentModeSelect = document.getElementById('agentModeSelect');
   const agentModeSummaryLabel = document.getElementById('agentModeSummaryLabel');
+  const agentModeOptionList = document.getElementById('agentModeOptionList');
   const actionSelect = document.getElementById('actionSelect');
   const threadSelect = document.getElementById('threadSelect');
   const deleteThreadBtn = document.getElementById('deleteThreadBtn');
   const contextSummaryLabel = document.getElementById('contextSummaryLabel');
+  const contextBudget = document.getElementById('contextBudget');
+  const contextBudgetPopover = contextBudget?.querySelector('.context-budget-popover');
+  const contextBudgetLabel = document.getElementById('contextBudgetLabel');
+  const contextBudgetPercent = document.getElementById('contextBudgetPercent');
+  const contextBudgetTokens = document.getElementById('contextBudgetTokens');
+  const contextBudgetTokenizer = document.getElementById('contextBudgetTokenizer');
+  const contextBudgetPolicy = document.getElementById('contextBudgetPolicy');
   const slashPalette = document.getElementById('slashPalette');
+  const claudeTerminalBanner = document.getElementById('claudeTerminalBanner');
+  const claudeTerminalDismiss = document.getElementById('claudeTerminalDismiss');
+  const claudeContextBtn = document.getElementById('claudeContextBtn');
+  const codexTerminalBanner = document.getElementById('codexTerminalBanner');
+  const codexTerminalStop = document.getElementById('codexTerminalStop');
+  const codexTerminalOpen = document.getElementById('codexTerminalOpen');
+  const modelMenu = document.querySelector('.model-menu');
+  const runtimeMenu = document.querySelector('.runtime-menu');
+  const permissionMenu = document.querySelector('.permission-menu');
   const modeMenu = document.querySelector('.mode-menu');
   const contextMenu = document.querySelector('.context-menu');
   const messages = document.getElementById('messages');
   const input = document.getElementById('promptInput');
+  const attachmentStrip = document.getElementById('attachmentStrip');
+  const attachImageBtn = document.getElementById('attachImageBtn');
+  const imageFileInput = document.getElementById('imageFileInput');
   const sendBtn = document.getElementById('sendBtn');
   const stopBtn = document.getElementById('stopBtn');
   const newChatBtn = document.getElementById('newChatBtn');
@@ -54,6 +102,8 @@
     { name: 'refresh', kind: 'local', local: 'refresh', descriptionKey: 'slash.refresh.desc' },
     { name: 'stop', kind: 'local', local: 'stop', descriptionKey: 'slash.stop.desc' },
     { name: 'copy', kind: 'local', local: 'copy', descriptionKey: 'slash.copy.desc' },
+    { name: 'models', aliases: ['model'], kind: 'local', local: 'models', providers: ['opencode'], descriptionKey: 'slash.models.desc' },
+    { name: 'agents', aliases: ['agent'], kind: 'local', local: 'agents', providers: ['opencode'], descriptionKey: 'slash.agents.desc' },
     {
       name: 'review',
       action: 'reviewFile',
@@ -83,7 +133,7 @@
       name: 'plan',
       action: 'freeform',
       prompt: i18n.t('slash.plan.prompt'),
-      modeByProvider: { claude: 'plan', codex: 'suggest', opencode: 'plan', gemini: 'plan', goose: 'plan' },
+      modeByProvider: { claude: 'plan', codex: 'plan', opencode: 'plan', gemini: 'plan', goose: 'plan' },
       descriptionKey: 'slash.plan.desc',
     },
     {
@@ -296,7 +346,14 @@
     vscode.setState({
       activeId,
       activeAgentModeByProvider,
+      activeModelByProvider,
+      customModelByProvider,
+      activeRuntimeByProvider,
+      activePermissionByProvider,
+      claudeTerminalBannerDismissed,
+      taskBoardDismissed,
       threadsByProvider: serializeThreadsForState(threadsByProvider),
+      tasks: serializeTasksForState(tasks),
       activeThreadByProvider,
       contextOptions,
     });
@@ -307,14 +364,24 @@
     Object.entries(source || {}).forEach(([cliId, threads]) => {
       serialized[cliId] = (threads || []).map((thread) => ({
         ...thread,
-        messages: (thread.messages || []).map((message) => (
-          message && typeof message === 'object'
-            ? { ...message, running: false }
-            : message
-        )),
+        messages: (thread.messages || []).map((message) => {
+          if (!message || typeof message !== 'object') {
+            return message;
+          }
+          const { startedAt, ...rest } = message;
+          return { ...rest, running: false };
+        }),
       }));
     });
     return serialized;
+  }
+
+  function serializeTasksForState(source) {
+    return (source || []).slice(0, 20).map((task) => ({
+      ...task,
+      status: task.status === 'running' || task.status === 'preparing' ? 'stopped' : task.status,
+      sessionId: undefined,
+    }));
   }
 
   function activeProfile() {
@@ -323,6 +390,164 @@
 
   function installedProfiles() {
     return profiles.filter((profile) => profile.installed);
+  }
+
+  function formatProviderVersion(version) {
+    const value = String(version || '').trim();
+    if (!value) {
+      return '';
+    }
+
+    return value.startsWith('v') ? value : `v${value}`;
+  }
+
+  function formatTokenCount(tokens) {
+    const value = Math.max(0, Math.round(Number(tokens) || 0));
+    if (value >= 1000000) {
+      return `${Math.round(value / 100000) / 10}m`;
+    }
+    if (value >= 1000) {
+      return `${Math.round(value / 1000)}k`;
+    }
+
+    return String(value);
+  }
+
+  function formatBytes(bytes) {
+    const value = Math.max(0, Math.round(Number(bytes) || 0));
+    if (value >= 1024 * 1024) {
+      const mb = value / (1024 * 1024);
+      return `${Number.isInteger(mb) ? mb : mb.toFixed(1)} MB`;
+    }
+    if (value >= 1024) {
+      return `${Math.round(value / 1024)} KB`;
+    }
+    return `${value} B`;
+  }
+
+  function attachmentPayload(attachment) {
+    return {
+      kind: 'image',
+      name: attachment.name,
+      mimeType: attachment.mimeType,
+      size: attachment.size,
+      dataUrl: attachment.dataUrl,
+    };
+  }
+
+  function clipboardImageFiles(dataTransfer) {
+    const files = [];
+    Array.from(dataTransfer?.items || []).forEach((item) => {
+      if (item.kind !== 'file' || !item.type?.startsWith('image/')) {
+        return;
+      }
+      const file = item.getAsFile();
+      if (file) {
+        files.push(file);
+      }
+    });
+
+    if (files.length === 0) {
+      Array.from(dataTransfer?.files || []).forEach((file) => {
+        if (file?.type?.startsWith('image/')) {
+          files.push(file);
+        }
+      });
+    }
+
+    return files;
+  }
+
+  function readImageFile(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(reader.error || new Error('Failed to read image'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function addImageFiles(files) {
+    const imageFiles = Array.from(files || []).filter((file) => file?.type?.startsWith('image/'));
+    for (const file of imageFiles) {
+      if (promptAttachments.length >= MAX_IMAGE_ATTACHMENTS) {
+        addMessage(activeId, 'error', i18n.t('attachment.tooMany', { count: String(MAX_IMAGE_ATTACHMENTS) }));
+        break;
+      }
+      if (file.size > MAX_IMAGE_ATTACHMENT_BYTES) {
+        addMessage(
+          activeId,
+          'error',
+          i18n.t('attachment.tooLarge', {
+            name: file.name || i18n.t('attachment.imageLabel'),
+            size: formatBytes(MAX_IMAGE_ATTACHMENT_BYTES),
+          })
+        );
+        continue;
+      }
+
+      try {
+        const dataUrl = await readImageFile(file);
+        promptAttachments.push({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          kind: 'image',
+          name: file.name || i18n.t('attachment.imageLabel'),
+          mimeType: file.type || 'image/png',
+          size: file.size,
+          dataUrl,
+        });
+      } catch {
+        addMessage(activeId, 'error', i18n.t('attachment.readFailed'));
+      }
+    }
+
+    renderAttachmentStrip();
+    renderComposer();
+  }
+
+  function renderAttachmentStrip() {
+    if (!attachmentStrip) {
+      return;
+    }
+
+    attachmentStrip.innerHTML = '';
+    attachmentStrip.hidden = promptAttachments.length === 0;
+    promptAttachments.forEach((attachment) => {
+      const chip = document.createElement('div');
+      chip.className = 'attachment-chip';
+
+      const preview = document.createElement('img');
+      preview.src = attachment.dataUrl;
+      preview.alt = '';
+      chip.appendChild(preview);
+
+      const label = document.createElement('span');
+      label.textContent = attachment.name;
+      label.title = `${attachment.name} · ${formatBytes(attachment.size)}`;
+      chip.appendChild(label);
+
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.dataset.attachmentId = attachment.id;
+      remove.setAttribute('aria-label', i18n.t('attachment.remove'));
+      remove.title = i18n.t('attachment.remove');
+      remove.textContent = 'x';
+      chip.appendChild(remove);
+
+      attachmentStrip.appendChild(chip);
+    });
+  }
+
+  function normalizeMessageAttachments(attachments) {
+    return (Array.isArray(attachments) ? attachments : [])
+      .filter((attachment) => attachment?.kind === 'image')
+      .map((attachment) => ({
+        kind: 'image',
+        name: attachment.name || i18n.t('attachment.imageLabel'),
+        mimeType: attachment.mimeType || 'image/png',
+        size: Number(attachment.size) || 0,
+        path: attachment.path || '',
+      }));
   }
 
   function normalizeSavedThreads(savedThreads, legacyConversations) {
@@ -355,8 +580,30 @@
     return normalized;
   }
 
+  function normalizeSavedTasks(savedTasks) {
+    return (Array.isArray(savedTasks) ? savedTasks : [])
+      .filter((task) => task && typeof task === 'object' && task.providerId)
+      .slice(0, 20)
+      .map((task) => ({
+        id: task.id || makeTaskId(task.providerId),
+        providerId: task.providerId,
+        providerName: task.providerName || task.providerId,
+        title: task.title || i18n.t('task.untitled'),
+        action: task.action || 'freeform',
+        agentMode: task.agentMode || '',
+        status: task.status === 'running' || task.status === 'preparing' ? 'stopped' : (task.status || 'completed'),
+        threadId: task.threadId || '',
+        createdAt: Number(task.createdAt) || Date.now(),
+        updatedAt: Number(task.updatedAt) || Date.now(),
+      }));
+  }
+
   function makeThreadId(cliId) {
     return `${cliId || 'thread'}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  }
+
+  function makeTaskId(providerId) {
+    return `${providerId || 'task'}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   }
 
   function createThread(cliId, messages) {
@@ -483,6 +730,21 @@
     return thread?.messages || [];
   }
 
+  function conversationHistoryForSend(cliId) {
+    return ensureConversation(cliId, activeThreadId(cliId))
+      .filter((message) => (
+        message &&
+        !message.running &&
+        (message.role === 'user' || message.role === 'assistant') &&
+        normalizeMessageText(message.text).trim()
+      ))
+      .slice(-8)
+      .map((message) => ({
+        role: message.role,
+        text: normalizeMessageText(message.text).replace(/\s+/g, ' ').trim().slice(0, 1200),
+      }));
+  }
+
   function touchThread(thread, titleText) {
     if (!thread) {
       return;
@@ -495,6 +757,44 @@
     }
   }
 
+  function createRunTask(providerId, action, text, agentMode) {
+    const profile = profiles.find((item) => item.id === providerId);
+    const now = Date.now();
+    const task = {
+      id: makeTaskId(providerId),
+      providerId,
+      providerName: profile?.name || providerId,
+      title: deriveThreadTitle(text) || i18n.t('task.untitled'),
+      action: action || 'freeform',
+      agentMode: agentMode || '',
+      status: 'preparing',
+      threadId: activeThreadId(providerId),
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    tasks = [task, ...tasks.filter((item) => item.id !== task.id)].slice(0, 20);
+    persist();
+    renderTaskBoard();
+    return task;
+  }
+
+  function updateTaskStatus(taskId, updates = {}) {
+    if (!taskId) {
+      return undefined;
+    }
+
+    const task = tasks.find((item) => item.id === taskId);
+    if (!task) {
+      return undefined;
+    }
+
+    Object.assign(task, updates, { updatedAt: Date.now() });
+    persist();
+    renderTaskBoard();
+    return task;
+  }
+
   function setAccent(profile) {
     document.documentElement.style.setProperty(
       '--assistant-accent',
@@ -503,7 +803,7 @@
   }
 
   function agentModesFor(profile) {
-    return Array.isArray(profile?.agentModes) && profile.agentModes.length > 0
+    const modes = Array.isArray(profile?.agentModes) && profile.agentModes.length > 0
       ? profile.agentModes
       : [
           {
@@ -513,12 +813,16 @@
             instruction: 'Use this provider as a coding agent.',
           },
         ];
+    const selectableModes = modes.filter((mode) => !mode.disabled);
+    return selectableModes.length > 0 ? selectableModes : modes;
   }
 
   function normalizeAgentModeId(profile, value) {
     const modes = agentModesFor(profile);
-    const mode = modes.find((item) => item.id === value)
-      || modes.find((item) => item.id === profile?.defaultAgentMode)
+    const selectableModes = modes.filter((item) => !item.disabled);
+    const mode = selectableModes.find((item) => item.id === value)
+      || selectableModes.find((item) => item.id === profile?.defaultAgentMode)
+      || selectableModes[0]
       || modes[0];
 
     return mode.id;
@@ -542,11 +846,145 @@
     return modes.find((mode) => mode.id === activeAgentModeId(profile.id)) || modes[0];
   }
 
+  function optionListFor(profile, key, fallbackLabelKey) {
+    const options = Array.isArray(profile?.[key]) ? profile[key] : [];
+    return options.length > 0
+      ? options
+      : [{ id: 'default', label: i18n.t(fallbackLabelKey), description: '' }];
+  }
+
+  function selectableOption(option) {
+    return !option?.disabled && !option?.actionOnly;
+  }
+
+  function normalizeOptionId(profile, value, key, defaultKey, fallbackLabelKey) {
+    const options = optionListFor(profile, key, fallbackLabelKey);
+    const selectableOptions = options.filter(selectableOption);
+    const pool = selectableOptions.length > 0 ? selectableOptions : options;
+    const option = pool.find((item) => item.id === value)
+      || pool.find((item) => item.id === profile?.[defaultKey])
+      || pool[0];
+
+    return option.id;
+  }
+
+  function modelOptionsFor(profile) {
+    return optionListFor(profile, 'modelOptions', 'model.short');
+  }
+
+  function runtimeModesFor(profile) {
+    return optionListFor(profile, 'runtimeModes', 'runtime.short');
+  }
+
+  function permissionModesFor(profile) {
+    return optionListFor(profile, 'permissionModes', 'permission.short');
+  }
+
+  function localizedCliOption(option, group) {
+    if (!option) {
+      return option;
+    }
+
+    const labelKey = `option.${group}.${option.id}`;
+    const descriptionKey = `${labelKey}.description`;
+    const translatedLabel = i18n.t(labelKey);
+    const translatedDescription = i18n.t(descriptionKey);
+
+    return {
+      ...option,
+      label: translatedLabel === labelKey ? option.label : translatedLabel,
+      summaryLabel: i18n.t(`${labelKey}.summary`) === `${labelKey}.summary`
+        ? option.summaryLabel
+        : i18n.t(`${labelKey}.summary`),
+      description: translatedDescription === descriptionKey ? option.description : translatedDescription,
+    };
+  }
+
+  function localizedPermissionOption(option) {
+    const displayOption = localizedCliOption(option, 'permission');
+    if (activeProfile()?.id === 'claude' && option?.id === 'default') {
+      return {
+        ...displayOption,
+        label: i18n.t('claude.permission.askBeforeEdits'),
+        summaryLabel: i18n.t('claude.permission.askBeforeEdits'),
+      };
+    }
+
+    return displayOption;
+  }
+
+  function activeModelId(cliId = activeId) {
+    const profile = profiles.find((item) => item.id === cliId);
+    const normalized = normalizeOptionId(
+      profile,
+      activeModelByProvider[cliId],
+      'modelOptions',
+      'defaultModel',
+      'model.short'
+    );
+    activeModelByProvider[cliId] = normalized;
+    return normalized;
+  }
+
+  function activeCustomModel(cliId = activeId) {
+    return String(customModelByProvider[cliId] || '').trim();
+  }
+
+  function activeRuntimeId(cliId = activeId) {
+    const profile = profiles.find((item) => item.id === cliId);
+    const normalized = normalizeOptionId(
+      profile,
+      activeRuntimeByProvider[cliId],
+      'runtimeModes',
+      'defaultRuntime',
+      'runtime.short'
+    );
+    activeRuntimeByProvider[cliId] = normalized;
+    return normalized;
+  }
+
+  function activePermissionId(cliId = activeId) {
+    const profile = profiles.find((item) => item.id === cliId);
+    const normalized = normalizeOptionId(
+      profile,
+      activePermissionByProvider[cliId],
+      'permissionModes',
+      'defaultPermissionMode',
+      'permission.short'
+    );
+    activePermissionByProvider[cliId] = normalized;
+    return normalized;
+  }
+
+  function activeModel(profile = activeProfile()) {
+    const options = modelOptionsFor(profile);
+    if (!profile) {
+      return options[0];
+    }
+    return options.find((option) => option.id === activeModelId(profile?.id)) || options[0];
+  }
+
+  function activeRuntime(profile = activeProfile()) {
+    const options = runtimeModesFor(profile);
+    if (!profile) {
+      return options[0];
+    }
+    return options.find((option) => option.id === activeRuntimeId(profile?.id)) || options[0];
+  }
+
+  function activePermission(profile = activeProfile()) {
+    const options = permissionModesFor(profile);
+    if (!profile) {
+      return options[0];
+    }
+    return options.find((option) => option.id === activePermissionId(profile?.id)) || options[0];
+  }
+
   function mapLegacyWorkflowMode(profile, value) {
     const modes = agentModesFor(profile);
     const desired = {
       auto: profile?.defaultAgentMode,
-      plan: profile?.id === 'codex' ? 'suggest' : 'plan',
+      plan: 'plan',
       execute: profile?.defaultAgentMode,
     }[value];
 
@@ -574,6 +1012,9 @@
 
     ensureActiveThread(activeId);
     activeAgentModeId(activeId);
+    activeModelId(activeId);
+    activeRuntimeId(activeId);
+    activePermissionId(activeId);
 
     for (const profile of availableProfiles) {
       const option = document.createElement('option');
@@ -584,6 +1025,112 @@
 
     providerSelect.value = activeId;
     providerSelect.disabled = Boolean(runningByProvider[activeId] || pendingByProvider[activeId]);
+  }
+
+  function providerStateLabel(profile) {
+    if (!profile?.installed) {
+      return i18n.t('provider.missing');
+    }
+    if (runningByProvider[profile.id]) {
+      return i18n.t('provider.running');
+    }
+    if (pendingByProvider[profile.id]) {
+      return i18n.t('provider.preparing');
+    }
+    return i18n.t('provider.ready');
+  }
+
+  function composerMenus() {
+    return [modelMenu, runtimeMenu, permissionMenu, modeMenu, contextMenu].filter(Boolean);
+  }
+
+  function closeComposerMenus(exceptMenu) {
+    composerMenus().forEach((menu) => {
+      if (menu !== exceptMenu) {
+        menu.open = false;
+      }
+    });
+  }
+
+  function composerPopoverFor(menu) {
+    return menu?.querySelector('.option-popover, .mode-popover, .context-popover');
+  }
+
+  function scheduleComposerPopoverPosition() {
+    requestAnimationFrame(positionOpenComposerPopovers);
+  }
+
+  function positionOpenComposerPopovers() {
+    composerMenus().forEach((menu) => {
+      if (!menu.open) {
+        return;
+      }
+      positionComposerPopover(menu);
+    });
+  }
+
+  function positionComposerPopover(menu) {
+    const summary = menu?.querySelector('summary');
+    const popover = composerPopoverFor(menu);
+    if (!summary || !popover) {
+      return;
+    }
+
+    const viewportPadding = 8;
+    const gap = 6;
+    const viewportWidth = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+    const viewportHeight = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+    const triggerRect = summary.getBoundingClientRect();
+    const availableWidth = Math.max(180, viewportWidth - viewportPadding * 2);
+
+    popover.style.setProperty('--composer-popover-max-width', `${Math.round(availableWidth)}px`);
+    popover.style.setProperty('--composer-popover-max-height', `${Math.max(120, viewportHeight - viewportPadding * 2)}px`);
+
+    const popoverRect = popover.getBoundingClientRect();
+    const popoverWidth = Math.min(popoverRect.width || availableWidth, availableWidth);
+    const spaceAbove = Math.max(0, triggerRect.top - viewportPadding - gap);
+    const spaceBelow = Math.max(0, viewportHeight - triggerRect.bottom - viewportPadding - gap);
+    const openAbove = spaceAbove >= Math.min(popoverRect.height || 0, 240) || spaceAbove >= spaceBelow;
+    const availableHeight = Math.max(120, openAbove ? spaceAbove : spaceBelow);
+    const popoverHeight = Math.min(popoverRect.height || availableHeight, availableHeight);
+    const alignToEnd = menu === modelMenu || menu === permissionMenu || menu === modeMenu || menu === runtimeMenu;
+
+    let left = alignToEnd ? triggerRect.right - popoverWidth : triggerRect.left;
+    left = Math.min(left, viewportWidth - viewportPadding - popoverWidth);
+    left = Math.max(viewportPadding, left);
+
+    let top = openAbove ? triggerRect.top - gap - popoverHeight : triggerRect.bottom + gap;
+    top = Math.min(top, viewportHeight - viewportPadding - popoverHeight);
+    top = Math.max(viewportPadding, top);
+
+    popover.style.setProperty('--composer-popover-left', `${Math.round(left)}px`);
+    popover.style.setProperty('--composer-popover-top', `${Math.round(top)}px`);
+    popover.style.setProperty('--composer-popover-max-height', `${Math.round(availableHeight)}px`);
+  }
+
+  function refreshActiveContext() {
+    if (!activeId) {
+      return;
+    }
+    vscode.postMessage({ command: 'refreshContext', cliId: activeId, contextOptions });
+  }
+
+  function switchActiveProvider(providerId) {
+    const profile = profiles.find((item) => item.id === providerId);
+    if (!profile?.installed || activeId === providerId) {
+      return;
+    }
+
+    activeId = providerId;
+    ensureActiveThread(activeId);
+    activeAgentModeId(activeId);
+    activeModelId(activeId);
+    activeRuntimeId(activeId);
+    activePermissionId(activeId);
+    persist();
+    renderAll();
+    refreshActiveContext();
+    input.focus();
   }
 
   function renderThreadSelect() {
@@ -622,7 +1169,7 @@
 
   function renderProviderHint() {
     const profile = activeProfile();
-    providerHint.classList.remove('is-warning');
+    providerHint.classList.remove('is-warning', 'has-version');
     providerHint.textContent = '';
     providerHint.title = '';
 
@@ -638,17 +1185,21 @@
       return;
     }
 
+    const versionLabel = formatProviderVersion(profile.version);
+    providerHint.classList.toggle('has-version', Boolean(versionLabel));
+    providerHint.textContent = versionLabel;
+
     if (runningByProvider[profile.id]) {
-      providerHint.title = `${profile.name} · ${i18n.t('provider.running')} · ${activeAgentMode(profile).label}`;
+      providerHint.title = `${profile.name} · ${i18n.t('provider.running')} · ${activeAgentMode(profile).label}${versionLabel ? ` · ${versionLabel}` : ''}`;
       return;
     }
 
     if (pendingByProvider[profile.id]) {
-      providerHint.title = `${profile.name} · ${i18n.t('provider.preparing')} · ${activeAgentMode(profile).label}`;
+      providerHint.title = `${profile.name} · ${i18n.t('provider.preparing')} · ${activeAgentMode(profile).label}${versionLabel ? ` · ${versionLabel}` : ''}`;
       return;
     }
 
-    providerHint.title = `${profile.name} · ${i18n.t('provider.ready')} · ${activeAgentMode(profile).label}`;
+    providerHint.title = `${profile.name} · ${i18n.t('provider.ready')} · ${activeAgentMode(profile).label}${versionLabel ? ` · ${versionLabel}` : ''}`;
   }
 
   function renderContextSummary() {
@@ -721,7 +1272,18 @@
 
   function commandsForActiveProvider() {
     const profile = activeProfile();
-    return SLASH_COMMANDS.filter((command) => slashCommandMatchesProvider(command, profile));
+    const seen = new Set();
+    const commands = [];
+    for (const command of SLASH_COMMANDS) {
+      if (!slashCommandMatchesProvider(command, profile) || seen.has(command.name)) {
+        continue;
+      }
+
+      seen.add(command.name);
+      commands.push(command);
+    }
+
+    return commands;
   }
 
   function renderSlashPalette() {
@@ -759,22 +1321,14 @@
       button.setAttribute('role', 'option');
       button.setAttribute('aria-selected', index === slashActiveIndex ? 'true' : 'false');
 
-      const name = document.createElement('span');
-      name.className = 'slash-command-name';
-      name.textContent = `/${command.name}`;
-      button.appendChild(name);
-
-      const body = document.createElement('span');
-      body.className = 'slash-command-body';
       const title = document.createElement('span');
       title.className = 'slash-command-title';
-      title.textContent = command.kind === 'native' ? profile?.name || activeId : `/${command.name}`;
+      title.textContent = `/${command.name}`;
       const description = document.createElement('span');
       description.className = 'slash-command-description';
       description.textContent = slashCommandDescription(command, profile);
-      body.appendChild(title);
-      body.appendChild(description);
-      button.appendChild(body);
+      button.appendChild(title);
+      button.appendChild(description);
       slashPalette.appendChild(button);
     });
 
@@ -826,7 +1380,7 @@
       ?.text;
   }
 
-  function executeLocalSlashCommand(command) {
+  function executeLocalSlashCommand(command, args = '') {
     switch (command.local) {
       case 'new':
         startNewThread(activeId);
@@ -845,7 +1399,7 @@
         return;
       case 'refresh':
         vscode.postMessage({ command: 'checkProfiles' });
-        vscode.postMessage({ command: 'refreshContext', contextOptions });
+        vscode.postMessage({ command: 'refreshContext', cliId: activeId, contextOptions });
         return;
       case 'stop':
         if (runningByProvider[activeId]) {
@@ -864,6 +1418,22 @@
           void navigator.clipboard?.writeText(normalizeMessageText(latest));
           addMessage(activeId, 'system', i18n.t('slash.copied'));
         }
+        return;
+      case 'models':
+        if (modelMenu) {
+          closeComposerMenus(modelMenu);
+          modelMenu.classList.add('is-visible');
+          modelMenu.open = true;
+        }
+        renderComposer();
+        return;
+      case 'agents':
+        if (modeMenu) {
+          closeComposerMenus(modeMenu);
+          modeMenu.classList.add('is-visible');
+          modeMenu.open = true;
+        }
+        renderComposer();
         return;
       default:
         return;
@@ -884,7 +1454,7 @@
     hideSlashPalette();
 
     if (command.kind === 'local') {
-      executeLocalSlashCommand(command);
+      executeLocalSlashCommand(command, args);
       renderComposer();
       return;
     }
@@ -937,9 +1507,273 @@
       'is-visible',
       Boolean(
         forceContextMenuVisible ||
-        (contextSummary && (contextSummary.selection || contextSummary.activeFile || contextSummary.diagnostics))
+        (
+          contextSummary &&
+          (
+            contextSummary.selection ||
+            contextSummary.activeFile ||
+            contextSummary.diagnostics ||
+            contextSummary.workspace
+          )
+        )
       )
     );
+  }
+
+  function renderContextBudget() {
+    if (
+      !contextBudget ||
+      !contextBudgetLabel ||
+      !contextBudgetPercent ||
+      !contextBudgetTokens ||
+      !contextBudgetTokenizer ||
+      !contextBudgetPolicy
+    ) {
+      return;
+    }
+
+    const profile = activeProfile();
+    const tokenUsage = contextSummary?.tokenUsage;
+    if (!profile || !contextSummary || !tokenUsage) {
+      contextBudget.hidden = true;
+      contextBudgetLabel.textContent = '';
+      contextBudget.title = '';
+      return;
+    }
+
+    contextBudget.hidden = false;
+    const isExact = tokenUsage.precision === 'exact' && Number.isFinite(Number(tokenUsage.tokens));
+    contextBudget.classList.toggle('has-total', Boolean(isExact && profile.contextWindowTokens));
+    contextBudget.classList.toggle('is-unavailable', !isExact);
+
+    if (!isExact) {
+      contextBudgetLabel.textContent = 'ctx';
+      contextBudgetPercent.textContent = i18n.t('contextWindow.exactUnavailable', { provider: profile.name });
+      contextBudgetTokens.textContent = tokenUsage.reason || i18n.t('contextWindow.providerManaged', { provider: profile.name });
+      contextBudgetTokenizer.textContent = tokenUsage.tokenizer
+        ? i18n.t('contextWindow.tokenizer', { tokenizer: tokenUsage.tokenizer })
+        : '';
+      contextBudgetPolicy.textContent = i18n.t('contextWindow.providerManaged', { provider: profile.name });
+      contextBudget.title = [
+        i18n.t('contextWindow.title'),
+        contextBudgetPercent.textContent,
+        contextBudgetTokens.textContent,
+      ].filter(Boolean).join(' ');
+      positionContextBudgetPopover();
+      return;
+    }
+
+    const usedTokens = Math.max(0, Math.round(Number(tokenUsage.tokens) || 0));
+    const totalTokens = Math.max(0, Math.round(Number(profile.contextWindowTokens) || 0));
+    const hasTotal = totalTokens > 0;
+    const used = formatTokenCount(usedTokens);
+
+    if (hasTotal) {
+      const usedPercent = Math.min(100, Math.max(usedTokens > 0 ? 1 : 0, Math.round((usedTokens / totalTokens) * 100)));
+      const remainingPercent = Math.max(0, 100 - usedPercent);
+      const total = formatTokenCount(totalTokens);
+      contextBudgetLabel.textContent = `${usedPercent}%`;
+      contextBudgetPercent.textContent = i18n.t('contextWindow.usedRemaining', {
+        usedPercent: String(usedPercent),
+        remainingPercent: String(remainingPercent),
+      });
+      contextBudgetTokens.textContent = i18n.t('contextWindow.usedTotal', { used, total });
+    } else {
+      contextBudgetLabel.textContent = used;
+      contextBudgetPercent.textContent = i18n.t('contextWindow.usedOnly', { used });
+      contextBudgetTokens.textContent = '';
+    }
+
+    contextBudgetTokenizer.textContent = tokenUsage.tokenizer
+      ? i18n.t('contextWindow.tokenizer', { tokenizer: tokenUsage.tokenizer })
+      : '';
+    contextBudgetPolicy.textContent = profile.autoCompactsContext
+      ? i18n.t('contextWindow.autoCompact', { provider: profile.name })
+      : i18n.t('contextWindow.providerManaged', { provider: profile.name });
+    contextBudget.title = [
+      i18n.t('contextWindow.title'),
+      contextBudgetPercent.textContent,
+      contextBudgetTokens.textContent,
+      contextBudgetTokenizer.textContent,
+      contextBudgetPolicy.textContent,
+    ].filter(Boolean).join(' ');
+    positionContextBudgetPopover();
+  }
+
+  function positionContextBudgetPopover() {
+    if (!contextBudget || !contextBudgetPopover || contextBudget.hidden) {
+      return;
+    }
+
+    const viewportPadding = 10;
+    const triggerRect = contextBudget.getBoundingClientRect();
+    const popoverWidth = contextBudgetPopover.offsetWidth;
+    let left = 0;
+    const rightOverflow = triggerRect.left + left + popoverWidth - (window.innerWidth - viewportPadding);
+    if (rightOverflow > 0) {
+      left -= rightOverflow;
+    }
+
+    const leftOverflow = triggerRect.left + left - viewportPadding;
+    if (leftOverflow < 0) {
+      left -= leftOverflow;
+    }
+
+    contextBudget.style.setProperty('--context-budget-popover-left', `${Math.round(left)}px`);
+  }
+
+  function taskStatusCounts(source) {
+    const counts = TASK_STATUSES.reduce((result, status) => ({ ...result, [status]: 0 }), {});
+    (source || []).forEach((task) => {
+      const status = TASK_STATUSES.includes(task.status) ? task.status : 'completed';
+      counts[status] += 1;
+    });
+    return counts;
+  }
+
+  function isActiveTask(task) {
+    return TASK_ACTIVE_STATUSES.includes(task?.status);
+  }
+
+  function visibleTasksForBoard() {
+    if (!VISUAL_TASK_BOARD_ENABLED || taskBoardDismissed) {
+      return [];
+    }
+
+    const activeTasks = tasks.filter(isActiveTask);
+    if (activeTasks.length === 0) {
+      return [];
+    }
+
+    return activeTasks.slice(0, 12);
+  }
+
+  function renderTaskBoard() {
+    if (!taskBoard) {
+      return;
+    }
+
+    const visibleTasks = visibleTasksForBoard();
+    taskBoard.innerHTML = '';
+    taskBoard.hidden = visibleTasks.length === 0;
+    if (visibleTasks.length === 0) {
+      return;
+    }
+
+    const counts = taskStatusCounts(visibleTasks);
+    const summary = document.createElement('div');
+    summary.className = 'task-board-summary';
+    summary.setAttribute('aria-label', i18n.t('taskBoard.summary'));
+    TASK_STATUSES.filter((status) => counts[status] > 0).forEach((status) => {
+      const pill = document.createElement('span');
+      pill.className = `task-status-pill is-${status}`;
+      pill.dataset.taskStatus = status;
+      pill.textContent = i18n.t('taskBoard.count', {
+        status: i18n.t(`task.status.${status}`),
+        count: String(counts[status]),
+      });
+      summary.appendChild(pill);
+    });
+    taskBoard.appendChild(summary);
+
+    const currentTask = visibleTasks.find(isActiveTask) || visibleTasks[0];
+    const menuTasks = visibleTasks.filter((task) => task.id !== currentTask.id);
+    const current = document.createElement('button');
+    current.type = 'button';
+    current.className = `task-board-current is-${currentTask.status}`;
+    current.dataset.taskId = currentTask.id;
+    current.dataset.providerId = currentTask.providerId;
+    current.dataset.threadId = currentTask.threadId || '';
+    current.title = [
+      currentTask.providerName,
+      i18n.t(`task.status.${currentTask.status}`),
+      currentTask.title,
+    ].filter(Boolean).join(' · ');
+
+    const currentDot = document.createElement('span');
+    currentDot.className = 'task-board-current-dot';
+    currentDot.setAttribute('aria-hidden', 'true');
+    current.appendChild(currentDot);
+
+    const currentBody = document.createElement('span');
+    currentBody.className = 'task-board-current-body';
+
+    const currentTitle = document.createElement('span');
+    currentTitle.className = 'task-board-current-title';
+    currentTitle.textContent = currentTask.title || i18n.t('task.untitled');
+    currentBody.appendChild(currentTitle);
+
+    const currentMeta = document.createElement('span');
+    currentMeta.className = 'task-board-current-meta';
+    currentMeta.textContent = [
+      currentTask.providerName,
+      i18n.t(`task.status.${currentTask.status}`),
+      currentTask.agentMode || '',
+    ].filter(Boolean).join(' · ');
+    currentBody.appendChild(currentMeta);
+    current.appendChild(currentBody);
+    taskBoard.appendChild(current);
+
+    const menu = document.createElement('details');
+    menu.className = 'task-board-menu';
+    menu.hidden = menuTasks.length === 0;
+
+    const menuSummary = document.createElement('summary');
+    menuSummary.className = 'task-board-menu-summary';
+    menuSummary.textContent = `+${menuTasks.length}`;
+    menuSummary.title = i18n.t('taskBoard.summary');
+    menu.appendChild(menuSummary);
+
+    const popover = document.createElement('div');
+    popover.className = 'task-board-popover';
+    menuTasks.forEach((task) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = `task-board-row is-${task.status}`;
+      button.dataset.taskId = task.id;
+      button.dataset.providerId = task.providerId;
+      button.dataset.threadId = task.threadId || '';
+      button.title = [
+        task.providerName,
+        i18n.t(`task.status.${task.status}`),
+        task.title,
+      ].filter(Boolean).join(' · ');
+
+      const statusDot = document.createElement('span');
+      statusDot.className = 'task-board-row-dot';
+      statusDot.setAttribute('aria-hidden', 'true');
+      button.appendChild(statusDot);
+
+      const body = document.createElement('span');
+      body.className = 'task-board-row-body';
+
+      const title = document.createElement('span');
+      title.className = 'task-board-row-title';
+      title.textContent = task.title || i18n.t('task.untitled');
+      body.appendChild(title);
+
+      const meta = document.createElement('span');
+      meta.className = 'task-board-row-meta';
+      meta.textContent = [
+        task.providerName,
+        i18n.t(`task.status.${task.status}`),
+        task.agentMode || '',
+      ].filter(Boolean).join(' · ');
+      body.appendChild(meta);
+
+      button.appendChild(body);
+      popover.appendChild(button);
+    });
+    menu.appendChild(popover);
+    taskBoard.appendChild(menu);
+
+    const dismiss = document.createElement('button');
+    dismiss.type = 'button';
+    dismiss.className = 'task-board-dismiss';
+    dismiss.dataset.taskBoardDismiss = 'true';
+    dismiss.title = i18n.t('action.dismiss');
+    dismiss.setAttribute('aria-label', i18n.t('action.dismiss'));
+    taskBoard.appendChild(dismiss);
   }
 
   function renderMessages() {
@@ -949,17 +1783,21 @@
     messages.innerHTML = '';
 
     if (!activeId) {
+      syncMessageStatusTimer(false);
       appendEmptyState(i18n.t('provider.noInstalled'), i18n.t('provider.unavailable'));
       return;
     }
 
     if (conversation.length === 0 && !isPending) {
+      syncMessageStatusTimer(false);
       appendEmptyState(i18n.t('empty.title'), i18n.t('empty.subtitle'));
       return;
     }
 
+    let hasVisibleRunningMessage = false;
     for (const item of conversation) {
       const itemRunning = Boolean(item.running && runningByProvider[activeId]);
+      hasVisibleRunningMessage = hasVisibleRunningMessage || itemRunning;
       const wrapper = document.createElement('div');
       wrapper.className = `message ${item.role}${itemRunning ? ' is-running' : ''}`;
 
@@ -980,10 +1818,18 @@
       renderMarkdownLite(body, normalizeMessageText(item.text));
       bubble.appendChild(body);
 
+      if (Array.isArray(item.attachments) && item.attachments.length > 0) {
+        appendMessageAttachments(bubble, item.attachments);
+      }
+
       if (itemRunning) {
         appendMessageStatus(
           bubble,
-          item.text ? i18n.t('message.generating') : i18n.t('message.thinking')
+          item.runningNotice ||
+            runningMessageStatusText(
+              item.text ? i18n.t('message.generating') : i18n.t('message.thinking'),
+              item.startedAt
+            )
         );
       }
 
@@ -995,7 +1841,56 @@
       appendLoadingMessage(i18n.t('message.preparing'));
     }
 
+    syncMessageStatusTimer(hasVisibleRunningMessage);
     messages.scrollTop = messages.scrollHeight;
+  }
+
+  function syncMessageStatusTimer(shouldRun) {
+    if (shouldRun && !messageStatusTimer) {
+      messageStatusTimer = setInterval(() => {
+        renderMessages();
+      }, 1000);
+      return;
+    }
+
+    if (!shouldRun && messageStatusTimer) {
+      clearInterval(messageStatusTimer);
+      messageStatusTimer = undefined;
+    }
+  }
+
+  function runningMessageStatusText(stage, startedAt) {
+    const elapsed = formatElapsedTime(startedAt);
+    return elapsed ? i18n.t('message.statusElapsed', { status: stage, elapsed }) : stage;
+  }
+
+  function formatElapsedTime(startedAt) {
+    const start = Number(startedAt);
+    if (!Number.isFinite(start) || start <= 0) {
+      return '';
+    }
+
+    const totalSeconds = Math.max(0, Math.floor((Date.now() - start) / 1000));
+    if (totalSeconds < 60) {
+      return `${totalSeconds}s`;
+    }
+
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = String(totalSeconds % 60).padStart(2, '0');
+    return `${minutes}m ${seconds}s`;
+  }
+
+  function appendMessageAttachments(container, attachments) {
+    const wrap = document.createElement('div');
+    wrap.className = 'message-attachments';
+    normalizeMessageAttachments(attachments).forEach((attachment) => {
+      const item = document.createElement('div');
+      item.className = 'message-attachment';
+      item.textContent = `${attachment.name} · ${formatBytes(attachment.size)}`;
+      item.title = attachment.path || attachment.name;
+      wrap.appendChild(item);
+    });
+    container.appendChild(wrap);
   }
 
   function appendEmptyState(titleText, subtitleText) {
@@ -1065,7 +1960,197 @@
   }
 
   function renderWorkflowMode() {
+    renderModelSelect();
+    renderRuntimeSelect();
+    renderPermissionSelect();
     renderAgentModeSelect();
+  }
+
+  function renderOptionSelect(select, options, value, group) {
+    select.innerHTML = '';
+    options.filter(selectableOption).forEach((option) => {
+      const displayOption = localizedCliOption(option, group);
+      const item = document.createElement('option');
+      item.value = option.id;
+      item.textContent = displayOption.label;
+      item.title = displayOption.description || displayOption.label;
+      if (option.dangerous) {
+        item.dataset.dangerous = 'true';
+      }
+      select.appendChild(item);
+    });
+    select.value = value;
+  }
+
+  function renderRuntimeOptionList(options, selectedId) {
+    if (!runtimeOptionList) {
+      return;
+    }
+
+    runtimeOptionList.innerHTML = '';
+    const title = document.createElement('div');
+    title.className = 'option-list-title';
+    title.textContent = i18n.t('runtime.continue');
+    runtimeOptionList.appendChild(title);
+
+    options.forEach((option) => {
+      const displayOption = localizedCliOption(option, 'runtime');
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = [
+        'option-list-item',
+        option.id === selectedId ? 'is-selected' : '',
+        option.disabled ? 'is-disabled' : '',
+        option.actionOnly ? 'is-action' : '',
+        option.external ? 'is-external' : '',
+        option.dividerBefore ? 'has-divider' : '',
+      ].filter(Boolean).join(' ');
+      button.dataset.value = option.id;
+      button.disabled = Boolean(option.disabled);
+      button.setAttribute('role', selectableOption(option) ? 'menuitemradio' : 'menuitem');
+      button.setAttribute('aria-checked', option.id === selectedId ? 'true' : 'false');
+      button.title = displayOption.description || displayOption.label;
+
+      const icon = document.createElement('span');
+      icon.className = 'option-list-item-icon';
+      icon.setAttribute('aria-hidden', 'true');
+      button.appendChild(icon);
+
+      const label = document.createElement('span');
+      label.textContent = displayOption.label;
+      button.appendChild(label);
+
+      const trailing = document.createElement('span');
+      trailing.className = 'option-list-item-trailing';
+      trailing.setAttribute('aria-hidden', 'true');
+      trailing.textContent = option.external ? '↗' : (option.actionOnly ? '›' : '');
+      button.appendChild(trailing);
+
+      runtimeOptionList.appendChild(button);
+    });
+  }
+
+  function renderPermissionOptionList(options, selectedId) {
+    if (!permissionOptionList) {
+      return;
+    }
+
+    permissionOptionList.innerHTML = '';
+    const profile = activeProfile();
+    const visibleOptions = options.filter((option) => (
+      profile?.id !== 'codex' || option.id !== 'readOnly' || option.id === selectedId
+    ));
+
+    visibleOptions.forEach((option) => {
+      const displayOption = localizedPermissionOption(option);
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = [
+        'option-list-item',
+        'permission-option-item',
+        option.id === selectedId ? 'is-selected' : '',
+        option.dangerous ? 'is-danger' : '',
+      ].filter(Boolean).join(' ');
+      button.dataset.value = option.id;
+      button.setAttribute('role', 'menuitemradio');
+      button.setAttribute('aria-checked', option.id === selectedId ? 'true' : 'false');
+      button.title = displayOption.description || displayOption.label;
+
+      const icon = document.createElement('span');
+      icon.className = 'permission-option-icon';
+      icon.setAttribute('aria-hidden', 'true');
+      button.appendChild(icon);
+
+      const label = document.createElement('span');
+      label.textContent = displayOption.label;
+      button.appendChild(label);
+
+      const check = document.createElement('span');
+      check.className = 'permission-option-check';
+      check.setAttribute('aria-hidden', 'true');
+      button.appendChild(check);
+
+      permissionOptionList.appendChild(button);
+    });
+  }
+
+  function renderModelOptionList(options, selectedId) {
+    if (!modelOptionList) {
+      return;
+    }
+
+    modelOptionList.innerHTML = '';
+    options.forEach((option) => {
+      const displayOption = localizedCliOption(option, 'model');
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = [
+        'option-list-item',
+        'model-option-item',
+        option.id === selectedId ? 'is-selected' : '',
+        option.custom ? 'is-custom' : '',
+      ].filter(Boolean).join(' ');
+      button.dataset.value = option.id;
+      button.setAttribute('role', 'menuitemradio');
+      button.setAttribute('aria-checked', option.id === selectedId ? 'true' : 'false');
+      button.title = displayOption.description || displayOption.label;
+
+      const label = document.createElement('span');
+      label.textContent = displayOption.label;
+      button.appendChild(label);
+
+      const check = document.createElement('span');
+      check.className = 'model-option-check';
+      check.setAttribute('aria-hidden', 'true');
+      button.appendChild(check);
+
+      modelOptionList.appendChild(button);
+    });
+  }
+
+  function renderModelSelect() {
+    const profile = activeProfile();
+    const options = modelOptionsFor(profile);
+    const model = activeModel(profile);
+    const displayModel = localizedCliOption(model, 'model');
+    renderOptionSelect(modelSelect, options, model.id, 'model');
+    renderModelOptionList(options, model.id);
+    modelSelect.title = displayModel.description || i18n.t('model.label');
+    modelSummaryLabel.textContent = model.custom && activeCustomModel(activeId)
+      ? activeCustomModel(activeId)
+      : displayModel.summaryLabel || displayModel.label || i18n.t('model.short');
+    modelSummaryLabel.closest('.option-summary')?.setAttribute('title', displayModel.description || i18n.t('model.label'));
+    modelMenu?.classList.toggle('is-visible', Boolean(profile && options.length > 1));
+    customModelField.hidden = !model.custom;
+    customModelInput.value = activeCustomModel(activeId);
+    customModelInput.disabled = !profile || !profile.installed;
+  }
+
+  function renderRuntimeSelect() {
+    const profile = activeProfile();
+    const options = runtimeModesFor(profile);
+    const runtime = activeRuntime(profile);
+    const displayRuntime = localizedCliOption(runtime, 'runtime');
+    renderOptionSelect(runtimeSelect, options, runtime.id, 'runtime');
+    renderRuntimeOptionList(options, runtime.id);
+    runtimeSelect.title = displayRuntime.description || i18n.t('runtime.label');
+    runtimeSummaryLabel.textContent = displayRuntime.summaryLabel || displayRuntime.label || i18n.t('runtime.short');
+    runtimeSummaryLabel.closest('.option-summary')?.setAttribute('title', displayRuntime.description || i18n.t('runtime.label'));
+    runtimeMenu?.classList.toggle('is-visible', Boolean(profile && options.length > 1));
+  }
+
+  function renderPermissionSelect() {
+    const profile = activeProfile();
+    const options = permissionModesFor(profile);
+    const permission = activePermission(profile);
+    const displayPermission = localizedPermissionOption(permission);
+    renderOptionSelect(permissionSelect, options, permission.id, 'permission');
+    renderPermissionOptionList(options, permission.id);
+    permissionSelect.title = displayPermission.description || i18n.t('permission.label');
+    permissionSummaryLabel.textContent = displayPermission.label || i18n.t('permission.short');
+    permissionSummaryLabel.closest('.option-summary')?.setAttribute('title', displayPermission.description || i18n.t('permission.label'));
+    permissionMenu?.classList.toggle('is-visible', Boolean(profile && options.length > 1));
+    permissionMenu?.classList.toggle('is-danger', Boolean(permission.dangerous));
   }
 
   function renderAgentModeSelect() {
@@ -1074,24 +2159,69 @@
     const modes = agentModesFor(profile);
 
     modes.forEach((mode) => {
+      const displayMode = localizedCliOption(mode, 'agentMode');
       const option = document.createElement('option');
       option.value = mode.id;
-      option.textContent = mode.label;
-      option.title = mode.description || mode.instruction || mode.label;
+      option.textContent = displayMode.label;
+      option.title = displayMode.description || mode.instruction || displayMode.label;
+      option.disabled = Boolean(mode.disabled);
       agentModeSelect.appendChild(option);
     });
 
     agentModeSelect.value = activeAgentModeId(activeId);
+    renderAgentModeOptionList(modes, agentModeSelect.value);
     const mode = activeAgentMode();
-    agentModeSelect.title = mode?.description || i18n.t('agentMode.label');
+    const displayMode = localizedCliOption(mode, 'agentMode');
+    agentModeSelect.title = displayMode?.description || i18n.t('agentMode.label');
     if (agentModeSummaryLabel) {
-      agentModeSummaryLabel.textContent = mode?.label || i18n.t('agentMode.short');
+      agentModeSummaryLabel.textContent = displayMode?.label || i18n.t('agentMode.short');
       agentModeSummaryLabel.closest('.mode-summary')?.setAttribute(
         'title',
-        `${profile?.name || i18n.t('provider.label')} · ${mode?.description || mode?.label || ''}`.trim()
+        `${profile?.name || i18n.t('provider.label')} · ${displayMode?.description || displayMode?.label || ''}`.trim()
       );
     }
-    modeMenu?.classList.toggle('is-visible', Boolean(profile && mode?.id !== profile?.defaultAgentMode));
+    modeMenu?.classList.toggle('is-visible', Boolean(profile && modes.length > 1));
+  }
+
+  function renderAgentModeOptionList(modes, selectedId) {
+    if (!agentModeOptionList) {
+      return;
+    }
+
+    agentModeOptionList.innerHTML = '';
+    modes.forEach((mode) => {
+      const displayMode = localizedCliOption(mode, 'agentMode');
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = [
+        'option-list-item',
+        'mode-option-item',
+        mode.id === selectedId ? 'is-selected' : '',
+        mode.disabled ? 'is-disabled' : '',
+      ].filter(Boolean).join(' ');
+      button.dataset.value = mode.id;
+      button.disabled = Boolean(mode.disabled);
+      button.setAttribute('role', 'menuitemradio');
+      button.setAttribute('aria-checked', mode.id === selectedId ? 'true' : 'false');
+      button.title = displayMode.description || mode.instruction || displayMode.label;
+
+      const marker = document.createElement('span');
+      marker.className = 'mode-option-marker';
+      marker.setAttribute('aria-hidden', 'true');
+      button.appendChild(marker);
+
+      const label = document.createElement('span');
+      label.className = 'mode-option-text';
+      label.textContent = displayMode.label;
+      button.appendChild(label);
+
+      const meta = document.createElement('span');
+      meta.className = 'mode-option-meta';
+      meta.textContent = mode.disabled ? i18n.t('agentMode.subagent') : '';
+      button.appendChild(meta);
+
+      agentModeOptionList.appendChild(button);
+    });
   }
 
   function renderContextControls() {
@@ -1105,11 +2235,13 @@
     const canSend = Boolean(profile && profile.installed);
     const busy = Boolean(runningByProvider[activeId] || pendingByProvider[activeId]);
     const hasPrompt = input.value.trim().length > 0;
+    const hasAttachments = promptAttachments.length > 0;
     const selectedAction = actionSelect.value || 'freeform';
     const missingSelection = actionRequiresSelection(selectedAction) && !hasSelectionContext();
-    const canRunAction = hasPrompt || selectedAction !== 'freeform';
+    const missingCustomModel = activeModel()?.custom && !activeCustomModel(activeId);
+    const canRunAction = hasPrompt || hasAttachments || selectedAction !== 'freeform';
     input.disabled = !canSend;
-    sendBtn.disabled = !canSend || busy || !canRunAction || missingSelection;
+    sendBtn.disabled = !canSend || busy || !canRunAction || missingSelection || missingCustomModel;
     document.querySelectorAll('[data-action]').forEach((button) => {
       const action = button.dataset.action;
       button.disabled = !canSend || busy || (actionRequiresSelection(action) && !hasSelectionContext());
@@ -1120,47 +2252,79 @@
     actionSelect.disabled = !canSend || busy;
     providerSelect.disabled = installedProfiles().length === 0 || busy;
     threadSelect.disabled = !activeId || busy;
+    modelSelect.disabled = !canSend || busy;
+    runtimeSelect.disabled = !canSend || busy;
+    permissionSelect.disabled = !canSend || busy;
     agentModeSelect.disabled = !canSend || busy;
+    modelOptionList?.querySelectorAll('.option-list-item').forEach((button) => {
+      button.disabled = !canSend || busy;
+    });
+    runtimeOptionList?.querySelectorAll('.option-list-item').forEach((button) => {
+      button.disabled = button.classList.contains('is-disabled') || !canSend || busy;
+    });
+    permissionOptionList?.querySelectorAll('.option-list-item').forEach((button) => {
+      button.disabled = !canSend || busy;
+    });
     input.placeholder = canSend
-      ? (missingSelection
-          ? i18n.t('quick.missingSelection')
-          : i18n.t(
-              selectedAction === 'freeform' ? 'input.placeholderProvider' : 'input.placeholderAction',
-              { provider: profile.name, action: actionLabel(selectedAction) }
-            ))
+      ? (profile?.id === 'claude' && !missingSelection
+          ? i18n.t('claude.placeholder')
+          : (missingSelection
+              ? i18n.t('quick.missingSelection')
+              : i18n.t(
+                  selectedAction === 'freeform' ? 'input.placeholderProvider' : 'input.placeholderAction',
+                  { provider: profile.name, action: actionLabel(selectedAction) }
+                )))
       : i18n.t('input.placeholderDisabled');
     const running = Boolean(runningByProvider[activeId]);
+    stopBtn.hidden = !running;
+    sendBtn.hidden = running;
     stopBtn.classList.toggle('is-visible', running);
     sendBtn.classList.toggle('is-hidden', running);
     renderSlashPalette();
+    scheduleComposerPopoverPosition();
+  }
+
+  function renderClaudeTerminalBanner() {
+    if (!claudeTerminalBanner) {
+      return;
+    }
+
+    claudeTerminalBanner.hidden = activeId !== 'claude' || claudeTerminalBannerDismissed;
+  }
+
+  function renderCodexTerminalBanner() {
+    if (!codexTerminalBanner) {
+      return;
+    }
+
+    const codexRunning = Boolean(runningByProvider.codex);
+    const taskBoardVisible = visibleTasksForBoard().length > 0;
+    codexTerminalBanner.hidden = activeId !== 'codex' || !codexRunning || taskBoardVisible;
   }
 
   function renderAll() {
     const profile = activeProfile();
     document.body.dataset.provider = activeId || 'none';
     setAccent(profile);
+    renderClaudeTerminalBanner();
+    renderCodexTerminalBanner();
     renderProviderSelect();
+    renderTaskBoard();
     renderThreadSelect();
     renderWorkflowMode();
     renderContextControls();
     renderProviderHint();
     renderContextSummaryLabel();
+    renderContextBudget();
     renderMessages();
+    renderAttachmentStrip();
     renderComposer();
   }
 
   function send(action, text, preferredWorkflowMode) {
-    const profile = activeProfile();
-    if (!profile || !profile.installed) {
-      addMessage(activeId, 'error', i18n.t('provider.unavailable'));
-      return;
-    }
-    if (runningByProvider[activeId] || pendingByProvider[activeId]) {
-      return;
-    }
-
     const finalText = (text || input.value || '').trim();
-    if (!finalText && action === 'freeform') {
+    const finalAttachments = promptAttachments.map(attachmentPayload);
+    if (!finalText && finalAttachments.length === 0 && action === 'freeform') {
       input.focus();
       return;
     }
@@ -1169,27 +2333,81 @@
       return;
     }
 
-    pendingByProvider[activeId] = true;
-    pendingThreadByProvider[activeId] = activeThreadId(activeId);
-    renderAll();
+    const profile = activeProfile();
+    if (!profile?.installed) {
+      addMessage(activeId, 'error', i18n.t('provider.noInstalled'));
+      return;
+    }
+
+    if (!sendToProvider(
+      activeId,
+      action,
+      finalText,
+      preferredWorkflowMode || activeAgentModeId(activeId),
+      finalAttachments
+    )) {
+      return;
+    }
+
     input.value = '';
     input.style.height = 'auto';
+    promptAttachments = [];
+    renderAttachmentStrip();
+  }
+
+  function sendToProvider(providerId, action, text, preferredWorkflowMode, attachments) {
+    const profile = profiles.find((item) => item.id === providerId);
+    if (!profile || !profile.installed) {
+      addMessage(providerId || activeId, 'error', i18n.t('provider.unavailable'));
+      return false;
+    }
+    if (runningByProvider[providerId] || pendingByProvider[providerId]) {
+      return false;
+    }
+
+    const model = activeModel(profile);
+    if (model?.custom && !activeCustomModel(providerId)) {
+      if (providerId === activeId) {
+        customModelInput.focus();
+      }
+      return false;
+    }
+
+    const task = createRunTask(providerId, action, text, preferredWorkflowMode);
+    pendingTaskByProvider[providerId] = task.id;
+    pendingByProvider[providerId] = true;
+    pendingThreadByProvider[providerId] = activeThreadId(providerId);
+    renderAll();
 
     vscode.postMessage({
       command: action === 'freeform' ? 'send' : 'quickAction',
-      cliId: activeId,
-      text: finalText,
+      cliId: providerId,
+      text,
       mode: 'agent',
-      agentMode: preferredWorkflowMode || activeAgentModeId(activeId),
+      agentMode: preferredWorkflowMode || activeAgentModeId(providerId),
+      model: activeModelId(providerId),
+      customModel: activeCustomModel(providerId),
+      runtime: activeRuntimeId(providerId),
+      permissionMode: activePermissionId(providerId),
       action,
+      attachments,
+      conversationHistory: conversationHistoryForSend(providerId),
       contextOptions,
     });
+    return true;
   }
 
-  function addMessage(cliId, role, text, meta, running, threadId) {
+  function addMessage(cliId, role, text, meta, running, threadId, attachments) {
     const thread = ensureThread(cliId, threadId);
     const conversation = thread?.messages || [];
-    conversation.push({ role, text, meta, running: Boolean(running) });
+    conversation.push({
+      role,
+      text,
+      meta,
+      running: Boolean(running),
+      startedAt: running ? Date.now() : undefined,
+      attachments: normalizeMessageAttachments(attachments),
+    });
     touchThread(thread, role === 'user' ? text : undefined);
     persist();
     if (cliId === activeId) {
@@ -1221,9 +2439,31 @@
     const filtered = filterInternalPromptEcho(buffered);
     target.buffer = filtered.pending ? buffered : filtered.text;
     item.text = filtered.text;
+    if (normalizeMessageText(message.text).trim()) {
+      delete item.runningNotice;
+    }
     if (message.stream === 'error') {
       item.role = 'error';
+      updateTaskStatus(taskBySessionId[message.sessionId], { status: 'failed' });
     }
+    persist();
+    if (target.cliId === activeId && target.threadId === activeThreadId(activeId)) {
+      renderMessages();
+    }
+  }
+
+  function updateSessionNotice(message) {
+    const target = streamTargets[message.sessionId];
+    if (!target) {
+      return;
+    }
+
+    const item = ensureConversation(target.cliId, target.threadId)[target.index];
+    if (!item || !item.running) {
+      return;
+    }
+
+    item.runningNotice = normalizeMessageText(message.text);
     persist();
     if (target.cliId === activeId && target.threadId === activeThreadId(activeId)) {
       renderMessages();
@@ -1232,10 +2472,15 @@
 
   function markSessionEnded(message) {
     const target = streamTargets[message.sessionId];
+    updateTaskStatus(taskBySessionId[message.sessionId], {
+      status: Number(message.exitCode) === 0 ? 'completed' : 'failed',
+    });
+    delete taskBySessionId[message.sessionId];
     if (target) {
       const item = ensureConversation(target.cliId, target.threadId)[target.index];
       if (item) {
         item.running = false;
+        delete item.runningNotice;
         if (!normalizeMessageText(item.text).trim()) {
           ensureConversation(target.cliId, target.threadId).splice(target.index, 1);
         }
@@ -1547,7 +2792,10 @@
     send(action, input.value || quickActionText(action));
   }
 
-  sendBtn.addEventListener('click', sendSelectedAction);
+  sendBtn.addEventListener('click', (event) => {
+    event.stopPropagation();
+    sendSelectedAction();
+  });
 
   newChatBtn.addEventListener('click', () => {
     startNewThread(activeId);
@@ -1578,6 +2826,19 @@
     input.style.height = 'auto';
     input.style.height = `${Math.min(input.scrollHeight, 104)}px`;
     renderComposer();
+  });
+
+  input.addEventListener('paste', (event) => {
+    const imageFiles = clipboardImageFiles({
+      items: event.clipboardData?.items,
+      files: event.clipboardData?.files,
+    });
+    if (imageFiles.length === 0) {
+      return;
+    }
+
+    event.preventDefault();
+    void addImageFiles(imageFiles);
   });
 
   input.addEventListener('keydown', (event) => {
@@ -1628,21 +2889,85 @@
     vscode.postMessage({ command: 'stop', cliId: activeId });
   });
 
+  codexTerminalStop.addEventListener('click', () => {
+    vscode.postMessage({ command: 'stop', cliId: activeId });
+  });
+
+  codexTerminalOpen.addEventListener('click', () => {
+    vscode.postMessage({ command: 'openProviderExtension', cliId: activeId });
+  });
+
+  attachImageBtn?.addEventListener('click', () => {
+    imageFileInput?.click();
+  });
+
+  claudeContextBtn.addEventListener('click', () => {
+    executeLocalSlashCommand({ local: 'context' });
+    input.focus();
+  });
+
+  claudeTerminalDismiss.addEventListener('click', () => {
+    claudeTerminalBannerDismissed = true;
+    persist();
+    renderClaudeTerminalBanner();
+  });
+
+  imageFileInput?.addEventListener('change', () => {
+    void addImageFiles(imageFileInput.files);
+    imageFileInput.value = '';
+  });
+
+  attachmentStrip?.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-attachment-id]');
+    if (!button) {
+      return;
+    }
+
+    promptAttachments = promptAttachments.filter((attachment) => attachment.id !== button.dataset.attachmentId);
+    renderAttachmentStrip();
+    renderComposer();
+  });
+
   refreshBtn.addEventListener('click', () => {
     vscode.postMessage({ command: 'checkProfiles' });
-    vscode.postMessage({ command: 'refreshContext', contextOptions });
+    vscode.postMessage({ command: 'refreshContext', cliId: activeId, contextOptions });
   });
 
   reloadBtn?.addEventListener('click', () => {
     vscode.postMessage({ command: 'reloadWindow' });
   });
 
+  taskBoard?.addEventListener('click', (event) => {
+    if (event.target.closest('[data-task-board-dismiss]')) {
+      taskBoardDismissed = true;
+      persist();
+      renderTaskBoard();
+      return;
+    }
+
+    const card = event.target.closest('[data-task-id]');
+    if (!card) {
+      return;
+    }
+
+    switchActiveProvider(card.dataset.providerId);
+    if (card.dataset.threadId) {
+      activeThreadByProvider[card.dataset.providerId] = card.dataset.threadId;
+    }
+    persist();
+    renderAll();
+  });
+
   providerSelect.addEventListener('change', () => {
     activeId = providerSelect.value;
     ensureActiveThread(activeId);
     activeAgentModeId(activeId);
+    activeModelId(activeId);
+    activeRuntimeId(activeId);
+    activePermissionId(activeId);
     persist();
     renderAll();
+    refreshActiveContext();
   });
 
   threadSelect.addEventListener('change', () => {
@@ -1660,11 +2985,95 @@
     renderAll();
   });
 
+  agentModeOptionList?.addEventListener('click', (event) => {
+    const button = event.target.closest('.option-list-item');
+    if (!button || button.disabled) {
+      return;
+    }
+
+    activeAgentModeByProvider[activeId] = button.dataset.value;
+    agentModeSelect.value = button.dataset.value;
+    legacyWorkflowMode = undefined;
+    persist();
+    renderAll();
+    modeMenu.open = false;
+  });
+
+  modelSelect.addEventListener('change', () => {
+    activeModelByProvider[activeId] = modelSelect.value;
+    persist();
+    renderAll();
+  });
+
+  modelOptionList?.addEventListener('click', (event) => {
+    const button = event.target.closest('.option-list-item');
+    if (!button || button.disabled) {
+      return;
+    }
+
+    const option = modelOptionsFor(activeProfile()).find((item) => item.id === button.dataset.value);
+    activeModelByProvider[activeId] = button.dataset.value;
+    modelSelect.value = button.dataset.value;
+    persist();
+    renderAll();
+
+    if (option?.custom) {
+      modelMenu.open = true;
+      customModelInput.focus();
+    } else {
+      modelMenu.open = false;
+    }
+  });
+
+  customModelInput.addEventListener('input', () => {
+    customModelByProvider[activeId] = customModelInput.value;
+    persist();
+    renderComposer();
+  });
+
+  runtimeSelect.addEventListener('change', () => {
+    activeRuntimeByProvider[activeId] = runtimeSelect.value;
+    persist();
+    renderAll();
+  });
+
+  runtimeOptionList?.addEventListener('click', (event) => {
+    const button = event.target.closest('.option-list-item');
+    if (!button || button.disabled || button.classList.contains('is-action')) {
+      return;
+    }
+
+    activeRuntimeByProvider[activeId] = button.dataset.value;
+    runtimeSelect.value = button.dataset.value;
+    runtimeMenu.open = false;
+    persist();
+    renderAll();
+  });
+
+  permissionSelect.addEventListener('change', () => {
+    activePermissionByProvider[activeId] = permissionSelect.value;
+    persist();
+    renderAll();
+  });
+
+  permissionOptionList.addEventListener('click', (event) => {
+    const button = event.target.closest('.option-list-item');
+    if (!button || button.disabled) {
+      return;
+    }
+
+    activePermissionByProvider[activeId] = button.dataset.value;
+    permissionSelect.value = button.dataset.value;
+    permissionMenu.open = false;
+    persist();
+    renderAll();
+  });
+
   document.querySelectorAll('[data-context]').forEach((checkbox) => {
     checkbox.addEventListener('change', () => {
       contextOptions[checkbox.dataset.context] = checkbox.checked;
       persist();
-      vscode.postMessage({ command: 'refreshContext', contextOptions });
+      refreshActiveContext();
       renderContextSummaryLabel();
     });
   });
@@ -1688,6 +3097,39 @@
     send(action, input.value || quickActionText(action));
   });
 
+  contextBudget?.addEventListener('pointerenter', positionContextBudgetPopover);
+  contextBudget?.addEventListener('focus', positionContextBudgetPopover);
+  contextBudget?.addEventListener('focusin', positionContextBudgetPopover);
+
+  composerMenus().forEach((menu) => {
+    menu.addEventListener('toggle', () => {
+      if (!menu.open) {
+        return;
+      }
+      closeComposerMenus(menu);
+      scheduleComposerPopoverPosition();
+    });
+  });
+
+  document.addEventListener('click', (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const currentMenu = target?.closest('details');
+    const menus = composerMenus();
+
+    closeComposerMenus(menus.includes(currentMenu) ? currentMenu : undefined);
+  });
+
+  window.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      closeComposerMenus();
+    }
+  });
+
+  window.addEventListener('resize', () => {
+    positionContextBudgetPopover();
+    positionOpenComposerPopovers();
+  });
+
   window.addEventListener('message', (event) => {
     const message = event.data;
     switch (message.command) {
@@ -1704,25 +3146,46 @@
         }
         persist();
         renderAll();
+        refreshActiveContext();
         break;
       case 'contextSummary':
         contextSummary = message.summary;
         renderProviderHint();
         renderContextSummaryLabel();
+        renderContextBudget();
         break;
       case 'requestStarted':
-        activeId = message.cliId;
+        if (!activeId || !installedProfiles().some((profile) => profile.id === activeId)) {
+          activeId = message.cliId;
+        }
         pendingByProvider[message.cliId] = false;
         runningByProvider[message.cliId] = true;
         activeAgentModeByProvider[message.cliId] = message.agentMode || activeAgentModeId(message.cliId);
         {
           const threadId = pendingThreadByProvider[message.cliId] || activeThreadId(message.cliId);
+          const taskId = pendingTaskByProvider[message.cliId] || createRunTask(
+            message.cliId,
+            message.action,
+            message.text,
+            message.agentMode
+          ).id;
+          delete pendingTaskByProvider[message.cliId];
+          taskBySessionId[message.sessionId] = taskId;
+          updateTaskStatus(taskId, {
+            status: 'running',
+            sessionId: message.sessionId,
+            threadId,
+            agentMode: message.agentModeLabel || message.agentMode || '',
+          });
           activeThreadByProvider[message.cliId] = threadId;
           addMessage(
             message.cliId,
             'user',
             normalizeMessageText(message.text),
-            `${message.actionLabel}${i18n.t('message.metaSeparator')}${agentModeLabel(message.agentMode)}`
+            `${message.actionLabel}${i18n.t('message.metaSeparator')}${agentModeLabel(message.agentMode)}`,
+            false,
+            threadId,
+            message.attachments
           );
           const assistant = addMessage(
             message.cliId,
@@ -1745,6 +3208,9 @@
       case 'output':
         updateStream(message);
         break;
+      case 'sessionNotice':
+        updateSessionNotice(message);
+        break;
       case 'sessionEnd':
         markSessionEnded(message);
         break;
@@ -1753,6 +3219,8 @@
         pendingByProvider[message.cliId] = false;
         {
           const target = streamTargets[message.sessionId];
+          updateTaskStatus(taskBySessionId[message.sessionId], { status: 'stopped' });
+          delete taskBySessionId[message.sessionId];
           if (target) {
             delete streamTargets[message.sessionId];
           }
@@ -1765,6 +3233,8 @@
         runningByProvider[message.cliId || activeId] = false;
         pendingByProvider[message.cliId || activeId] = false;
         delete pendingThreadByProvider[message.cliId || activeId];
+        updateTaskStatus(taskBySessionId[message.sessionId], { status: 'failed' });
+        delete taskBySessionId[message.sessionId];
         addMessage(
           message.cliId || activeId,
           'error',
@@ -1776,6 +3246,6 @@
   });
 
   vscode.postMessage({ command: 'checkProfiles' });
-  vscode.postMessage({ command: 'refreshContext', contextOptions });
+  refreshActiveContext();
   renderAll();
 })();

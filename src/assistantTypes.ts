@@ -59,12 +59,35 @@ export interface AssistantContextSnapshot {
   diagnostics: AssistantDiagnosticContext[];
 }
 
+export interface AssistantImageAttachment {
+  kind: 'image';
+  name: string;
+  mimeType: string;
+  size: number;
+  path: string;
+}
+
+export interface AssistantImageAttachmentInput {
+  kind: 'image';
+  name: string;
+  mimeType: string;
+  size: number;
+  dataUrl: string;
+}
+
+export interface AssistantConversationHistoryMessage {
+  role: 'user' | 'assistant';
+  text: string;
+}
+
 export interface AssistantPromptRequest {
   provider: AssistantProviderRef;
   mode: AssistantMode;
   agentMode: AssistantAgentModeRef;
   action: AssistantActionId;
   message: string;
+  attachments?: AssistantImageAttachment[];
+  conversationHistory?: AssistantConversationHistoryMessage[];
   context: AssistantContextSnapshot;
 }
 
@@ -74,8 +97,14 @@ export interface AssistantWebviewRequest {
   text?: string;
   mode?: AssistantMode;
   agentMode?: string;
+  model?: string;
+  customModel?: string;
+  runtime?: string;
+  permissionMode?: string;
   workflowMode?: string;
   action?: AssistantActionId;
+  attachments?: AssistantImageAttachmentInput[];
+  conversationHistory?: AssistantConversationHistoryMessage[];
   contextOptions?: Partial<AssistantContextOptions>;
 }
 
@@ -84,4 +113,14 @@ export interface AssistantContextSummary {
   activeFile?: string;
   selection?: string;
   diagnostics: number;
+  tokenUsage?: AssistantTokenUsage;
+}
+
+export type AssistantTokenPrecision = 'exact' | 'unavailable';
+
+export interface AssistantTokenUsage {
+  precision: AssistantTokenPrecision;
+  tokens?: number;
+  tokenizer?: string;
+  reason?: string;
 }

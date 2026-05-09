@@ -10,7 +10,11 @@ type RuntimeMessageKey =
   | 'error.startFailed'
   | 'error.sendFailed'
   | 'error.missingSelection'
-  | 'error.missingActiveFile';
+  | 'error.missingActiveFile'
+  | 'warning.noOutput'
+  | 'providerExtension.notConfigured'
+  | 'providerExtension.notInstalled'
+  | 'providerExtension.openFailed';
 
 const RUNTIME_MESSAGES: Record<RuntimeLocale, Record<RuntimeMessageKey, string>> = {
   en: {
@@ -22,6 +26,11 @@ const RUNTIME_MESSAGES: Record<RuntimeLocale, Record<RuntimeMessageKey, string>>
     'error.sendFailed': 'Failed to send input to CLI process',
     'error.missingSelection': 'Select code in the editor before running this action.',
     'error.missingActiveFile': 'Open a file in the editor before running this action.',
+    'warning.noOutput':
+      '{provider} is still running but has not produced output for {seconds}s. This usually means the CLI is waiting on auth, network, or a permission prompt.',
+    'providerExtension.notConfigured': 'No VS Code extension bridge is configured for {provider}.',
+    'providerExtension.notInstalled': '{extension} is not installed. Opening the Extensions search.',
+    'providerExtension.openFailed': 'Failed to open {extension}.',
   },
   'zh-CN': {
     'statusBar.text': '$(sparkle) AI 助手',
@@ -32,6 +41,11 @@ const RUNTIME_MESSAGES: Record<RuntimeLocale, Record<RuntimeMessageKey, string>>
     'error.sendFailed': '无法向 CLI 进程发送输入',
     'error.missingSelection': '请先在编辑器中选中代码，再运行这个动作。',
     'error.missingActiveFile': '请先在编辑器中打开一个文件，再运行这个动作。',
+    'warning.noOutput':
+      '{provider} 已运行 {seconds} 秒但还没有任何输出，通常是 CLI 正在等待登录、网络或权限提示。',
+    'providerExtension.notConfigured': '{provider} 还没有配置对应的 VS Code 扩展入口。',
+    'providerExtension.notInstalled': '尚未安装 {extension}，已打开扩展搜索。',
+    'providerExtension.openFailed': '无法打开 {extension}。',
   },
 };
 

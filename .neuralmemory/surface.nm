@@ -1,0 +1,66 @@
+# ═══════════════════════════════════════════════════
+# .neuralmemory/surface.nm
+# Neural Memory Knowledge Surface v1
+# Auto-generated from brain.db | Editable by human
+# ═══════════════════════════════════════════════════
+---
+brain: default
+updated: 2026-05-07T08:34:07
+neurons: 7
+synapses: 7
+token_budget: 1200
+depth_available: [surface, detail, deep]
+---
+
+# ── GRAPH ──────────────────────────────────────────
+# Nodes = key concepts. Edges = causal/decisional links.
+# Agent: scan this section to understand the knowledge landscape.
+# Format: [id] content (type) {p:N} →edge→ [target_id_or_text]
+
+[c1] Agents Hub UI decision: task board should not persist for… (concept) {p:5}
+  →involves→ "not persist for completed/failed/stopped history"
+  →related_to→ "ui decision"
+  →related_to→ "agents hub"
+  →involves→ "Agents Hub UI"
+  →related_to→ "hub ui"
+
+[i1] not persist for completed/failed/stopped history (intent) {p:4}
+
+[c2] ui decision (concept) {p:4}
+
+[c3] hub ui (concept) {p:4}
+
+[c4] agents hub (concept) {p:4}
+
+[c5] Agents Hub UI (concept) {p:4}
+
+# ── CLUSTERS ───────────────────────────────────────
+# Auto-detected topic groups from brain.db entity co-occurrence.
+# Agent: use clusters to scope recall queries.
+
+@hub: [16b6aa03-57b5-4c3c-b76b-ad94a3d24055, 2dcfacc4-4ead-43d8-a876-820750008491, 37f51921-4d6e-4426-87c5-18842b52bb69, 4df5c67d-4029-430a-9b63-5898a3eba795, aaae6b60-08fc-4aaf-ba04-debeab875150] "not persist for completed/failed/stopped, Agents Hub UI, agents hub"
+
+# ── SIGNALS ────────────────────────────────────────
+# Active alerts, unresolved items, pending decisions.
+# Agent: check this FIRST each session for urgent context.
+
+~ Agents Hub UI decision: task board should not persist for completed/failed/stopp
+
+# ── DEPTH MAP ──────────────────────────────────────
+# When surface isn't enough, this tells agent WHERE to dig.
+# Format: [id] → depth_hint (context)
+
+[c1] → SUFFICIENT (5 edges on surface)
+[i1] → SUFFICIENT (0 edges, fully represented)
+[c2] → SUFFICIENT (0 edges, fully represented)
+[c3] → SUFFICIENT (0 edges, fully represented)
+[c4] → SUFFICIENT (0 edges, fully represented)
+[c5] → SUFFICIENT (0 edges, fully represented)
+
+# ── META ───────────────────────────────────────────
+# Stats for agent to gauge brain richness
+
+coverage: 0.86
+staleness: 0.0
+last_consolidation: 2026-05-07T08:34:07
+top_entities: [Agents, not, ui, hub, agents]

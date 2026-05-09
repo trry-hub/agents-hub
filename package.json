@@ -7,7 +7,9 @@
   "engines": {
     "vscode": "^1.85.0"
   },
-  "categories": ["Other"],
+  "categories": [
+    "Other"
+  ],
   "activationEvents": [
     "onView:agentsHub.sidebar",
     "onCommand:agentsHub.openPanel",
@@ -95,8 +97,15 @@
       "properties": {
         "agentsHub.defaultProvider": {
           "type": "string",
-          "default": "codex",
-          "enum": ["claude", "gemini", "codex", "opencode", "goose", "aider"],
+          "default": "opencode",
+          "enum": [
+            "claude",
+            "gemini",
+            "codex",
+            "opencode",
+            "goose",
+            "aider"
+          ],
           "description": "%config.defaultProvider.description%"
         },
         "agentsHub.context.includeWorkspace": {
@@ -153,5 +162,9 @@
     "@types/vscode": "^1.85.0",
     "esbuild": "^0.20.0",
     "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/tokenizer": "^0.0.4",
+    "js-tiktoken": "^1.0.21"
   }
 }

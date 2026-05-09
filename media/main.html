@@ -33,26 +33,105 @@
     <main class="messages" id="messages" aria-live="polite"></main>
 
     <footer class="composer">
+      <section id="taskBoard" class="task-board" aria-live="polite" data-i18n-aria="taskBoard.label" hidden></section>
+      <div class="claude-terminal-banner" id="claudeTerminalBanner" role="note" hidden>
+        <svg class="claude-terminal-icon" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M2.8 4.2h10.4v7.6H2.8z"/>
+          <path d="M5 6.2l2 1.8-2 1.8M8 10h3"/>
+        </svg>
+        <span data-i18n="claude.terminalPreference"></span>
+        <button class="claude-terminal-dismiss" id="claudeTerminalDismiss" type="button" aria-label="Dismiss" data-i18n-title="action.dismiss">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+        </button>
+      </div>
+      <div class="codex-terminal-banner" id="codexTerminalBanner" role="status" hidden>
+        <div class="codex-terminal-status">
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M2.8 4.2h10.4v7.6H2.8z"/>
+            <path d="M5 6.3 6.8 8 5 9.7M8 10h3"/>
+          </svg>
+          <span data-i18n="codex.terminalRunning"></span>
+        </div>
+        <div class="codex-terminal-actions">
+          <button class="codex-terminal-stop" id="codexTerminalStop" type="button" aria-label="Stop" data-i18n-title="action.stop">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 6h4v4H6z"/></svg>
+          </button>
+          <button class="codex-terminal-open" id="codexTerminalOpen" type="button" aria-label="Details" data-i18n-title="codex.terminalDetails">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6.5 4.5 10 8l-3.5 3.5"/></svg>
+          </button>
+        </div>
+      </div>
       <div class="prompt-shell">
         <div class="slash-palette" id="slashPalette" role="listbox" aria-label="Slash commands" data-i18n-aria="slash.label" hidden></div>
         <textarea id="promptInput" name="assistantPrompt" autocomplete="off" rows="1" data-i18n-placeholder="input.placeholder"></textarea>
+        <div class="attachment-strip" id="attachmentStrip" aria-live="polite" data-i18n-aria="attachment.label" hidden></div>
 
         <div class="prompt-actions">
           <div class="prompt-selectors">
-            <label class="select-field compact-select">
-              <span class="sr-only" data-i18n="provider.label"></span>
-              <select id="providerSelect" name="assistantProvider" autocomplete="off"></select>
-            </label>
-            <div class="provider-hint" id="providerHint" aria-live="polite"></div>
+            <button class="attach-button" id="attachImageBtn" type="button" data-i18n-title="attachment.add" aria-label="Attach image">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>
+            </button>
+            <button class="claude-tool-button" id="claudeContextBtn" type="button" data-i18n-title="context.label" aria-label="Attached context">
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <rect x="3.2" y="3" width="9.6" height="10" rx="1.4"/>
+                <path d="M5.4 10.6 10.7 5.3M6 5.3h4.7v4.7"/>
+              </svg>
+            </button>
+            <input id="imageFileInput" type="file" accept="image/*" multiple hidden>
+            <div class="composer-meta">
+              <div class="context-budget" id="contextBudget" tabindex="0" role="status" aria-live="polite" data-i18n-aria="contextWindow.label" hidden>
+                <span class="context-budget-ring" aria-hidden="true"></span>
+                <span id="contextBudgetLabel"></span>
+                <div class="context-budget-popover" role="tooltip">
+                  <div class="context-budget-title" data-i18n="contextWindow.title"></div>
+                  <div id="contextBudgetPercent"></div>
+                  <div id="contextBudgetTokens"></div>
+                  <div id="contextBudgetTokenizer"></div>
+                  <div id="contextBudgetPolicy"></div>
+                </div>
+              </div>
+            </div>
+            <details class="option-menu model-menu">
+              <summary class="option-summary" data-i18n-title="model.label">
+                <span id="modelSummaryLabel"></span>
+              </summary>
+              <div class="option-popover option-popover-single" aria-label="Model" data-i18n-aria="model.label">
+                <label class="select-field agent-select native-option-field">
+                  <span class="sr-only" data-i18n="model.label"></span>
+                  <select id="modelSelect" name="assistantModel" autocomplete="off"></select>
+                </label>
+                <div class="option-list model-option-list" id="modelOptionList" role="menu"></div>
+                <label class="custom-model-field" id="customModelField" hidden>
+                  <span class="sr-only" data-i18n="model.custom"></span>
+                  <input id="customModelInput" name="assistantCustomModel" autocomplete="off" spellcheck="false" data-i18n-placeholder="model.customPlaceholder">
+                </label>
+              </div>
+            </details>
+            <details class="option-menu permission-menu">
+              <summary class="option-summary" data-i18n-title="permission.label">
+                <svg class="claude-permission-icon" viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M6.2 8.2V3.8a1 1 0 0 1 2 0v3.7M8.2 7.5V3.1a1 1 0 0 1 2 0v4.7M10.2 8V4.4a1 1 0 1 1 2 0v5.3c0 2.3-1.8 4-4.1 4H7a3.5 3.5 0 0 1-2.8-1.4L2.5 10a1.1 1.1 0 0 1 1.6-1.5l1.2 1.2V5a1 1 0 0 1 2 0v3.2"/>
+                </svg>
+                <span id="permissionSummaryLabel"></span>
+              </summary>
+              <div class="option-popover option-popover-single" aria-label="Permission" data-i18n-aria="permission.label">
+                <label class="select-field agent-select native-option-field">
+                  <span class="sr-only" data-i18n="permission.label"></span>
+                  <select id="permissionSelect" name="assistantPermission" autocomplete="off"></select>
+                </label>
+                <div class="option-list permission-option-list" id="permissionOptionList" role="menu"></div>
+              </div>
+            </details>
             <details class="mode-menu">
               <summary class="mode-summary" data-i18n-title="agentMode.label">
                 <span id="agentModeSummaryLabel"></span>
               </summary>
-              <div class="mode-popover" aria-label="Provider agent" data-i18n-aria="agentMode.label">
-                <label class="select-field agent-select">
+              <div class="mode-popover option-popover-single" aria-label="Provider agent" data-i18n-aria="agentMode.label">
+                <label class="select-field agent-select native-option-field">
                   <span class="sr-only" data-i18n="agentMode.label"></span>
                   <select id="agentModeSelect" name="assistantAgentMode" autocomplete="off"></select>
                 </label>
+                <div class="option-list mode-option-list" id="agentModeOptionList" role="menu"></div>
               </div>
             </details>
             <select id="actionSelect" name="assistantAction" autocomplete="off" hidden>
@@ -95,6 +174,30 @@
               <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M9 4l4 4-4 4"/></svg>
             </button>
           </div>
+        </div>
+      </div>
+
+      <div class="composer-footer">
+        <div class="composer-runtime" data-i18n-aria="runtime.label" aria-label="Runtime">
+          <details class="option-menu runtime-menu">
+            <summary class="option-summary" data-i18n-title="runtime.label">
+              <span id="runtimeSummaryLabel"></span>
+            </summary>
+            <div class="option-popover option-popover-single" aria-label="Runtime" data-i18n-aria="runtime.label">
+              <label class="select-field agent-select native-option-field">
+                <span class="sr-only" data-i18n="runtime.label"></span>
+                <select id="runtimeSelect" name="assistantRuntime" autocomplete="off"></select>
+              </label>
+              <div class="option-list runtime-option-list" id="runtimeOptionList" role="menu"></div>
+            </div>
+          </details>
+        </div>
+        <div class="composer-provider-dock">
+          <label class="select-field compact-select">
+            <span class="sr-only" data-i18n="provider.label"></span>
+            <select id="providerSelect" name="assistantProvider" autocomplete="off"></select>
+          </label>
+          <div class="provider-hint" id="providerHint" aria-live="polite"></div>
         </div>
       </div>
     </footer>

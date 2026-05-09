@@ -5,13 +5,83 @@ export interface CliAgentMode {
   instruction: string;
   /** Extra CLI args inserted before the prompt */
   args?: string[];
+  disabled?: boolean;
 }
+
+export interface CliProfileOption {
+  id: string;
+  label: string;
+  summaryLabel?: string;
+  description: string;
+  args?: string[];
+  dangerous?: boolean;
+  disabled?: boolean;
+  actionOnly?: boolean;
+  external?: boolean;
+  dividerBefore?: boolean;
+}
+
+export interface CliModelOption extends CliProfileOption {
+  custom?: boolean;
+}
+
+export interface CliRuntimeMode extends CliProfileOption {}
+
+export interface CliPermissionMode extends CliProfileOption {
+  instruction?: string;
+}
+
+export interface CliOptionSelection {
+  model?: string;
+  customModel?: string;
+  runtime?: string;
+  permissionMode?: string;
+}
+
+export type CliTaskIntent =
+  | 'planning'
+  | 'implementation'
+  | 'review'
+  | 'tests'
+  | 'refactor'
+  | 'explain';
+
+export type CliTaskRouting = Record<CliTaskIntent, number>;
+
+export type CliTokenizerConfig =
+  | {
+      provider: 'openai';
+      encoding: 'o200k_base' | 'cl100k_base';
+      label: string;
+    }
+  | {
+      provider: 'anthropic';
+      label: string;
+    };
 
 export interface CliProfile {
   id: string;
   name: string;
   description: string;
   command: string;
+  /** Arguments used to query the CLI version. Defaults to --version. */
+  versionArgs?: string[];
+  /** Known context window size for the default provider model, when the CLI exposes one. */
+  contextWindowTokens?: number;
+  /** Whether the provider is expected to compact older background context automatically. */
+  autoCompactsContext?: boolean;
+  /** Exact tokenizer used for locally attached context when it is provider-known. */
+  tokenizer?: CliTokenizerConfig;
+  /** Provider-native model presets shown in the composer. */
+  modelOptions?: CliModelOption[];
+  defaultModel?: string;
+  customModelArgPrefix?: string[];
+  /** Runtime/backend choices such as hosted API or local OSS provider. */
+  runtimeModes?: CliRuntimeMode[];
+  defaultRuntime?: string;
+  /** Permission/sandbox choices kept separate from workflow intent. */
+  permissionModes?: CliPermissionMode[];
+  defaultPermissionMode?: string;
   /** Arguments for non-interactive prompt mode */
   promptArgs: string[];
   /** Optional background server used to make subsequent non-interactive runs faster */
@@ -19,15 +89,23 @@ export interface CliProfile {
     args: string[];
     attachArgs: string[];
     url: string;
+    portRange?: {
+      start: number;
+      size: number;
+    };
   };
   /** How the prompt is delivered to the process */
   inputMode: 'stdin' | 'argument';
+  /** Keep stdin open after sending a prompt. Headless stdin CLIs usually need EOF, so this defaults to false. */
+  keepStdinOpen?: boolean;
   /** Brand accent color (hex) */
   accent: string;
   /** Brand icon emoji or short label */
   icon: string;
   /** Capability labels shown in the assistant workbench */
   capabilities: string[];
+  /** Task-fit scores used by the workbench recommendation engine */
+  taskRouting: CliTaskRouting;
   /** Provider-native agent/mode presets shown in the composer */
   agentModes: CliAgentMode[];
   defaultAgentMode: string;
@@ -35,6 +113,7 @@ export interface CliProfile {
   installHint: string;
   env?: Record<string, string>;
   installed: boolean;
+  version?: string;
 }
 
 export const CLI_PROFILES: CliProfile[] = [
@@ -43,19 +122,52 @@ export const CLI_PROFILES: CliProfile[] = [
     name: 'Claude Code',
     description: 'Strong project-aware coding agent for multi-file implementation and refactors.',
     command: 'claude',
-    promptArgs: ['-p'],
-    inputMode: 'stdin',
+    tokenizer: { provider: 'anthropic', label: 'Claude tokenizer' },
+    promptArgs: ['-p', '--output-format', 'stream-json', '--verbose', '--include-partial-messages'],
+    inputMode: 'argument',
     accent: '#d97757',
     icon: '◆',
     capabilities: ['agent', 'multi-file', 'refactor'],
-    defaultAgentMode: 'default',
+    taskRouting: {
+      planning: 6,
+      implementation: 5,
+      review: 5,
+      tests: 4,
+      refactor: 6,
+      explain: 5,
+    },
+    defaultAgentMode: 'build',
     agentModes: [
+      {
+        id: 'build',
+        label: 'Build',
+        description: 'Claude Code implementation workflow.',
+        instruction:
+          'Claude Code build workflow: implement requested changes when allowed by the selected permission mode.',
+      },
+      {
+        id: 'plan',
+        label: 'Plan',
+        description: 'Planning and analysis without changes.',
+        instruction:
+          'Claude Code plan workflow: inspect and propose a plan. Do not edit files unless the user explicitly approves execution.',
+      },
+      {
+        id: 'review',
+        label: 'Review',
+        description: 'Review-focused Claude Code workflow.',
+        instruction:
+          'Claude Code review workflow: lead with findings, risks, and missing tests before summary.',
+      },
+    ],
+    defaultPermissionMode: 'default',
+    permissionModes: [
       {
         id: 'default',
         label: 'Default',
         description: 'Claude Code default permission mode.',
         instruction:
-          'Claude Code default mode: read freely and ask before edits or shell actions that need approval.',
+          'Claude Code default permission mode: read freely and ask before edits or shell actions that need approval.',
         args: ['--permission-mode', 'default'],
       },
       {
@@ -63,15 +175,15 @@ export const CLI_PROFILES: CliProfile[] = [
         label: 'Accept Edits',
         description: 'Claude Code can edit files without asking each time.',
         instruction:
-          'Claude Code acceptEdits mode: allow file edits and common filesystem commands while still surfacing important risks.',
+          'Claude Code acceptEdits permission mode: allow file edits and common filesystem commands while still surfacing important risks.',
         args: ['--permission-mode', 'acceptEdits'],
       },
       {
         id: 'plan',
         label: 'Plan',
-        description: 'Claude Code analyzes and plans before changing code.',
+        description: 'Claude Code permission mode for planning before changes.',
         instruction:
-          'Claude Code plan mode: inspect and propose a plan. Do not edit files unless the user explicitly approves execution.',
+          'Claude Code plan permission mode: inspect and propose a plan. Do not edit files unless the user explicitly approves execution.',
         args: ['--permission-mode', 'plan'],
       },
       {
@@ -79,7 +191,7 @@ export const CLI_PROFILES: CliProfile[] = [
         label: 'Auto',
         description: 'Claude Code auto mode when the local account supports it.',
         instruction:
-          'Claude Code auto mode: proceed autonomously within Claude Code safety checks and summarize verification clearly.',
+          'Claude Code auto permission mode: proceed autonomously within Claude Code safety checks and summarize verification clearly.',
         args: ['--permission-mode', 'auto'],
       },
       {
@@ -87,7 +199,7 @@ export const CLI_PROFILES: CliProfile[] = [
         label: "Don't Ask",
         description: 'Claude Code only uses pre-approved tools.',
         instruction:
-          'Claude Code dontAsk mode: stay within pre-approved tools and explain blockers instead of requesting broad permissions.',
+          'Claude Code dontAsk permission mode: stay within pre-approved tools and explain blockers instead of requesting broad permissions.',
         args: ['--permission-mode', 'dontAsk'],
       },
       {
@@ -95,8 +207,9 @@ export const CLI_PROFILES: CliProfile[] = [
         label: 'Bypass',
         description: 'Claude Code bypass permissions mode for isolated environments only.',
         instruction:
-          'Claude Code bypassPermissions mode: act carefully, keep edits scoped, and call out risky operations explicitly.',
+          'Claude Code bypassPermissions permission mode: act carefully, keep edits scoped, and call out risky operations explicitly.',
         args: ['--permission-mode', 'bypassPermissions'],
+        dangerous: true,
       },
     ],
     installHint: 'curl -fsSL https://claude.ai/install.sh | bash',
@@ -108,10 +221,18 @@ export const CLI_PROFILES: CliProfile[] = [
     description: 'General coding assistant with broad model support and fast project Q&A.',
     command: 'gemini',
     promptArgs: ['-p'],
-    inputMode: 'stdin',
+    inputMode: 'argument',
     accent: '#4285f4',
     icon: 'G',
     capabilities: ['chat', 'analysis', 'workspace'],
+    taskRouting: {
+      planning: 4,
+      implementation: 2,
+      review: 3,
+      tests: 2,
+      refactor: 2,
+      explain: 5,
+    },
     defaultAgentMode: 'assist',
     agentModes: [
       {
@@ -144,44 +265,149 @@ export const CLI_PROFILES: CliProfile[] = [
     name: 'Codex CLI',
     description: 'OpenAI coding agent for implementation, debugging, and code review workflows.',
     command: 'codex',
-    promptArgs: ['-a', 'never', 'exec', '--color', 'never'],
+    contextWindowTokens: 258000,
+    autoCompactsContext: true,
+    tokenizer: { provider: 'openai', encoding: 'o200k_base', label: 'OpenAI o200k' },
+    promptArgs: ['-a', 'never', 'exec', '--color', 'never', '--ephemeral'],
     inputMode: 'argument',
     accent: '#10a37f',
     icon: 'C',
     capabilities: ['agent', 'patches', 'review'],
-    defaultAgentMode: 'autoEdit',
-    agentModes: [
+    taskRouting: {
+      planning: 5,
+      implementation: 6,
+      review: 6,
+      tests: 5,
+      refactor: 5,
+      explain: 4,
+    },
+    defaultModel: 'gpt-5.4',
+    customModelArgPrefix: ['--model'],
+    modelOptions: [
       {
-        id: 'suggest',
-        label: 'Suggest',
-        description: 'Read-only Codex run that suggests changes without editing files.',
+        id: 'gpt-5.5',
+        label: 'GPT-5.5',
+        description: 'Frontier model for complex coding, research, and real-world work.',
+        args: ['--model', 'gpt-5.5'],
+      },
+      {
+        id: 'gpt-5.4',
+        label: 'GPT-5.4',
+        description: 'Strong model for everyday coding.',
+        args: ['--model', 'gpt-5.4'],
+      },
+      {
+        id: 'gpt-5.4-mini',
+        label: 'GPT-5.4 Mini',
+        description: 'Fast, cost-efficient coding model.',
+        args: ['--model', 'gpt-5.4-mini'],
+      },
+      {
+        id: 'gpt-5.3-codex',
+        label: 'GPT-5.3 Codex',
+        description: 'Coding-optimized model.',
+        args: ['--model', 'gpt-5.3-codex'],
+      },
+      {
+        id: 'gpt-5.3-codex-spark',
+        label: 'Codex Spark',
+        description: 'Ultra-fast coding model.',
+        args: ['--model', 'gpt-5.3-codex-spark'],
+      },
+      {
+        id: 'custom',
+        label: 'Custom',
+        description: 'Enter a custom model string accepted by Codex CLI.',
+        custom: true,
+      },
+    ],
+    defaultRuntime: 'localProcessing',
+    runtimeModes: [
+      {
+        id: 'localProcessing',
+        label: 'Process locally',
+        summaryLabel: 'Local mode',
+        description: 'Keep Codex work on this machine.',
+      },
+      {
+        id: 'codexWeb',
+        label: 'Connect Codex web',
+        description: 'Open Codex web connection settings.',
+        actionOnly: true,
+        external: true,
+      },
+      {
+        id: 'sendCloud',
+        label: 'Send to cloud',
+        description: 'Cloud handoff is not available in this extension yet.',
+        disabled: true,
+      },
+      {
+        id: 'quota',
+        label: 'Remaining quota',
+        description: 'View remaining Codex web quota.',
+        actionOnly: true,
+        dividerBefore: true,
+      },
+    ],
+    defaultPermissionMode: 'workspaceWrite',
+    permissionModes: [
+      {
+        id: 'readOnly',
+        label: 'Read Only',
+        description: 'Codex can inspect but cannot edit files.',
         instruction:
-          'Codex suggest mode: inspect the workspace and propose concrete changes without editing files or running write commands.',
+          'Codex read-only permission: inspect the workspace and propose concrete changes without editing files or running write commands.',
         args: ['--sandbox', 'read-only'],
       },
       {
-        id: 'autoEdit',
-        label: 'Auto Edit',
-        description: 'Codex can edit files in the workspace sandbox.',
+        id: 'workspaceWrite',
+        label: 'Workspace',
+        description: 'Codex can edit files inside the workspace sandbox.',
         instruction:
-          'Codex auto edit mode: make scoped workspace edits when the user asks for implementation, then report verification clearly.',
+          'Codex workspace permission: make scoped workspace edits when requested, then report verification clearly.',
         args: ['--sandbox', 'workspace-write'],
       },
       {
         id: 'fullAuto',
         label: 'Full Auto',
-        description: 'Codex full-auto sandboxed execution for longer tasks.',
+        description: 'Codex low-friction sandboxed automatic execution.',
         instruction:
-          'Codex full auto mode: work autonomously in the sandbox, keep changes scoped, and summarize commands, edits, and verification.',
+          'Codex full-auto permission: work autonomously in the sandbox, keep changes scoped, and summarize commands, edits, and verification.',
         args: ['--full-auto'],
+      },
+      {
+        id: 'danger',
+        label: 'Danger',
+        description: 'Bypass Codex approvals and sandbox. Use only in externally sandboxed environments.',
+        instruction:
+          'Codex danger permission: approvals and sandbox are bypassed. Keep edits scoped and call out risky operations explicitly.',
+        args: ['--dangerously-bypass-approvals-and-sandbox'],
+        dangerous: true,
+      },
+    ],
+    defaultAgentMode: 'build',
+    agentModes: [
+      {
+        id: 'build',
+        label: 'Build',
+        description: 'Implementation-focused Codex workflow.',
+        instruction:
+          'Codex build workflow: implement requested changes when allowed by the selected permission mode, then report verification clearly.',
+      },
+      {
+        id: 'plan',
+        label: 'Plan',
+        description: 'Planning-focused Codex workflow.',
+        instruction:
+          'Codex plan workflow: inspect the workspace and propose concrete steps before making changes.',
       },
       {
         id: 'review',
         label: 'Review',
-        description: 'Codex review-focused mode.',
+        description: 'Codex review-focused workflow.',
         instruction:
-          'Codex review mode: lead with findings, risks, and missing tests before summary.',
-        args: ['--sandbox', 'read-only'],
+          'Codex review workflow: lead with findings, risks, and missing tests before summary.',
       },
     ],
     installHint: 'npm install -g @openai/codex',
@@ -192,32 +418,54 @@ export const CLI_PROFILES: CliProfile[] = [
     name: 'OpenCode',
     description: 'Terminal-native coding agent for fast codebase operations.',
     command: 'opencode',
-    promptArgs: ['run'],
+    promptArgs: ['run', '--format', 'json', '--thinking'],
     backgroundServer: {
-      args: ['serve', '--hostname', '127.0.0.1', '--port', '4096'],
-      attachArgs: ['--attach', 'http://127.0.0.1:4096'],
-      url: 'http://127.0.0.1:4096',
+      args: ['serve', '--hostname', '127.0.0.1', '--port', '{port}'],
+      attachArgs: ['--attach', 'http://127.0.0.1:{port}'],
+      url: 'http://127.0.0.1:{port}',
+      portRange: { start: 46100, size: 200 },
     },
     inputMode: 'argument',
     accent: '#a855f7',
     icon: 'O',
     capabilities: ['agent', 'terminal', 'workspace'],
-    defaultAgentMode: 'default',
-    agentModes: [
+    taskRouting: {
+      planning: 2,
+      implementation: 4,
+      review: 2,
+      tests: 3,
+      refactor: 3,
+      explain: 2,
+    },
+    defaultModel: 'configured',
+    customModelArgPrefix: ['--model'],
+    modelOptions: [
       {
-        id: 'default',
-        label: 'Default',
-        description: 'OpenCode default primary agent with full tools.',
-        instruction:
-          'OpenCode default agent: use the standard primary agent for development work with full tool access.',
+        id: 'configured',
+        label: 'Configured',
+        summaryLabel: 'Configured',
+        description: 'Use the concrete model configured in OpenCode when model discovery is unavailable.',
       },
       {
-        id: 'plan',
-        label: 'Plan',
-        description: 'OpenCode restricted primary agent for analysis.',
+        id: 'custom',
+        label: 'Custom',
+        description: 'Enter a provider/model string accepted by OpenCode.',
+        custom: true,
+      },
+    ],
+    defaultAgentMode: 'configured',
+    env: {
+      OPENCODE_DB: '{tmp}/agents-hub-opencode-{cwdHash}.db',
+      OMO_DISABLE_POSTHOG: '1',
+      OMO_SEND_ANONYMOUS_TELEMETRY: '0',
+    },
+    agentModes: [
+      {
+        id: 'configured',
+        label: 'Configured',
+        description: 'OpenCode configured primary agent, used when agent discovery is unavailable.',
         instruction:
-          'OpenCode plan agent: analyze, review, and plan without making actual code modifications.',
-        args: ['--agent', 'plan'],
+          'OpenCode configured agent: use the current provider-native primary agent configured by OpenCode.',
       },
     ],
     installHint: 'brew install opencode-ai/tap/opencode',
@@ -233,6 +481,14 @@ export const CLI_PROFILES: CliProfile[] = [
     accent: '#f97316',
     icon: '⌂',
     capabilities: ['agent', 'automation', 'tools'],
+    taskRouting: {
+      planning: 2,
+      implementation: 3,
+      review: 1,
+      tests: 3,
+      refactor: 1,
+      explain: 1,
+    },
     defaultAgentMode: 'auto',
     agentModes: [
       {
@@ -263,6 +519,14 @@ export const CLI_PROFILES: CliProfile[] = [
     accent: '#22c55e',
     icon: 'A',
     capabilities: ['patches', 'git', 'tests'],
+    taskRouting: {
+      planning: 1,
+      implementation: 4,
+      review: 2,
+      tests: 5,
+      refactor: 4,
+      explain: 1,
+    },
     defaultAgentMode: 'edit',
     agentModes: [
       {
@@ -290,9 +554,70 @@ export function getCliProfile(id: string): CliProfile | undefined {
 }
 
 export function getCliAgentMode(profile: CliProfile, modeId?: string): CliAgentMode {
+  const selectableModes = profile.agentModes.filter((mode) => !mode.disabled);
   return (
-    profile.agentModes.find((mode) => mode.id === modeId) ??
-    profile.agentModes.find((mode) => mode.id === profile.defaultAgentMode) ??
+    selectableModes.find((mode) => mode.id === modeId) ??
+    selectableModes.find((mode) => mode.id === profile.defaultAgentMode) ??
+    selectableModes[0] ??
     profile.agentModes[0]
   );
+}
+
+export function getCliModelOption(profile: CliProfile, modelId?: string): CliModelOption {
+  const options = profile.modelOptions ?? [];
+  return (
+    options.find((option) => option.id === modelId) ??
+    options.find((option) => option.id === profile.defaultModel) ??
+    options[0] ??
+    { id: 'default', label: 'Default', description: 'Use provider default model.' }
+  );
+}
+
+export function getCliRuntimeMode(profile: CliProfile, runtimeId?: string): CliRuntimeMode {
+  const modes = profile.runtimeModes ?? [];
+  const selectableModes = modes.filter(isSelectableProfileOption);
+  return (
+    selectableModes.find((mode) => mode.id === runtimeId) ??
+    selectableModes.find((mode) => mode.id === profile.defaultRuntime) ??
+    selectableModes[0] ??
+    modes[0] ??
+    { id: 'default', label: 'Default', description: 'Use provider default runtime.' }
+  );
+}
+
+function isSelectableProfileOption(option: CliProfileOption): boolean {
+  return !option.disabled && !option.actionOnly;
+}
+
+export function getCliPermissionMode(
+  profile: CliProfile,
+  permissionModeId?: string
+): CliPermissionMode {
+  const modes = profile.permissionModes ?? [];
+  return (
+    modes.find((mode) => mode.id === permissionModeId) ??
+    modes.find((mode) => mode.id === profile.defaultPermissionMode) ??
+    modes[0] ??
+    { id: 'default', label: 'Default', description: 'Use provider default permissions.' }
+  );
+}
+
+export function buildCliOptionArgs(
+  profile: CliProfile,
+  selection: CliOptionSelection = {}
+): string[] {
+  const runtime = getCliRuntimeMode(profile, selection.runtime);
+  const model = getCliModelOption(profile, selection.model);
+  const permission = getCliPermissionMode(profile, selection.permissionMode);
+  const customModel = selection.customModel?.trim();
+  const modelArgs =
+    model.custom && customModel && profile.customModelArgPrefix
+      ? [...profile.customModelArgPrefix, customModel]
+      : model.args ?? [];
+
+  return [
+    ...(runtime.args ?? []),
+    ...modelArgs,
+    ...(permission.args ?? []),
+  ];
 }

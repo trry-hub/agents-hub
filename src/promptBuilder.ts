@@ -1,6 +1,8 @@
 import {
   AssistantActionId,
+  AssistantConversationHistoryMessage,
   AssistantContextSnapshot,
+  AssistantImageAttachment,
   AssistantPromptRequest,
 } from './assistantTypes';
 
@@ -25,6 +27,10 @@ const ACTION_INSTRUCTIONS: Record<AssistantActionId, string> = {
 };
 
 export function buildAssistantPrompt(request: AssistantPromptRequest): string {
+  if (request.provider.id === 'opencode' && request.action === 'freeform') {
+    return buildOpenCodeFreeformPrompt(request);
+  }
+
   const agentMode = request.agentMode;
   const lines: string[] = [
     'You are an AI coding assistant embedded in VS Code.',
@@ -40,7 +46,11 @@ export function buildAssistantPrompt(request: AssistantPromptRequest): string {
     'User request:',
     request.message.trim() || defaultMessageForAction(request.action),
     '',
-    renderContext(request.context),
+    renderConversationHistory(request.conversationHistory),
+    '',
+    renderAssistantAttachments(request.attachments),
+    '',
+    renderAssistantContext(request.context),
     '',
     'Response requirements:',
     '- Be specific to the provided project context.',
@@ -48,6 +58,39 @@ export function buildAssistantPrompt(request: AssistantPromptRequest): string {
     '- When suggesting code changes, include file paths and minimal patches or snippets.',
     '- If context is missing, say what is missing and proceed with the best available information.',
   ];
+
+  return lines.filter((line, index, all) => line !== '' || all[index - 1] !== '').join('\n');
+}
+
+function buildOpenCodeFreeformPrompt(request: AssistantPromptRequest): string {
+  const message = request.message.trim() || defaultMessageForAction(request.action);
+  const hasAttachments = Boolean(request.attachments?.length);
+  const hasContext = hasSubstantialContext(request.context);
+  const hasHistory = Boolean(request.conversationHistory?.length);
+
+  if (!hasAttachments && !hasContext && !hasHistory) {
+    return message;
+  }
+
+  const lines: string[] = [message, ''];
+
+  const history = renderConversationHistory(request.conversationHistory);
+  if (history) {
+    lines.push(history, '');
+  }
+
+  const attachments = renderAssistantAttachments(request.attachments);
+  if (attachments) {
+    lines.push(attachments, '');
+  }
+
+  if (hasContext) {
+    lines.push('IDE context, use only if relevant:');
+    lines.push(renderAssistantContext(request.context));
+    lines.push('');
+  }
+
+  lines.push('Keep the answer concise. Do not inspect the project unless the request needs it.');
 
   return lines.filter((line, index, all) => line !== '' || all[index - 1] !== '').join('\n');
 }
@@ -71,7 +114,7 @@ function defaultMessageForAction(action: AssistantActionId): string {
   }
 }
 
-function renderContext(context: AssistantContextSnapshot): string {
+export function renderAssistantContext(context: AssistantContextSnapshot): string {
   const sections: string[] = ['IDE context:'];
 
   if (context.workspace) {
@@ -119,6 +162,62 @@ function renderContext(context: AssistantContextSnapshot): string {
   return sections.join('\n');
 }
 
+function hasSubstantialContext(context: AssistantContextSnapshot): boolean {
+  return Boolean(
+    context.workspace ||
+    context.activeFile ||
+    context.selection ||
+    context.diagnostics.length > 0
+  );
+}
+
+function renderConversationHistory(history: AssistantConversationHistoryMessage[] = []): string {
+  const entries = history
+    .filter((entry) => entry && (entry.role === 'user' || entry.role === 'assistant'))
+    .map((entry) => ({
+      role: entry.role === 'user' ? 'User' : 'Assistant',
+      text: compactHistoryText(entry.text),
+    }))
+    .filter((entry) => entry.text)
+    .slice(-8);
+
+  if (entries.length === 0) {
+    return '';
+  }
+
+  const lines = [
+    'Recent conversation in this thread:',
+    'Use this to answer follow-up questions and avoid asking the user to repeat prior details.',
+  ];
+  for (const entry of entries) {
+    lines.push(`- ${entry.role}: ${entry.text}`);
+  }
+  return lines.join('\n');
+}
+
+function compactHistoryText(value: string): string {
+  const text = String(value || '').replace(/\s+/g, ' ').trim();
+  return text.length > 1200 ? `${text.slice(0, 1197)}...` : text;
+}
+
+export function renderAssistantAttachments(attachments: AssistantImageAttachment[] = []): string {
+  const images = attachments.filter((attachment) => attachment.kind === 'image' && attachment.path);
+  if (images.length === 0) {
+    return '';
+  }
+
+  const sections = ['Attached images:'];
+  for (const image of images) {
+    sections.push(
+      `- ${image.name} (${image.mimeType}, ${formatBytes(image.size)}): ${image.path}`
+    );
+  }
+  sections.push(
+    'Use these local image paths when the selected provider can inspect image files. If image inspection is unavailable, say so clearly and work from the user request.'
+  );
+  return sections.join('\n');
+}
+
 function fencedBlock(languageId: string, text: string): string {
   const fenceLanguage = languageId && /^[a-zA-Z0-9_-]+$/.test(languageId) ? languageId : '';
   return `\`\`\`${fenceLanguage}\n${escapeFence(text)}\n\`\`\``;
@@ -126,4 +225,16 @@ function fencedBlock(languageId: string, text: string): string {
 
 function escapeFence(text: string): string {
   return text.replace(/```/g, '``\\`');
+}
+
+function formatBytes(size: number): string {
+  const bytes = Math.max(0, Math.round(Number(size) || 0));
+  if (bytes >= 1024 * 1024) {
+    const value = bytes / (1024 * 1024);
+    return `${Number.isInteger(value) ? value : value.toFixed(1)} MB`;
+  }
+  if (bytes >= 1024) {
+    return `${Math.round(bytes / 1024)} KB`;
+  }
+  return `${bytes} B`;
 }
