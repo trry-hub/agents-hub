@@ -683,7 +683,8 @@ test('extension defaults to OpenCode as the active provider', () => {
   assert.match(extensionSource, /state:\s*context\.globalState/);
   assert.match(sidebarSource, /LAST_PROVIDER_STATE_KEY = 'agentsHub\.lastProviderId'/);
   assert.match(sidebarSource, /AGENT_MODE_STATE_KEY = 'agentsHub\.agentModeByProvider'/);
-  assert.match(sidebarSource, /activeProviderId: this\.getStoredProviderId\(profiles\)/);
+  assert.match(sidebarSource, /const storedProviderId = this\.getStoredProviderId\(profiles\)/);
+  assert.match(sidebarSource, /activeProviderId: storedProviderId/);
   assert.match(sidebarSource, /activeAgentModeByProvider: this\.getStoredAgentModeState\(\)/);
 });
 
@@ -1074,27 +1075,58 @@ test('webview renders permissions as a Code X style option menu', () => {
   assert.match(css, /body\[data-provider="codex"\] \.permission-menu \.option-summary/);
 });
 
-test('webview provider switcher renders as compact logo tabs', () => {
-  const css = readFileSync(new URL('../media/main.css', import.meta.url), 'utf8');
+test('extension contributes provider logo buttons to the native view title', () => {
+  const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  const extensionSource = readFileSync(new URL('../src/extension.ts', import.meta.url), 'utf8');
+  const sidebarSource = readFileSync(new URL('../src/sidebarProvider.ts', import.meta.url), 'utf8');
+  const providers = ['claude', 'gemini', 'codex', 'opencode', 'goose', 'aider'];
+  const commands = manifest.contributes.commands;
+  const titleActions = manifest.contributes.menus['view/title'];
+  const commandPalette = manifest.contributes.menus.commandPalette;
 
-  assert.match(css, /\.provider-tabs\s*\{\s*[^}]*display:\s*inline-flex;/s);
-  assert.match(css, /\.provider-tab-button\s*\{\s*[^}]*width:\s*24px;/s);
-  assert.match(css, /\.provider-tab-button\s*\{\s*[^}]*height:\s*24px;/s);
-  assert.match(css, /\.provider-tab-button\[aria-selected="true"\]\s*\{/);
-  assert.match(css, /\.provider-tab-logo\s*\{\s*[^}]*font-size:\s*12px;/s);
+  for (const provider of providers) {
+    const command = commands.find((item) => item.command === `agentsHub.switchProvider.${provider}`);
+    const activeCommand = commands.find((item) => item.command === `agentsHub.switchProviderActive.${provider}`);
+    assert.ok(command, `missing provider command for ${provider}`);
+    assert.ok(activeCommand, `missing active provider command for ${provider}`);
+    assert.equal(command.icon.light, `media/provider-icons/${provider}.svg`);
+    assert.equal(activeCommand.icon.light, `media/provider-icons/${provider}-active.svg`);
+    assert.match(readFileSync(new URL(`../media/provider-icons/${provider}.svg`, import.meta.url), 'utf8'), /currentColor/);
+    assert.match(readFileSync(new URL(`../media/provider-icons/${provider}-active.svg`, import.meta.url), 'utf8'), /currentColor/);
+    assert.ok(titleActions.some((item) => (
+      item.command === `agentsHub.switchProvider.${provider}` &&
+      item.when.includes('view == agentsHub.sidebar') &&
+      item.when.includes(`agentsHub.provider.${provider}.installed`) &&
+      item.when.includes(`agentsHub.activeProvider != ${provider}`)
+    )));
+    assert.ok(titleActions.some((item) => (
+      item.command === `agentsHub.switchProviderActive.${provider}` &&
+      item.when.includes(`agentsHub.activeProvider == ${provider}`)
+    )));
+    assert.ok(commandPalette.some((item) => (
+      item.command === `agentsHub.switchProviderActive.${provider}` &&
+      item.when === 'false'
+    )));
+  }
+
+  assert.match(extensionSource, /registerCommand\(`agentsHub\.switchProvider\.\$\{profile\.id\}`/);
+  assert.match(extensionSource, /registerCommand\(`agentsHub\.switchProviderActive\.\$\{profile\.id\}`/);
+  assert.match(sidebarSource, /executeCommand\('setContext', 'agentsHub\.activeProvider', providerId\)/);
+  assert.match(sidebarSource, /postMessage\(\{ command: 'switchProvider', providerId \}\)/);
 });
 
-test('webview moves provider switcher into the top toolbar', () => {
+test('webview keeps provider switch state hidden outside the composer', () => {
   const html = readFileSync(new URL('../media/main.html', import.meta.url), 'utf8');
   const css = readFileSync(new URL('../media/main.css', import.meta.url), 'utf8');
 
-  assert.match(html, /<div class="toolbar-main">[\s\S]*id="threadSelect"[\s\S]*<div class="provider-tabs-wrap">[\s\S]*id="providerSelect"[\s\S]*id="providerTabs"[\s\S]*id="providerHint"[\s\S]*<div class="toolbar-actions"/);
+  assert.match(html, /<label class="provider-native-select" hidden>[\s\S]*id="providerSelect"/);
+  assert.doesNotMatch(html, /providerTabs|provider-tabs-wrap|provider-tab-button/);
   assert.doesNotMatch(html, /composer-provider-dock/);
   assert.doesNotMatch(html, /<div class="prompt-selectors">[\s\S]*id="providerSelect"[\s\S]*<\/div>\s*<div class="prompt-tools"/);
   assert.match(css, /\.composer-footer\s*\{\s*[^}]*display:\s*flex;/s);
   assert.match(css, /\.composer-footer\s*\{\s*[^}]*justify-content:\s*space-between;/s);
-  assert.match(css, /\.provider-tabs-wrap\s*\{\s*[^}]*justify-content:\s*flex-end;/s);
-  assert.match(css, /\.provider-tab-select\s*\{\s*[^}]*position:\s*absolute;/s);
+  assert.doesNotMatch(css, /\.provider-tabs/);
+  assert.doesNotMatch(css, /\.provider-tab-button/);
   assert.doesNotMatch(css, /\.composer-provider-dock/);
   assert.match(css, /\.context-budget\s*\{\s*[^}]*height:\s*20px;/s);
   assert.match(css, /\.context-budget\s*\{\s*[^}]*max-width:\s*48px;/s);
@@ -1185,6 +1217,7 @@ test('webview refreshes context after a concrete provider is active', () => {
   assert.match(script, /function refreshActiveContext\(\) \{\s*if \(!activeId\) \{\s*return;\s*\}\s*vscode\.postMessage\(\{ command: 'refreshContext', cliId: activeId, contextOptions \}\);\s*\}/);
   assert.match(script, /providerSelect\.addEventListener\('change', \(\) => \{[\s\S]*renderAll\(\);\s*refreshActiveContext\(\);[\s\S]*\}\);/);
   assert.match(script, /case 'profiles':[\s\S]*renderAll\(\);\s*refreshActiveContext\(\);[\s\S]*break;/);
+  assert.match(script, /case 'switchProvider':\s*switchActiveProvider\(message\.providerId\);\s*break;/);
   assert.match(script, /vscode\.postMessage\(\{ command: 'checkProfiles' \}\);\s*refreshActiveContext\(\);\s*renderAll\(\);/);
 });
 

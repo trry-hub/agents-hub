@@ -18,7 +18,19 @@
     "onCommand:agentsHub.explainSelection",
     "onCommand:agentsHub.reviewFile",
     "onCommand:agentsHub.generateTests",
-    "onCommand:agentsHub.refactorSelection"
+    "onCommand:agentsHub.refactorSelection",
+    "onCommand:agentsHub.switchProvider.claude",
+    "onCommand:agentsHub.switchProviderActive.claude",
+    "onCommand:agentsHub.switchProvider.gemini",
+    "onCommand:agentsHub.switchProviderActive.gemini",
+    "onCommand:agentsHub.switchProvider.codex",
+    "onCommand:agentsHub.switchProviderActive.codex",
+    "onCommand:agentsHub.switchProvider.opencode",
+    "onCommand:agentsHub.switchProviderActive.opencode",
+    "onCommand:agentsHub.switchProvider.goose",
+    "onCommand:agentsHub.switchProviderActive.goose",
+    "onCommand:agentsHub.switchProvider.aider",
+    "onCommand:agentsHub.switchProviderActive.aider"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -68,9 +80,193 @@
       {
         "command": "agentsHub.refactorSelection",
         "title": "%command.refactorSelection.title%"
+      },
+      {
+        "command": "agentsHub.switchProvider.claude",
+        "title": "%command.switchProvider.claude.title%",
+        "icon": {
+          "light": "media/provider-icons/claude.svg",
+          "dark": "media/provider-icons/claude.svg"
+        }
+      },
+      {
+        "command": "agentsHub.switchProviderActive.claude",
+        "title": "%command.switchProvider.claude.title%",
+        "icon": {
+          "light": "media/provider-icons/claude-active.svg",
+          "dark": "media/provider-icons/claude-active.svg"
+        }
+      },
+      {
+        "command": "agentsHub.switchProvider.gemini",
+        "title": "%command.switchProvider.gemini.title%",
+        "icon": {
+          "light": "media/provider-icons/gemini.svg",
+          "dark": "media/provider-icons/gemini.svg"
+        }
+      },
+      {
+        "command": "agentsHub.switchProviderActive.gemini",
+        "title": "%command.switchProvider.gemini.title%",
+        "icon": {
+          "light": "media/provider-icons/gemini-active.svg",
+          "dark": "media/provider-icons/gemini-active.svg"
+        }
+      },
+      {
+        "command": "agentsHub.switchProvider.codex",
+        "title": "%command.switchProvider.codex.title%",
+        "icon": {
+          "light": "media/provider-icons/codex.svg",
+          "dark": "media/provider-icons/codex.svg"
+        }
+      },
+      {
+        "command": "agentsHub.switchProviderActive.codex",
+        "title": "%command.switchProvider.codex.title%",
+        "icon": {
+          "light": "media/provider-icons/codex-active.svg",
+          "dark": "media/provider-icons/codex-active.svg"
+        }
+      },
+      {
+        "command": "agentsHub.switchProvider.opencode",
+        "title": "%command.switchProvider.opencode.title%",
+        "icon": {
+          "light": "media/provider-icons/opencode.svg",
+          "dark": "media/provider-icons/opencode.svg"
+        }
+      },
+      {
+        "command": "agentsHub.switchProviderActive.opencode",
+        "title": "%command.switchProvider.opencode.title%",
+        "icon": {
+          "light": "media/provider-icons/opencode-active.svg",
+          "dark": "media/provider-icons/opencode-active.svg"
+        }
+      },
+      {
+        "command": "agentsHub.switchProvider.goose",
+        "title": "%command.switchProvider.goose.title%",
+        "icon": {
+          "light": "media/provider-icons/goose.svg",
+          "dark": "media/provider-icons/goose.svg"
+        }
+      },
+      {
+        "command": "agentsHub.switchProviderActive.goose",
+        "title": "%command.switchProvider.goose.title%",
+        "icon": {
+          "light": "media/provider-icons/goose-active.svg",
+          "dark": "media/provider-icons/goose-active.svg"
+        }
+      },
+      {
+        "command": "agentsHub.switchProvider.aider",
+        "title": "%command.switchProvider.aider.title%",
+        "icon": {
+          "light": "media/provider-icons/aider.svg",
+          "dark": "media/provider-icons/aider.svg"
+        }
+      },
+      {
+        "command": "agentsHub.switchProviderActive.aider",
+        "title": "%command.switchProvider.aider.title%",
+        "icon": {
+          "light": "media/provider-icons/aider-active.svg",
+          "dark": "media/provider-icons/aider-active.svg"
+        }
       }
     ],
     "menus": {
+      "view/title": [
+        {
+          "command": "agentsHub.switchProvider.claude",
+          "when": "view == agentsHub.sidebar && agentsHub.provider.claude.installed && agentsHub.activeProvider != claude",
+          "group": "navigation@1"
+        },
+        {
+          "command": "agentsHub.switchProviderActive.claude",
+          "when": "view == agentsHub.sidebar && agentsHub.provider.claude.installed && agentsHub.activeProvider == claude",
+          "group": "navigation@1"
+        },
+        {
+          "command": "agentsHub.switchProvider.gemini",
+          "when": "view == agentsHub.sidebar && agentsHub.provider.gemini.installed && agentsHub.activeProvider != gemini",
+          "group": "navigation@2"
+        },
+        {
+          "command": "agentsHub.switchProviderActive.gemini",
+          "when": "view == agentsHub.sidebar && agentsHub.provider.gemini.installed && agentsHub.activeProvider == gemini",
+          "group": "navigation@2"
+        },
+        {
+          "command": "agentsHub.switchProvider.codex",
+          "when": "view == agentsHub.sidebar && agentsHub.provider.codex.installed && agentsHub.activeProvider != codex",
+          "group": "navigation@3"
+        },
+        {
+          "command": "agentsHub.switchProviderActive.codex",
+          "when": "view == agentsHub.sidebar && agentsHub.provider.codex.installed && agentsHub.activeProvider == codex",
+          "group": "navigation@3"
+        },
+        {
+          "command": "agentsHub.switchProvider.opencode",
+          "when": "view == agentsHub.sidebar && agentsHub.provider.opencode.installed && agentsHub.activeProvider != opencode",
+          "group": "navigation@4"
+        },
+        {
+          "command": "agentsHub.switchProviderActive.opencode",
+          "when": "view == agentsHub.sidebar && agentsHub.provider.opencode.installed && agentsHub.activeProvider == opencode",
+          "group": "navigation@4"
+        },
+        {
+          "command": "agentsHub.switchProvider.goose",
+          "when": "view == agentsHub.sidebar && agentsHub.provider.goose.installed && agentsHub.activeProvider != goose",
+          "group": "navigation@5"
+        },
+        {
+          "command": "agentsHub.switchProviderActive.goose",
+          "when": "view == agentsHub.sidebar && agentsHub.provider.goose.installed && agentsHub.activeProvider == goose",
+          "group": "navigation@5"
+        },
+        {
+          "command": "agentsHub.switchProvider.aider",
+          "when": "view == agentsHub.sidebar && agentsHub.provider.aider.installed && agentsHub.activeProvider != aider",
+          "group": "navigation@6"
+        },
+        {
+          "command": "agentsHub.switchProviderActive.aider",
+          "when": "view == agentsHub.sidebar && agentsHub.provider.aider.installed && agentsHub.activeProvider == aider",
+          "group": "navigation@6"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "agentsHub.switchProviderActive.claude",
+          "when": "false"
+        },
+        {
+          "command": "agentsHub.switchProviderActive.gemini",
+          "when": "false"
+        },
+        {
+          "command": "agentsHub.switchProviderActive.codex",
+          "when": "false"
+        },
+        {
+          "command": "agentsHub.switchProviderActive.opencode",
+          "when": "false"
+        },
+        {
+          "command": "agentsHub.switchProviderActive.goose",
+          "when": "false"
+        },
+        {
+          "command": "agentsHub.switchProviderActive.aider",
+          "when": "false"
+        }
+      ],
       "editor/context": [
         {
           "command": "agentsHub.explainSelection",

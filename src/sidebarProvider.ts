@@ -163,6 +163,35 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     }
   }
 
+  async switchProvider(providerId: string): Promise<void> {
+    const profile = getCliProfile(providerId);
+    if (!profile) {
+      return;
+    }
+
+    const knownProfile = this.profilesById.get(providerId);
+    if (knownProfile && !knownProfile.installed) {
+      vscode.window.showWarningMessage(`${knownProfile.name} is not installed.`);
+      return;
+    }
+
+    await this.state?.update(LAST_PROVIDER_STATE_KEY, providerId);
+    await vscode.commands.executeCommand('setContext', 'agentsHub.activeProvider', providerId);
+
+    if (this.view) {
+      this.view.show(true);
+      await this.postSwitchProviderMessage(providerId);
+      return;
+    }
+
+    await vscode.commands.executeCommand('agentsHub.sidebar.focus');
+    await this.postSwitchProviderMessage(providerId);
+  }
+
+  private async postSwitchProviderMessage(providerId: string): Promise<void> {
+    await this.view?.webview.postMessage({ command: 'switchProvider', providerId });
+  }
+
   stopAll(): void {
     for (const [cliId, session] of this.activeSessions) {
       this.cliManager.stop(session.id);
@@ -190,6 +219,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     profiles.forEach((profile) => {
       this.profilesById.set(profile.id, profile);
     });
+    const storedProviderId = this.getStoredProviderId(profiles);
+    await this.updateProviderTitleContexts(profiles, storedProviderId ?? this.getDefaultCliId());
     this.view?.webview.postMessage({
       command: 'profiles',
       profiles: profiles.map((profile) => ({
@@ -197,9 +228,29 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         vscodeExtension: this.getProviderExtensionStatus(profile.id),
       })),
       defaultProviderId: this.getDefaultCliId(),
-      activeProviderId: this.getStoredProviderId(profiles),
+      activeProviderId: storedProviderId,
       activeAgentModeByProvider: this.getStoredAgentModeState(),
     });
+  }
+
+  private async updateProviderTitleContexts(
+    profiles: CliProfile[],
+    activeProviderId: string
+  ): Promise<void> {
+    const installedProviderIds = new Set(
+      profiles.filter((profile) => profile.installed).map((profile) => profile.id)
+    );
+
+    await Promise.all([
+      vscode.commands.executeCommand('setContext', 'agentsHub.activeProvider', activeProviderId),
+      ...CLI_PROFILES.map((profile) => (
+        vscode.commands.executeCommand(
+          'setContext',
+          `agentsHub.provider.${profile.id}.installed`,
+          installedProviderIds.has(profile.id)
+        )
+      )),
+    ]);
   }
 
   private getStoredProviderId(profiles: CliProfile[]): string | undefined {
@@ -567,6 +618,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     const providerId = typeof payload.activeProviderId === 'string' ? payload.activeProviderId : '';
     if (providerId && getCliProfile(providerId)) {
       await this.state.update(LAST_PROVIDER_STATE_KEY, providerId);
+      await vscode.commands.executeCommand('setContext', 'agentsHub.activeProvider', providerId);
     }
 
     await this.state.update(
