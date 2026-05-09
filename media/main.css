@@ -394,13 +394,6 @@ textarea:focus {
   flex: 0 1 auto;
 }
 
-.prompt-shell[data-advanced="false"] .option-menu,
-.prompt-shell[data-advanced="false"] .mode-menu,
-.prompt-shell[data-advanced="false"] .context-menu,
-.prompt-shell[data-advanced="false"] .context-budget {
-  display: none !important;
-}
-
 .option-menu.is-visible,
 .mode-menu.is-visible,
 .context-menu.is-visible {
@@ -2018,41 +2011,6 @@ body[data-provider="opencode"] .send-button:disabled svg {
   gap: 3px;
   flex: 0 1 auto;
   overflow: visible;
-}
-
-.advanced-toggle {
-  width: 24px;
-  height: 24px;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  color: var(--assistant-muted);
-  background: transparent;
-  cursor: pointer;
-  display: inline-grid;
-  place-items: center;
-}
-
-.advanced-toggle-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1em;
-  height: 1em;
-  line-height: 1;
-  transform-origin: center;
-  transform: rotate(0deg);
-  transition: transform 120ms ease;
-}
-
-.advanced-toggle.is-active .advanced-toggle-icon {
-  transform: rotate(120deg);
-}
-
-.advanced-toggle:hover,
-.advanced-toggle:focus-visible {
-  color: var(--assistant-foreground, var(--vscode-foreground));
-  border-color: color-mix(in srgb, var(--assistant-border) 52%, transparent);
-  background: color-mix(in srgb, var(--assistant-border) 8%, transparent);
 }
 
 .composer-meta:empty {

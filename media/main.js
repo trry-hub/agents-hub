@@ -42,7 +42,6 @@
   let pendingThreadByProvider = {};
   let messageStatusTimer = undefined;
   let promptAttachments = [];
-  let composerAdvancedVisible = Boolean(saved.composerAdvanced);
 
   const taskBoard = document.getElementById('taskBoard');
   const providerSelect = document.getElementById('providerSelect');
@@ -73,8 +72,6 @@
   const contextBudgetTokenizer = document.getElementById('contextBudgetTokenizer');
   const contextBudgetPolicy = document.getElementById('contextBudgetPolicy');
   const slashPalette = document.getElementById('slashPalette');
-  const composerShell = document.querySelector('.prompt-shell');
-  const composerAdvancedToggle = document.getElementById('composerAdvancedToggle');
   const claudeTerminalBanner = document.getElementById('claudeTerminalBanner');
   const claudeTerminalDismiss = document.getElementById('claudeTerminalDismiss');
   const claudeContextBtn = document.getElementById('claudeContextBtn');
@@ -352,7 +349,6 @@
       customModelByProvider,
       activeRuntimeByProvider,
       activePermissionByProvider,
-      composerAdvanced: composerAdvancedVisible,
       claudeTerminalBannerDismissed,
       taskBoardDismissed,
       threadsByProvider: serializeThreadsForState(threadsByProvider),
@@ -1047,42 +1043,6 @@
     return [modelMenu, runtimeMenu, permissionMenu, modeMenu, contextMenu].filter(Boolean);
   }
 
-  function applyComposerAdvancedState() {
-    if (!composerShell || !composerAdvancedToggle) {
-      return;
-    }
-
-    const label = i18n.t(composerAdvancedVisible ? 'composer.advancedHide' : 'composer.advanced');
-    const ariaText = `${label}`;
-    const summary = composerAdvancedToggle.querySelector('.sr-only');
-
-    composerShell.dataset.advanced = composerAdvancedVisible ? 'true' : 'false';
-    composerAdvancedToggle.classList.toggle('is-active', composerAdvancedVisible);
-    composerAdvancedToggle.setAttribute('aria-expanded', String(composerAdvancedVisible));
-    composerAdvancedToggle.title = ariaText;
-    composerAdvancedToggle.setAttribute('aria-label', ariaText);
-    if (summary) {
-      summary.textContent = label;
-    }
-
-    if (!composerAdvancedVisible) {
-      closeComposerMenus();
-    }
-  }
-
-  function setComposerAdvancedVisible(next) {
-    const value = Boolean(next);
-    if (composerAdvancedVisible === value) {
-      applyComposerAdvancedState();
-      return;
-    }
-
-    composerAdvancedVisible = value;
-    persist();
-    applyComposerAdvancedState();
-    renderComposer();
-  }
-
   function closeComposerMenus(exceptMenu) {
     composerMenus().forEach((menu) => {
       if (menu !== exceptMenu) {
@@ -1429,7 +1389,6 @@
         renderAll();
         return;
       case 'context':
-        setComposerAdvancedVisible(true);
         forceContextMenuVisible = true;
         contextMenu?.classList.add('is-visible');
         if (contextMenu) {
@@ -1460,7 +1419,6 @@
         }
         return;
       case 'models':
-        setComposerAdvancedVisible(true);
         if (modelMenu) {
           closeComposerMenus(modelMenu);
           modelMenu.classList.add('is-visible');
@@ -1469,7 +1427,6 @@
         renderComposer();
         return;
       case 'agents':
-        setComposerAdvancedVisible(true);
         if (modeMenu) {
           closeComposerMenus(modeMenu);
           modeMenu.classList.add('is-visible');
@@ -2426,7 +2383,6 @@
     const profile = activeProfile();
     document.body.dataset.provider = activeId || 'none';
     setAccent(profile);
-    applyComposerAdvancedState();
     renderClaudeTerminalBanner();
     renderCodexTerminalBanner();
     renderProviderSelect();
@@ -3020,10 +2976,6 @@
 
   attachImageBtn?.addEventListener('click', () => {
     imageFileInput?.click();
-  });
-
-  composerAdvancedToggle?.addEventListener('click', () => {
-    setComposerAdvancedVisible(!composerAdvancedVisible);
   });
 
   claudeContextBtn.addEventListener('click', () => {

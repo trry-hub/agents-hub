@@ -771,7 +771,7 @@ test('webview keeps local remote runtime outside the prompt input shell', () => 
   assert.match(css, /\.composer-runtime \.runtime-menu\.is-visible\s*\{\s*[^}]*display:\s*block;/s);
 });
 
-test('webview includes an advanced controls toggle for composer settings', () => {
+test('webview omits the composer advanced toggle but keeps provider setup actions', () => {
   const html = readFileSync(new URL('../media/main.html', import.meta.url), 'utf8');
   const script = readFileSync(new URL('../media/main.js', import.meta.url), 'utf8');
   const css = readFileSync(new URL('../media/main.css', import.meta.url), 'utf8');
@@ -779,19 +779,12 @@ test('webview includes an advanced controls toggle for composer settings', () =>
   const extensionSource = readFileSync(new URL('../src/extension.ts', import.meta.url), 'utf8');
   const sidebarSource = readFileSync(new URL('../src/sidebarProvider.ts', import.meta.url), 'utf8');
 
-  assert.match(html, /id="composerAdvancedToggle"/);
-  assert.match(html, /data-i18n-title="composer\.advanced"/);
-  assert.match(script, /let composerAdvancedVisible = Boolean\(saved\.composerAdvanced\);/);
-  assert.match(script, /composerShell\.dataset\.advanced = composerAdvancedVisible \? 'true' : 'false';/);
-  assert.match(script, /function applyComposerAdvancedState\(\)/);
-  assert.match(script, /function setComposerAdvancedVisible\(next\)/);
-  assert.match(script, /composerAdvancedToggle\?\.addEventListener\('click',/);
-  assert.match(script, /setComposerAdvancedVisible\(true\);/);
-  assert.match(css, /\.advanced-toggle\s*\{/s);
-  assert.match(css, /\.prompt-shell\[data-advanced="false"\] \.option-menu,/s);
+  assert.doesNotMatch(html, /id="composerAdvancedToggle"/);
+  assert.doesNotMatch(html, /class="advanced-toggle"/);
+  assert.doesNotMatch(script, /composerAdvancedVisible|composerAdvancedToggle|setComposerAdvancedVisible|applyComposerAdvancedState|composerShell\.dataset\.advanced/);
+  assert.doesNotMatch(css, /\.advanced-toggle|data-advanced/);
+  assert.doesNotMatch(i18nScript, /composer\.advanced|advancedHide/);
   assert.match(css, /\.suggestion-button--primary\s*\{/s);
-  assert.match(i18nScript, /'composer\.advanced': 'Advanced'/);
-  assert.match(i18nScript, /'composer\.advancedHide': 'Hide advanced'/);
 
   assert.match(script, /appendEmptyState\(titleText, subtitleText, showSetupAction = false,\s*installHint\)/);
   assert.match(script, /function providerUnavailableMessage\(profile\)/);
