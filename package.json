@@ -30,7 +30,8 @@
     "onCommand:agentsHub.switchProvider.goose",
     "onCommand:agentsHub.switchProviderActive.goose",
     "onCommand:agentsHub.switchProvider.aider",
-    "onCommand:agentsHub.switchProviderActive.aider"
+    "onCommand:agentsHub.switchProviderActive.aider",
+    "onCommand:agentsHub.activeProviderIndicator"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -93,8 +94,8 @@
         "command": "agentsHub.switchProviderActive.claude",
         "title": "%command.switchProvider.claude.title%",
         "icon": {
-          "light": "media/provider-icons/claude-active.svg",
-          "dark": "media/provider-icons/claude-active.svg"
+          "light": "media/provider-icons/claude.svg",
+          "dark": "media/provider-icons/claude.svg"
         }
       },
       {
@@ -109,8 +110,8 @@
         "command": "agentsHub.switchProviderActive.gemini",
         "title": "%command.switchProvider.gemini.title%",
         "icon": {
-          "light": "media/provider-icons/gemini-active.svg",
-          "dark": "media/provider-icons/gemini-active.svg"
+          "light": "media/provider-icons/gemini.png",
+          "dark": "media/provider-icons/gemini.png"
         }
       },
       {
@@ -125,8 +126,8 @@
         "command": "agentsHub.switchProviderActive.codex",
         "title": "%command.switchProvider.codex.title%",
         "icon": {
-          "light": "media/provider-icons/codex-active.svg",
-          "dark": "media/provider-icons/codex-active.svg"
+          "light": "media/provider-icons/codex.png",
+          "dark": "media/provider-icons/codex.png"
         }
       },
       {
@@ -141,8 +142,8 @@
         "command": "agentsHub.switchProviderActive.opencode",
         "title": "%command.switchProvider.opencode.title%",
         "icon": {
-          "light": "media/provider-icons/opencode-active.svg",
-          "dark": "media/provider-icons/opencode-active.svg"
+          "light": "media/provider-icons/opencode.png",
+          "dark": "media/provider-icons/opencode.png"
         }
       },
       {
@@ -157,8 +158,8 @@
         "command": "agentsHub.switchProviderActive.goose",
         "title": "%command.switchProvider.goose.title%",
         "icon": {
-          "light": "media/provider-icons/goose-light-active.svg",
-          "dark": "media/provider-icons/goose-dark-active.svg"
+          "light": "media/provider-icons/goose-light.png",
+          "dark": "media/provider-icons/goose-dark.png"
         }
       },
       {
@@ -173,9 +174,14 @@
         "command": "agentsHub.switchProviderActive.aider",
         "title": "%command.switchProvider.aider.title%",
         "icon": {
-          "light": "media/provider-icons/aider-active.svg",
-          "dark": "media/provider-icons/aider-active.svg"
+          "light": "media/provider-icons/aider.png",
+          "dark": "media/provider-icons/aider.png"
         }
+      },
+      {
+        "command": "agentsHub.activeProviderIndicator",
+        "title": "%command.activeProviderIndicator.title%",
+        "icon": "$(check)"
       }
     ],
     "menus": {
@@ -191,6 +197,11 @@
           "group": "navigation@1"
         },
         {
+          "command": "agentsHub.activeProviderIndicator",
+          "when": "view == agentsHub.sidebar && agentsHub.provider.claude.installed && agentsHub.activeProvider == claude",
+          "group": "navigation@1.1"
+        },
+        {
           "command": "agentsHub.switchProvider.gemini",
           "when": "view == agentsHub.sidebar && agentsHub.provider.gemini.installed && agentsHub.activeProvider != gemini",
           "group": "navigation@2"
@@ -199,6 +210,11 @@
           "command": "agentsHub.switchProviderActive.gemini",
           "when": "view == agentsHub.sidebar && agentsHub.provider.gemini.installed && agentsHub.activeProvider == gemini",
           "group": "navigation@2"
+        },
+        {
+          "command": "agentsHub.activeProviderIndicator",
+          "when": "view == agentsHub.sidebar && agentsHub.provider.gemini.installed && agentsHub.activeProvider == gemini",
+          "group": "navigation@2.1"
         },
         {
           "command": "agentsHub.switchProvider.codex",
@@ -211,6 +227,11 @@
           "group": "navigation@3"
         },
         {
+          "command": "agentsHub.activeProviderIndicator",
+          "when": "view == agentsHub.sidebar && agentsHub.provider.codex.installed && agentsHub.activeProvider == codex",
+          "group": "navigation@3.1"
+        },
+        {
           "command": "agentsHub.switchProvider.opencode",
           "when": "view == agentsHub.sidebar && agentsHub.provider.opencode.installed && agentsHub.activeProvider != opencode",
           "group": "navigation@4"
@@ -219,6 +240,11 @@
           "command": "agentsHub.switchProviderActive.opencode",
           "when": "view == agentsHub.sidebar && agentsHub.provider.opencode.installed && agentsHub.activeProvider == opencode",
           "group": "navigation@4"
+        },
+        {
+          "command": "agentsHub.activeProviderIndicator",
+          "when": "view == agentsHub.sidebar && agentsHub.provider.opencode.installed && agentsHub.activeProvider == opencode",
+          "group": "navigation@4.1"
         },
         {
           "command": "agentsHub.switchProvider.goose",
@@ -231,6 +257,11 @@
           "group": "navigation@5"
         },
         {
+          "command": "agentsHub.activeProviderIndicator",
+          "when": "view == agentsHub.sidebar && agentsHub.provider.goose.installed && agentsHub.activeProvider == goose",
+          "group": "navigation@5.1"
+        },
+        {
           "command": "agentsHub.switchProvider.aider",
           "when": "view == agentsHub.sidebar && agentsHub.provider.aider.installed && agentsHub.activeProvider != aider",
           "group": "navigation@6"
@@ -239,6 +270,11 @@
           "command": "agentsHub.switchProviderActive.aider",
           "when": "view == agentsHub.sidebar && agentsHub.provider.aider.installed && agentsHub.activeProvider == aider",
           "group": "navigation@6"
+        },
+        {
+          "command": "agentsHub.activeProviderIndicator",
+          "when": "view == agentsHub.sidebar && agentsHub.provider.aider.installed && agentsHub.activeProvider == aider",
+          "group": "navigation@6.1"
         }
       ],
       "commandPalette": [
@@ -288,6 +324,10 @@
         },
         {
           "command": "agentsHub.switchProviderActive.aider",
+          "when": "false"
+        },
+        {
+          "command": "agentsHub.activeProviderIndicator",
           "when": "false"
         }
       ],

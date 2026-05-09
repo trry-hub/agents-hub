@@ -1091,21 +1091,19 @@ test('extension contributes installed-only provider logo buttons to the native v
     goose: { light: 'media/provider-icons/goose-light.png', dark: 'media/provider-icons/goose-dark.png' },
     aider: { light: 'media/provider-icons/aider.png', dark: 'media/provider-icons/aider.png' },
   };
-  const activeProviderIcons = {
-    claude: { light: 'media/provider-icons/claude-active.svg', dark: 'media/provider-icons/claude-active.svg' },
-    gemini: { light: 'media/provider-icons/gemini-active.svg', dark: 'media/provider-icons/gemini-active.svg' },
-    codex: { light: 'media/provider-icons/codex-active.svg', dark: 'media/provider-icons/codex-active.svg' },
-    opencode: { light: 'media/provider-icons/opencode-active.svg', dark: 'media/provider-icons/opencode-active.svg' },
-    goose: { light: 'media/provider-icons/goose-light-active.svg', dark: 'media/provider-icons/goose-dark-active.svg' },
-    aider: { light: 'media/provider-icons/aider-active.svg', dark: 'media/provider-icons/aider-active.svg' },
-  };
   const commands = manifest.contributes.commands;
   const titleActions = manifest.contributes.menus['view/title'] || [];
   const commandPalette = manifest.contributes.menus.commandPalette;
+  const indicatorCommand = commands.find((item) => item.command === 'agentsHub.activeProviderIndicator');
 
   assert.doesNotMatch(html, /providerButtonGroup|provider-button-group/);
   assert.doesNotMatch(css, /\.provider-button-group|\.provider-logo-button/);
   assert.doesNotMatch(script, /providerButtonGroup|renderProviderButtonGroup|provider-logo-button/);
+  assert.deepEqual(indicatorCommand, {
+    command: 'agentsHub.activeProviderIndicator',
+    title: '%command.activeProviderIndicator.title%',
+    icon: '$(check)',
+  });
 
   for (const provider of providers) {
     const command = commands.find((item) => item.command === `agentsHub.switchProvider.${provider}`);
@@ -1113,19 +1111,12 @@ test('extension contributes installed-only provider logo buttons to the native v
     assert.ok(command, `missing provider command for ${provider}`);
     assert.ok(activeCommand, `missing active provider command for ${provider}`);
     assert.deepEqual(command.icon, providerIcons[provider]);
-    assert.deepEqual(activeCommand.icon, activeProviderIcons[provider]);
-    assert.notDeepEqual(activeCommand.icon, command.icon);
-    for (const iconPath of new Set([
-      ...Object.values(providerIcons[provider]),
-      ...Object.values(activeProviderIcons[provider]),
-    ])) {
+    assert.deepEqual(activeCommand.icon, providerIcons[provider]);
+    for (const iconPath of new Set(Object.values(providerIcons[provider]))) {
       const icon = readFileSync(new URL(`../${iconPath}`, import.meta.url));
       assert.ok(icon.length > 0, `missing provider icon asset for ${provider}`);
       if (iconPath.endsWith('.svg')) {
         assert.match(icon.toString('utf8'), /<svg/);
-        if (iconPath.includes('-active')) {
-          assert.match(icon.toString('utf8'), /stroke="#c586ff"/);
-        }
       } else {
         assert.equal(icon.subarray(1, 4).toString('ascii'), 'PNG');
       }
@@ -1142,6 +1133,12 @@ test('extension contributes installed-only provider logo buttons to the native v
       item.when.includes(`agentsHub.provider.${provider}.installed`) &&
       item.when.includes(`agentsHub.activeProvider == ${provider}`)
     )));
+    assert.ok(titleActions.some((item) => (
+      item.command === 'agentsHub.activeProviderIndicator' &&
+      item.when.includes('view == agentsHub.sidebar') &&
+      item.when.includes(`agentsHub.provider.${provider}.installed`) &&
+      item.when.includes(`agentsHub.activeProvider == ${provider}`)
+    )));
     assert.ok(commandPalette.some((item) => (
       item.command === `agentsHub.switchProvider.${provider}` &&
       item.when === 'false'
@@ -1154,6 +1151,11 @@ test('extension contributes installed-only provider logo buttons to the native v
 
   assert.match(extensionSource, /registerCommand\(`agentsHub\.switchProvider\.\$\{profile\.id\}`/);
   assert.match(extensionSource, /registerCommand\(`agentsHub\.switchProviderActive\.\$\{profile\.id\}`/);
+  assert.match(extensionSource, /registerCommand\('agentsHub\.activeProviderIndicator'/);
+  assert.ok(commandPalette.some((item) => (
+    item.command === 'agentsHub.activeProviderIndicator' &&
+    item.when === 'false'
+  )));
   assert.match(sidebarSource, /executeCommand\('setContext', 'agentsHub\.activeProvider', providerId\)/);
   assert.match(sidebarSource, /`agentsHub\.provider\.\$\{profile\.id\}\.installed`/);
   assert.match(sidebarSource, /postMessage\(\{ command: 'switchProvider', providerId \}\)/);

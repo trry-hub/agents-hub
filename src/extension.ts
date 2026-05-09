@@ -79,6 +79,10 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  context.subscriptions.push(
+    vscode.commands.registerCommand('agentsHub.activeProviderIndicator', () => undefined)
+  );
+
   for (const profile of CLI_PROFILES) {
     context.subscriptions.push(
       vscode.commands.registerCommand(`agentsHub.switchProvider.${profile.id}`, () => {

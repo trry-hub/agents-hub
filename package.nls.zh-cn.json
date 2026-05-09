@@ -16,6 +16,7 @@
   "command.switchProvider.opencode.title": "切换到 OpenCode",
   "command.switchProvider.goose.title": "切换到 Goose",
   "command.switchProvider.aider.title": "切换到 Aider",
+  "command.activeProviderIndicator.title": "当前已选中",
   "config.title": "AI Assistant Hub",
   "config.defaultProvider.description": "编辑器命令默认使用的 AI 提供方。",
   "config.includeWorkspace.description": "向助手请求附加工作区元数据。",

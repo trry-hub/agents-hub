@@ -16,6 +16,7 @@
   "command.switchProvider.opencode.title": "Switch to OpenCode",
   "command.switchProvider.goose.title": "Switch to Goose",
   "command.switchProvider.aider.title": "Switch to Aider",
+  "command.activeProviderIndicator.title": "Selected provider",
   "config.title": "AI Assistant Hub",
   "config.defaultProvider.description": "Default AI provider used by editor commands.",
   "config.includeWorkspace.description": "Attach workspace metadata to assistant requests.",
