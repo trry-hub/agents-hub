@@ -12,29 +12,104 @@
   <div class="app-shell">
     <header class="toolbar">
       <div class="toolbar-main">
-        <label class="thread-select">
-          <span class="sr-only" data-i18n="history.label"></span>
-          <select id="threadSelect" name="assistantThread" autocomplete="off" data-i18n-title="history.label"></select>
-        </label>
-        <label class="provider-native-select" hidden>
-          <span class="sr-only" data-i18n="provider.label"></span>
-          <select id="providerSelect" name="assistantProvider" autocomplete="off"></select>
-        </label>
-        <div class="provider-hint" id="providerHint" aria-live="polite"></div>
-        <div class="toolbar-actions" role="toolbar" aria-label="Conversation actions" data-i18n-aria="toolbar.actions">
-          <button class="tool-button" id="newChatBtn" data-i18n-title="history.newThread" aria-label="New session">
-            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>
-          </button>
-          <button class="tool-button" id="deleteThreadBtn" data-i18n-title="history.delete" aria-label="Delete current session">
-            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 5.5v6M8 5.5v6M10.5 5.5v6M3.8 3.8h8.4M6.4 3.8V2.7h3.2v1.1M4.5 3.8l.4 9.5h6.2l.4-9.5"/></svg>
-          </button>
+        <div class="toolbar-session">
+          <label class="thread-select">
+            <span class="sr-only" data-i18n="history.label"></span>
+            <select id="threadSelect" name="assistantThread" autocomplete="off" data-i18n-title="history.label"></select>
+          </label>
+          <label class="provider-native-select" hidden>
+            <span class="sr-only" data-i18n="provider.label"></span>
+            <select id="providerSelect" name="assistantProvider" autocomplete="off"></select>
+          </label>
+          <div class="provider-hint" id="providerHint" aria-live="polite"></div>
         </div>
-        <div class="provider-tabs" id="providerTabs" role="tablist" aria-label="Provider tabs" data-i18n-aria="provider.label"></div>
-        <button class="tool-button toolbar-refresh" id="refreshBtn" data-i18n-title="action.refresh" aria-label="Refresh">
-          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 8a5 5 0 1 1-1.5-3.6M13 2.8V6h-3.2"/></svg>
-        </button>
+        <div class="toolbar-cluster">
+          <div class="toolbar-actions" role="toolbar" aria-label="Conversation actions" data-i18n-aria="toolbar.actions">
+            <button class="tool-button" id="newChatBtn" data-i18n-title="history.newThread" aria-label="New session">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>
+            </button>
+            <button class="tool-button" id="deleteThreadBtn" data-i18n-title="history.delete" aria-label="Delete current session">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 5.5v6M8 5.5v6M10.5 5.5v6M3.8 3.8h8.4M6.4 3.8V2.7h3.2v1.1M4.5 3.8l.4 9.5h6.2l.4-9.5"/></svg>
+            </button>
+          </div>
+          <div class="provider-tabs" id="providerTabs" role="tablist" aria-label="Provider tabs" data-i18n-aria="provider.label"></div>
+        </div>
       </div>
     </header>
+
+    <section class="api-settings-page" id="apiProviderSettingsPage" aria-labelledby="apiProviderSettingsTitle" hidden>
+      <div class="api-settings-panel">
+        <header class="api-settings-header">
+          <button class="api-settings-back tool-button" id="apiProviderSettingsClose" type="button" data-i18n-title="apiSettings.back" data-i18n-aria="apiSettings.back" aria-label="Back">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 4 6 8l4 4"/></svg>
+          </button>
+          <div>
+            <h2 id="apiProviderSettingsTitle" data-i18n="apiSettings.title"></h2>
+            <p data-i18n="apiSettings.subtitle"></p>
+          </div>
+        </header>
+
+        <div class="api-settings-body">
+          <aside class="api-provider-list-pane">
+            <div class="api-settings-section-title" data-i18n="apiSettings.providers"></div>
+            <div class="api-provider-list" id="apiProviderList" role="list"></div>
+            <button class="api-provider-add" id="apiProviderAdd" type="button" data-i18n="apiSettings.addProvider"></button>
+          </aside>
+
+          <form class="api-provider-form" id="apiProviderForm">
+            <div class="api-provider-grid">
+              <label class="api-field">
+                <span data-i18n="apiSettings.name"></span>
+                <input id="apiProviderName" autocomplete="off">
+              </label>
+              <label class="api-field">
+                <span data-i18n="apiSettings.baseUrl"></span>
+                <input id="apiProviderBaseUrl" autocomplete="off" spellcheck="false">
+              </label>
+              <label class="api-field">
+                <span data-i18n="apiSettings.apiKeyEnv"></span>
+                <input id="apiProviderApiKeyEnv" autocomplete="off" spellcheck="false">
+              </label>
+              <label class="api-field">
+                <span data-i18n="apiSettings.model"></span>
+                <input id="apiProviderModel" autocomplete="off" spellcheck="false">
+              </label>
+            </div>
+
+            <label class="api-provider-enabled">
+              <input id="apiProviderEnabled" type="checkbox">
+              <span data-i18n="apiSettings.enabled"></span>
+            </label>
+
+            <div class="api-settings-section">
+              <div class="api-settings-row-title">
+                <span data-i18n="apiSettings.extraEnv"></span>
+                <button class="api-link-button" id="apiProviderAddEnv" type="button" data-i18n="apiSettings.addEnv"></button>
+              </div>
+              <div class="api-extra-env-list" id="apiProviderExtraEnv"></div>
+            </div>
+
+            <div class="api-settings-section">
+              <div class="api-settings-section-title" data-i18n="apiSettings.binding"></div>
+              <label class="api-field">
+                <span data-i18n="apiSettings.globalDefault"></span>
+                <select id="apiProviderDefaultSelect"></select>
+              </label>
+              <div class="api-agent-bindings" id="apiProviderAgentBindings"></div>
+            </div>
+
+            <div class="api-settings-error" id="apiProviderSettingsError" role="alert" hidden></div>
+
+            <footer class="api-settings-footer">
+              <button class="api-danger-button" id="apiProviderDelete" type="button" data-i18n="apiSettings.deleteProvider"></button>
+              <span></span>
+              <button class="api-secondary-button" id="apiProviderCancel" type="button" data-i18n="action.dismiss"></button>
+              <button class="api-primary-button" type="submit" data-i18n="apiSettings.save"></button>
+            </footer>
+          </form>
+        </div>
+      </div>
+    </section>
 
     <main class="messages" id="messages" aria-live="polite"></main>
 

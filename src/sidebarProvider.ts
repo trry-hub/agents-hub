@@ -2,6 +2,13 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import {
+  ApiProviderSettings,
+  sanitizeApiProviderSettings,
+  resolveApiProviderRuntime,
+  type CustomApiProviderConfig,
+  type ApiProviderRuntimeConfig,
+} from './apiProviders';
+import {
   AssistantActionId,
   AssistantContextOptions,
   AssistantImageAttachment,
@@ -106,6 +113,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     webviewView.webview.html = this.getHtml(webviewView.webview);
     void this.sendProfiles();
     void this.sendContextSummary();
+    void this.sendApiProviderSettings();
     void this.flushPendingRequests();
 
     webviewView.webview.onDidReceiveMessage(async (message) => {
@@ -115,7 +123,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           await this.handleAssistantRequest(message);
           break;
         case 'openSettings':
-          await vscode.commands.executeCommand('agentsHub.openSettings');
+          await vscode.commands.executeCommand('agentsHub.openProviderSettings');
+          break;
+        case 'saveApiProviderSettings':
+          await this.saveApiProviderSettings(message.settings);
+          break;
+        case 'refreshApiProviderSettings':
+          await this.sendApiProviderSettings();
           break;
         case 'stop':
           this.handleStop(this.resolveCliId(message));
@@ -201,6 +215,19 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     await this.postSwitchProviderMessage(providerId);
   }
 
+  async refreshProviders(): Promise<void> {
+    await this.sendProfiles();
+    await this.sendContextSummary();
+    await this.sendApiProviderSettings();
+  }
+
+  async openProviderSettings(): Promise<void> {
+    await vscode.commands.executeCommand('agentsHub.sidebar.focus');
+    this.view?.show(true);
+    await this.sendApiProviderSettings();
+    await this.view?.webview.postMessage({ command: 'openProviderSettings' });
+  }
+
   private async postSwitchProviderMessage(providerId: string): Promise<void> {
     await this.view?.webview.postMessage({ command: 'switchProvider', providerId });
   }
@@ -244,6 +271,51 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       defaultProviderId: this.getDefaultCliId(),
       activeProviderId: storedProviderId,
       activeAgentModeByProvider: this.getStoredAgentModeState(),
+    });
+  }
+
+  private async sendApiProviderSettings(): Promise<void> {
+    const settings = this.getApiProviderSettings();
+    const envStatusByProviderId = Object.fromEntries(
+      settings.customProviders.map((provider) => [
+        provider.id,
+        {
+          apiKeyEnv: provider.apiKeyEnv,
+          apiKeyEnvAvailable: !provider.apiKeyEnv || Boolean(process.env[provider.apiKeyEnv]),
+        },
+      ])
+    );
+
+    this.view?.webview.postMessage({
+      command: 'apiProviderSettings',
+      settings,
+      envStatusByProviderId,
+    });
+  }
+
+  private async saveApiProviderSettings(rawSettings: unknown): Promise<void> {
+    const settings = sanitizeApiProviderSettings(rawSettings);
+    const config = vscode.workspace.getConfiguration('agentsHub.apiProviders');
+
+    await Promise.all([
+      config.update('customProviders', settings.customProviders, vscode.ConfigurationTarget.Global),
+      config.update('defaultProviderId', settings.defaultProviderId, vscode.ConfigurationTarget.Global),
+      config.update(
+        'agentProviderByCliId',
+        settings.agentProviderByCliId,
+        vscode.ConfigurationTarget.Global
+      ),
+    ]);
+
+    await this.sendApiProviderSettings();
+  }
+
+  private getApiProviderSettings(): ApiProviderSettings {
+    const config = vscode.workspace.getConfiguration('agentsHub.apiProviders');
+    return sanitizeApiProviderSettings({
+      customProviders: config.get<CustomApiProviderConfig[]>('customProviders', []),
+      defaultProviderId: config.get<string>('defaultProviderId', ''),
+      agentProviderByCliId: config.get<Record<string, string>>('agentProviderByCliId', {}),
     });
   }
 
@@ -325,6 +397,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     const modelOption = getCliModelOption(profile, message.model);
     const runtimeMode = getCliRuntimeMode(profile, message.runtime);
     const permissionMode = getCliPermissionMode(profile, message.permissionMode);
+    const apiProviderRuntime = resolveApiProviderRuntime(
+      this.getApiProviderSettings(),
+      cliId,
+      process.env
+    );
     const optionArgs = buildCliOptionArgs(profile, {
       model: modelOption.id,
       customModel: message.customModel,
@@ -337,6 +414,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       modelOption.custom ? (message.customModel ?? '').trim() : '',
       runtimeMode.id,
       permissionMode.id,
+      apiProviderRuntime.selectionKey,
     ].join('|');
     const userText =
       (message.text ?? '').trim() || runtimeDefaultActionText(this.locale, action);
@@ -393,7 +471,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         profile.inputMode === 'argument' ? prompt : undefined,
         [...optionArgs, ...(agentMode.args ?? [])],
         agentMode.id,
-        optionKey
+        optionKey,
+        apiProviderRuntime.env
       );
 
       if (!newSession) {
@@ -426,6 +505,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       actionLabel: runtimeActionLabel(this.locale, action),
       attachments,
       contextSummary,
+      apiProviderWarning: this.formatApiProviderWarning(apiProviderRuntime),
     });
     this.armNoOutputNotice(session);
 
@@ -554,6 +634,18 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       });
     }, NO_OUTPUT_NOTICE_MS);
     this.noOutputNoticeTimers.set(session.id, timer);
+  }
+
+  private formatApiProviderWarning(runtime: ApiProviderRuntimeConfig): string | undefined {
+    const warning = runtime.warnings[0];
+    if (!warning) {
+      return undefined;
+    }
+
+    return runtimeT(this.locale, 'warning.apiProviderMissingKey', {
+      provider: warning.providerName,
+      envName: warning.envName,
+    });
   }
 
   private clearNoOutputNoticeTimer(sessionId: string): void {

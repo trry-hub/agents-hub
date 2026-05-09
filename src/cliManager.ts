@@ -479,7 +479,8 @@ export class CliManager {
     initialInput?: string,
     agentArgs: string[] = [],
     agentModeId?: string,
-    optionKey?: string
+    optionKey?: string,
+    envOverrides: Record<string, string> = {}
   ): Promise<Session | null> {
     const profile = getCliProfile(cliId);
     if (!profile) { return null; }
@@ -497,6 +498,7 @@ export class CliManager {
         buildCliLookupPath(process.env.PATH, process.env.HOME),
       ]),
       ...this.expandProfileEnv(profile.env, cwd),
+      ...envOverrides,
     };
     const backgroundAttachArgs = await this.getBackgroundAttachArgs(profile, command, cwd, env);
     const args =

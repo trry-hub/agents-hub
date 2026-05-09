@@ -42,6 +42,18 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
+    vscode.commands.registerCommand('agentsHub.refreshProviders', async () => {
+      await sidebarProvider.refreshProviders();
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('agentsHub.openProviderSettings', async () => {
+      await sidebarProvider.openProviderSettings();
+    })
+  );
+
+  context.subscriptions.push(
     vscode.commands.registerCommand('agentsHub.openSettings', async () => {
       await vscode.commands.executeCommand('workbench.action.openSettings', 'agentsHub');
     })

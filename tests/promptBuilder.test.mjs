@@ -38,6 +38,11 @@ const {
   parseOpenCodeAgentListOutput,
   parseOpenCodeModelsOutput,
 } = require('../.test-dist/opencodeAgents.js');
+const {
+  sanitizeApiProviderSettings,
+  resolveApiProviderRuntime,
+  API_PROVIDER_INHERIT,
+} = require('../.test-dist/apiProviders.js');
 
 test('buildAssistantPrompt includes provider agent mode, action, user request, and selected code context', () => {
   const prompt = buildAssistantPrompt({
@@ -1094,26 +1099,27 @@ test('webview renders installed provider logo tabs in the header', () => {
   const titleActions = manifest.contributes.menus['view/title'] || [];
 
   assert.match(html, /<div class="provider-tabs" id="providerTabs" role="tablist" aria-label="Provider tabs"/);
-  assert.match(html, /<div class="toolbar-actions"[\s\S]*id="deleteThreadBtn"[\s\S]*<\/div>\s*<div class="provider-tabs" id="providerTabs"[\s\S]*<\/div>\s*<button class="tool-button toolbar-refresh" id="refreshBtn"/);
+  assert.match(html, /<div class="toolbar-actions"[\s\S]*id="newChatBtn"[\s\S]*id="deleteThreadBtn"[\s\S]*<\/div>\s*<div class="provider-tabs" id="providerTabs"/);
+  assert.doesNotMatch(html, /id="refreshBtn"/);
   assert.doesNotMatch(JSON.stringify(commands), /activeProviderIndicator|switchProvider/);
   assert.doesNotMatch(JSON.stringify(titleActions), /activeProviderIndicator|switchProvider/);
+  assert.match(JSON.stringify(titleActions), /agentsHub\.refreshProviders/);
+  assert.match(JSON.stringify(titleActions), /agentsHub\.openProviderSettings/);
   assert.match(css, /\.provider-tabs\s*\{/);
   assert.match(css, /\.provider-tab-button\s*\{/);
   assert.match(css, /\.provider-tab-button\.is-active\s*\{/);
-  assert.match(css, /\.provider-tab-button\.is-active\s*\{\s*[^}]*max-width:\s*none;/s);
+  assert.match(css, /\.provider-tab-button\.is-active\s*\{\s*[^}]*width:\s*var\(--provider-tab-collapsed-width\);/s);
   assert.match(css, /\.provider-tab-logo\s*\{/);
   assert.match(css, /\.provider-tab-version\s*\{/);
-  assert.match(css, /\.provider-tab-version\s*\{\s*[^}]*overflow:\s*visible;/s);
+  assert.match(css, /\.provider-tab-version\s*\{\s*[^}]*display:\s*none;/s);
   assert.doesNotMatch(css, /\.provider-tab-version\s*\{[^}]*text-overflow:\s*ellipsis;/s);
-  assert.match(css, /\.toolbar-refresh\s*\{/);
   assert.match(script, /const providerTabs = document\.getElementById\('providerTabs'\)/);
   assert.match(script, /return value\.replace\(\s*\/\^v\/i,\s*''\s*\);/);
   assert.match(script, /function renderProviderTabs\(\)/);
   assert.match(script, /const availableProfiles = installedProfiles\(\)/);
-  assert.match(script, /button\.className = `provider-tab-button\$\{isActive \? ' is-active' : ''\}`/);
+  assert.match(script, /button\.className = 'provider-tab-button'/);
   assert.match(script, /logo\.className = 'provider-tab-logo'/);
-  assert.match(script, /version\.className = 'provider-tab-version'/);
-  assert.match(script, /version\.textContent = formatProviderVersion\(profile\.version\)/);
+  assert.doesNotMatch(script, /version\.className = 'provider-tab-version'/);
   assert.match(script, /providerTabs\.addEventListener\('click'/);
   assert.match(script, /switchActiveProvider\(button\.dataset\.providerId\)/);
   assert.match(sidebarSource, /webviewIcon: this\.getProviderIconUris\(profile\.id\)/);
@@ -1152,6 +1158,87 @@ test('webview keeps provider switching in the header and out of the conversation
   assert.doesNotMatch(css, /\.composer-provider-dock/);
   assert.match(css, /\.context-budget\s*\{\s*[^}]*height:\s*20px;/s);
   assert.match(css, /\.context-budget\s*\{\s*[^}]*max-width:\s*48px;/s);
+});
+
+test('manifest exposes title actions and custom API provider settings', () => {
+  const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  const html = readFileSync(new URL('../media/main.html', import.meta.url), 'utf8');
+  const script = readFileSync(new URL('../media/main.js', import.meta.url), 'utf8');
+  const commands = JSON.stringify(manifest.contributes.commands);
+  const titleActions = JSON.stringify(manifest.contributes.menus['view/title']);
+  const properties = manifest.contributes.configuration.properties;
+
+  assert.match(commands, /agentsHub\.refreshProviders/);
+  assert.match(commands, /agentsHub\.openProviderSettings/);
+  assert.match(titleActions, /view == agentsHub\.sidebar/);
+  assert.match(titleActions, /agentsHub\.refreshProviders/);
+  assert.match(titleActions, /agentsHub\.openProviderSettings/);
+  assert.ok(properties['agentsHub.apiProviders.customProviders']);
+  assert.ok(properties['agentsHub.apiProviders.defaultProviderId']);
+  assert.ok(properties['agentsHub.apiProviders.agentProviderByCliId']);
+  assert.match(html, /id="apiProviderSettingsPage"/);
+  assert.doesNotMatch(html, /aria-modal="true"/);
+  assert.match(html, /id="apiProviderApiKeyEnv"/);
+  assert.doesNotMatch(html, /id="apiProviderApiKey"/);
+  assert.match(script, /saveApiProviderSettings/);
+  assert.match(script, /refreshApiProviderSettings/);
+  assert.match(script, /openProviderSettings/);
+});
+
+test('custom API provider settings sanitize secrets and resolve agent bindings', () => {
+  const settings = sanitizeApiProviderSettings({
+    customProviders: [
+      {
+        id: 'Open Router',
+        name: 'OpenRouter',
+        baseUrl: 'https://openrouter.ai/api/v1',
+        apiKey: 'sk-should-not-save',
+        apiKeyEnv: 'OPENROUTER_API_KEY',
+        model: 'anthropic/claude-sonnet',
+        extraEnv: {
+          OPENAI_BASE_URL: 'https://openrouter.ai/api/v1',
+          'bad-name': 'ignored',
+        },
+        enabled: true,
+      },
+      {
+        id: 'disabled',
+        name: 'Disabled',
+        apiKeyEnv: 'DISABLED_KEY',
+        enabled: false,
+      },
+    ],
+    defaultProviderId: 'open-router',
+    agentProviderByCliId: {
+      opencode: 'open-router',
+      claude: API_PROVIDER_INHERIT,
+      codex: 'disabled',
+    },
+  });
+
+  assert.equal(settings.customProviders[0].id, 'open-router');
+  assert.equal(settings.customProviders[0].apiKeyEnv, 'OPENROUTER_API_KEY');
+  assert.equal(settings.customProviders[0].apiKey, undefined);
+  assert.equal(settings.customProviders[0].extraEnv.OPENAI_BASE_URL, 'https://openrouter.ai/api/v1');
+  assert.equal(settings.customProviders[0].extraEnv.badname, 'ignored');
+  assert.equal(settings.defaultProviderId, 'open-router');
+  assert.equal(settings.agentProviderByCliId.opencode, 'open-router');
+  assert.equal(settings.agentProviderByCliId.claude, API_PROVIDER_INHERIT);
+  assert.equal(settings.agentProviderByCliId.codex, undefined);
+
+  const runtime = resolveApiProviderRuntime(settings, 'opencode', {
+    OPENROUTER_API_KEY: 'actual-secret',
+  });
+  assert.equal(runtime.env.AGENTS_HUB_API_BASE_URL, 'https://openrouter.ai/api/v1');
+  assert.equal(runtime.env.AGENTS_HUB_API_MODEL, 'anthropic/claude-sonnet');
+  assert.equal(runtime.env.AGENTS_HUB_API_KEY, 'actual-secret');
+  assert.equal(runtime.env.OPENAI_BASE_URL, 'https://openrouter.ai/api/v1');
+  assert.equal(runtime.selectionKey.includes('actual-secret'), false);
+
+  const missing = resolveApiProviderRuntime(settings, 'claude', {});
+  assert.equal(missing.provider.name, 'OpenRouter');
+  assert.equal(missing.env.AGENTS_HUB_API_KEY, undefined);
+  assert.equal(missing.warnings[0].code, 'missingApiKeyEnv');
 });
 
 test('webview toolbar icons and composer controls stay visually centered', () => {
@@ -1212,7 +1299,7 @@ test('webview composer controls wrap before narrow sidebars clip the send button
   const css = readFileSync(new URL('../media/main.css', import.meta.url), 'utf8');
 
   assert.match(css, /@media \(max-width:\s*460px\)\s*\{[\s\S]*?\.prompt-selectors\s*\{[\s\S]*?flex-wrap:\s*wrap;/s);
-  assert.match(css, /@media \(max-width:\s*460px\)\s*\{[\s\S]*?\.provider-tabs\s*\{[\s\S]*?max-width:\s*min\(62vw,\s*260px\);/s);
+  assert.match(css, /@media \(max-width:\s*460px\)\s*\{[\s\S]*?\.provider-tabs\s*\{[\s\S]*?max-width:\s*min\(58vw,\s*220px\);/s);
   assert.match(css, /\.composer\s*\{\s*[^}]*min-width:\s*0;/s);
   assert.match(css, /\.composer\s*\{\s*[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);/s);
   assert.match(css, /\.prompt-shell\s*\{\s*[^}]*min-width:\s*0;/s);
@@ -1240,7 +1327,7 @@ test('webview refreshes context after a concrete provider is active', () => {
   assert.match(script, /providerSelect\.addEventListener\('change', \(\) => \{[\s\S]*renderAll\(\);\s*refreshActiveContext\(\);[\s\S]*\}\);/);
   assert.match(script, /case 'profiles':[\s\S]*renderAll\(\);\s*refreshActiveContext\(\);[\s\S]*break;/);
   assert.match(script, /case 'switchProvider':\s*switchActiveProvider\(message\.providerId\);\s*break;/);
-  assert.match(script, /vscode\.postMessage\(\{ command: 'checkProfiles' \}\);\s*refreshActiveContext\(\);\s*renderAll\(\);/);
+  assert.match(script, /vscode\.postMessage\(\{ command: 'checkProfiles' \}\);\s*vscode\.postMessage\(\{ command: 'refreshApiProviderSettings' \}\);\s*refreshActiveContext\(\);\s*renderAll\(\);/);
 });
 
 test('webview empty state is visible in large blank panels', () => {
@@ -1358,7 +1445,7 @@ test('webview provider status keeps transient running text out of the composer',
   assert.match(script, /provider\.running/);
   assert.match(script, /providerHint\.textContent = '';/);
   assert.match(script, /renderProviderTabs\(\);/);
-  assert.match(script, /version\.textContent = formatProviderVersion\(profile\.version\)/);
+  assert.doesNotMatch(script, /version\.textContent = formatProviderVersion\(profile\.version\)/);
   assert.doesNotMatch(script, /providerHint\.classList\.add\('is-busy'\)/);
   assert.doesNotMatch(script, /prompt-shell'\)\?\.classList\.toggle\('is-busy'/);
   assert.match(css, /\.provider-hint\s*\{\s*[^}]*display:\s*none;/s);

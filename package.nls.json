@@ -5,6 +5,8 @@
   "view.sidebar.name": "AI Assistant",
   "command.openPanel.title": "AI Assistant: Open Panel",
   "command.reloadWindow.title": "AI Assistant: Reload Window",
+  "command.refreshProviders.title": "AI Assistant: Refresh Providers",
+  "command.openProviderSettings.title": "AI Assistant: API Provider Settings",
   "command.stopAll.title": "AI Assistant: Stop All Processes",
   "command.explainSelection.title": "AI Assistant: Explain Selection",
   "command.reviewFile.title": "AI Assistant: Review Current File",
@@ -18,5 +20,8 @@
   "config.includeDiagnostics.description": "Attach diagnostics for the active file to assistant requests.",
   "config.maxFileChars.description": "Maximum characters of active-file context attached to assistant requests.",
   "config.maxSelectionChars.description": "Maximum characters of selected code attached to assistant requests.",
-  "config.maxDiagnostics.description": "Maximum number of active-file diagnostics attached to assistant requests."
+  "config.maxDiagnostics.description": "Maximum number of active-file diagnostics attached to assistant requests.",
+  "config.apiProviders.customProviders.description": "Custom API providers that can be used by multiple CLI agents. API keys are referenced by environment variable name.",
+  "config.apiProviders.defaultProviderId.description": "Global default custom API provider ID.",
+  "config.apiProviders.agentProviderByCliId.description": "Per-agent custom API provider overrides. Use inherit to follow the global default."
 }

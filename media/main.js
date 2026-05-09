@@ -21,6 +21,9 @@
   let customModelByProvider = saved.customModelByProvider || {};
   let activeRuntimeByProvider = saved.activeRuntimeByProvider || {};
   let activePermissionByProvider = saved.activePermissionByProvider || {};
+  let apiProviderSettings = { customProviders: [], defaultProviderId: '', agentProviderByCliId: {} };
+  let apiProviderEnvStatusById = {};
+  let editingApiProviderId = '';
   let claudeTerminalBannerDismissed = Boolean(saved.claudeTerminalBannerDismissed);
   let taskBoardDismissed = Boolean(saved.taskBoardDismissed);
   let legacyWorkflowMode = saved.workflowMode || (saved.mode === 'agent' ? 'execute' : undefined);
@@ -93,8 +96,24 @@
   const sendBtn = document.getElementById('sendBtn');
   const stopBtn = document.getElementById('stopBtn');
   const newChatBtn = document.getElementById('newChatBtn');
-  const refreshBtn = document.getElementById('refreshBtn');
   const reloadBtn = document.getElementById('reloadBtn');
+  const apiSettingsPage = document.getElementById('apiProviderSettingsPage');
+  const apiSettingsBack = document.getElementById('apiProviderSettingsClose');
+  const apiProviderList = document.getElementById('apiProviderList');
+  const apiProviderAdd = document.getElementById('apiProviderAdd');
+  const apiProviderForm = document.getElementById('apiProviderForm');
+  const apiProviderName = document.getElementById('apiProviderName');
+  const apiProviderBaseUrl = document.getElementById('apiProviderBaseUrl');
+  const apiProviderApiKeyEnv = document.getElementById('apiProviderApiKeyEnv');
+  const apiProviderModel = document.getElementById('apiProviderModel');
+  const apiProviderEnabled = document.getElementById('apiProviderEnabled');
+  const apiProviderExtraEnv = document.getElementById('apiProviderExtraEnv');
+  const apiProviderAddEnv = document.getElementById('apiProviderAddEnv');
+  const apiProviderDefaultSelect = document.getElementById('apiProviderDefaultSelect');
+  const apiProviderAgentBindings = document.getElementById('apiProviderAgentBindings');
+  const apiProviderSettingsError = document.getElementById('apiProviderSettingsError');
+  const apiProviderDelete = document.getElementById('apiProviderDelete');
+  const apiProviderCancel = document.getElementById('apiProviderCancel');
   const SLASH_COMMANDS = [
     { name: 'new', kind: 'local', local: 'new', descriptionKey: 'slash.new.desc' },
     { name: 'clear', kind: 'local', local: 'new', descriptionKey: 'slash.clear.desc' },
@@ -1069,24 +1088,41 @@
       return;
     }
 
-    providerTabs.innerHTML = '';
     const availableProfiles = installedProfiles();
     providerTabs.hidden = availableProfiles.length === 0;
 
+    if (availableProfiles.length === 0) {
+      providerTabs.innerHTML = '';
+      return;
+    }
+
+    const existingButtons = new Map();
+    for (const child of Array.from(providerTabs.children)) {
+      if (child instanceof HTMLButtonElement && child.dataset.providerId) {
+        existingButtons.set(child.dataset.providerId, child);
+      }
+    }
+
     const activeIsBusy = Boolean(runningByProvider[activeId] || pendingByProvider[activeId]);
+
     for (const profile of availableProfiles) {
       const isActive = profile.id === activeId;
       const versionLabel = formatProviderVersion(profile.version);
-      const button = document.createElement('button');
+      const button = existingButtons.get(profile.id) || document.createElement('button');
+
       button.type = 'button';
-      button.className = `provider-tab-button${isActive ? ' is-active' : ''}`;
       button.dataset.providerId = profile.id;
       button.setAttribute('role', 'tab');
       button.setAttribute('aria-selected', String(isActive));
       button.title = `${profile.name}${versionLabel ? ` · ${versionLabel}` : ''}`;
       button.disabled = activeIsBusy && !isActive;
+      button.className = 'provider-tab-button';
+      if (isActive) {
+        button.classList.add('is-active');
+      }
 
       const iconUri = providerIconUri(profile);
+      button.replaceChildren();
       if (iconUri) {
         const logo = document.createElement('img');
         logo.className = 'provider-tab-logo';
@@ -1101,15 +1137,348 @@
         button.appendChild(fallback);
       }
 
-      if (isActive && versionLabel) {
-        const version = document.createElement('span');
-        version.className = 'provider-tab-version';
-        version.textContent = formatProviderVersion(profile.version);
-        button.appendChild(version);
-      }
-
       providerTabs.appendChild(button);
+      existingButtons.delete(profile.id);
     }
+
+    existingButtons.forEach((button) => button.remove());
+  }
+
+  function normalizeApiProviderSettings(value) {
+    const record = value && typeof value === 'object' ? value : {};
+    const providers = Array.isArray(record.customProviders)
+      ? record.customProviders
+          .filter((provider) => provider && typeof provider === 'object')
+          .map((provider, index) => ({
+            id: sanitizeApiProviderId(provider.id || provider.name || `provider-${index + 1}`),
+            name: String(provider.name || `Custom Provider ${index + 1}`).trim(),
+            baseUrl: String(provider.baseUrl || '').trim(),
+            apiKeyEnv: sanitizeEnvName(provider.apiKeyEnv || ''),
+            model: String(provider.model || '').trim(),
+            extraEnv: normalizeExtraEnv(provider.extraEnv),
+            enabled: provider.enabled !== false,
+          }))
+      : [];
+    const enabledIds = new Set(providers.filter((provider) => provider.enabled).map((provider) => provider.id));
+    const defaultProviderId = enabledIds.has(record.defaultProviderId) ? record.defaultProviderId : '';
+    const agentProviderByCliId = {};
+    const bindings = record.agentProviderByCliId && typeof record.agentProviderByCliId === 'object'
+      ? record.agentProviderByCliId
+      : {};
+    Object.entries(bindings).forEach(([cliId, providerId]) => {
+      if (providerId === 'inherit' || enabledIds.has(providerId)) {
+        agentProviderByCliId[cliId] = providerId;
+      }
+    });
+    return { customProviders: providers, defaultProviderId, agentProviderByCliId };
+  }
+
+  function normalizeExtraEnv(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return {};
+    }
+    return Object.entries(value).reduce((result, [key, rawValue]) => {
+      const envName = sanitizeEnvName(key);
+      if (envName && typeof rawValue === 'string') {
+        result[envName] = rawValue;
+      }
+      return result;
+    }, {});
+  }
+
+  function sanitizeApiProviderId(value) {
+    const id = String(value || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    return id || `provider-${Date.now()}`;
+  }
+
+  function sanitizeEnvName(value) {
+    return String(value || '').replace(/[^A-Za-z0-9_]/g, '');
+  }
+
+  function openApiProviderSettings() {
+    if (!apiSettingsPage) {
+      return;
+    }
+    if (!editingApiProviderId) {
+      editingApiProviderId = apiProviderSettings.customProviders[0]?.id || '';
+    }
+    renderApiProviderSettings();
+    apiSettingsPage.hidden = false;
+    document.body.classList.add('is-api-settings-open');
+    apiProviderName?.focus();
+  }
+
+  function closeApiProviderSettings() {
+    if (apiSettingsPage) {
+      apiSettingsPage.hidden = true;
+    }
+    document.body.classList.remove('is-api-settings-open');
+    clearApiSettingsError();
+  }
+
+  function createApiProviderDraft(id) {
+    return {
+      id: id || `custom-${Date.now()}`,
+      name: '',
+      baseUrl: '',
+      apiKeyEnv: '',
+      model: '',
+      extraEnv: {},
+      enabled: true,
+    };
+  }
+
+  function currentApiProvider() {
+    return apiProviderSettings.customProviders.find((provider) => provider.id === editingApiProviderId)
+      || apiProviderSettings.customProviders[0]
+      || undefined;
+  }
+
+  function renderApiProviderSettings() {
+    renderApiProviderList();
+    renderApiProviderForm();
+    renderApiProviderBindings();
+  }
+
+  function renderApiProviderList() {
+    if (!apiProviderList) {
+      return;
+    }
+    apiProviderList.innerHTML = '';
+    if (apiProviderSettings.customProviders.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'api-provider-status';
+      empty.textContent = i18n.t('apiSettings.noProviders');
+      apiProviderList.appendChild(empty);
+      return;
+    }
+
+    apiProviderSettings.customProviders.forEach((provider) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = `api-provider-list-item${provider.id === editingApiProviderId ? ' is-active' : ''}${provider.enabled ? '' : ' is-disabled'}`;
+      button.dataset.providerId = provider.id;
+
+      const name = document.createElement('span');
+      name.textContent = provider.name || provider.id;
+      button.appendChild(name);
+
+      const status = document.createElement('span');
+      status.className = 'api-provider-status';
+      status.textContent = provider.enabled ? '' : i18n.t('apiSettings.disabled');
+      const envStatus = apiProviderEnvStatusById[provider.id];
+      if (provider.enabled && envStatus?.apiKeyEnv && envStatus.apiKeyEnvAvailable === false) {
+        status.textContent = i18n.t('apiSettings.missingKeyEnv', { envName: envStatus.apiKeyEnv });
+      }
+      button.appendChild(status);
+
+      apiProviderList.appendChild(button);
+    });
+  }
+
+  function renderApiProviderForm() {
+    const provider = currentApiProvider();
+    const disabled = !provider;
+    [apiProviderName, apiProviderBaseUrl, apiProviderApiKeyEnv, apiProviderModel].forEach((field) => {
+      if (field) {
+        field.disabled = disabled;
+      }
+    });
+    if (apiProviderEnabled) {
+      apiProviderEnabled.disabled = disabled;
+    }
+    if (apiProviderDelete) {
+      apiProviderDelete.disabled = disabled;
+    }
+
+    if (!provider) {
+      if (apiProviderName) apiProviderName.value = '';
+      if (apiProviderBaseUrl) apiProviderBaseUrl.value = '';
+      if (apiProviderApiKeyEnv) apiProviderApiKeyEnv.value = '';
+      if (apiProviderModel) apiProviderModel.value = '';
+      if (apiProviderEnabled) apiProviderEnabled.checked = true;
+      renderExtraEnvRows({});
+      return;
+    }
+
+    editingApiProviderId = provider.id;
+    if (apiProviderName) apiProviderName.value = provider.name;
+    if (apiProviderBaseUrl) apiProviderBaseUrl.value = provider.baseUrl;
+    if (apiProviderApiKeyEnv) apiProviderApiKeyEnv.value = provider.apiKeyEnv;
+    if (apiProviderModel) apiProviderModel.value = provider.model;
+    if (apiProviderEnabled) apiProviderEnabled.checked = provider.enabled;
+    renderExtraEnvRows(provider.extraEnv);
+  }
+
+  function renderExtraEnvRows(extraEnv) {
+    if (!apiProviderExtraEnv) {
+      return;
+    }
+    apiProviderExtraEnv.innerHTML = '';
+    const entries = Object.entries(extraEnv);
+    if (entries.length === 0) {
+      entries.push(['', '']);
+    }
+    entries.forEach(([key, value]) => {
+      apiProviderExtraEnv.appendChild(createExtraEnvRow(key, value));
+    });
+  }
+
+  function createExtraEnvRow(key, value) {
+    const row = document.createElement('div');
+    row.className = 'api-extra-env-row';
+
+    const keyInput = document.createElement('input');
+    keyInput.dataset.envKey = 'true';
+    keyInput.placeholder = 'ENV_NAME';
+    keyInput.value = key;
+    row.appendChild(keyInput);
+
+    const valueInput = document.createElement('input');
+    valueInput.dataset.envValue = 'true';
+    valueInput.placeholder = 'value';
+    valueInput.value = value;
+    row.appendChild(valueInput);
+
+    const remove = document.createElement('button');
+    remove.className = 'api-env-remove';
+    remove.type = 'button';
+    remove.dataset.removeEnv = 'true';
+    remove.textContent = '×';
+    row.appendChild(remove);
+    return row;
+  }
+
+  function renderApiProviderBindings() {
+    renderApiProviderDefaultSelect();
+    if (!apiProviderAgentBindings) {
+      return;
+    }
+    apiProviderAgentBindings.innerHTML = '';
+    profiles.forEach((profile) => {
+      const row = document.createElement('label');
+      row.className = 'api-agent-binding';
+
+      const label = document.createElement('span');
+      label.className = 'api-agent-binding-label';
+      label.textContent = profile.name;
+      row.appendChild(label);
+
+      const select = document.createElement('select');
+      select.dataset.cliId = profile.id;
+      appendApiProviderOption(select, 'inherit', i18n.t('apiSettings.inherit'));
+      enabledApiProviders().forEach((provider) => {
+        appendApiProviderOption(select, provider.id, provider.name);
+      });
+      select.value = apiProviderSettings.agentProviderByCliId[profile.id] || 'inherit';
+      row.appendChild(select);
+
+      apiProviderAgentBindings.appendChild(row);
+    });
+  }
+
+  function renderApiProviderDefaultSelect() {
+    if (!apiProviderDefaultSelect) {
+      return;
+    }
+    apiProviderDefaultSelect.innerHTML = '';
+    appendApiProviderOption(apiProviderDefaultSelect, '', i18n.t('apiSettings.none'));
+    enabledApiProviders().forEach((provider) => {
+      appendApiProviderOption(apiProviderDefaultSelect, provider.id, provider.name);
+    });
+    apiProviderDefaultSelect.value = apiProviderSettings.defaultProviderId || '';
+  }
+
+  function appendApiProviderOption(select, value, label) {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = label;
+    select.appendChild(option);
+  }
+
+  function enabledApiProviders() {
+    return apiProviderSettings.customProviders.filter((provider) => provider.enabled);
+  }
+
+  function collectApiProviderForm() {
+    const provider = currentApiProvider() || createApiProviderDraft(editingApiProviderId);
+    const name = apiProviderName?.value.trim() || '';
+    if (!name) {
+      showApiSettingsError(i18n.t('apiSettings.nameRequired'));
+      return undefined;
+    }
+
+    const nextProvider = {
+      ...provider,
+      name,
+      baseUrl: apiProviderBaseUrl?.value.trim() || '',
+      apiKeyEnv: sanitizeEnvName(apiProviderApiKeyEnv?.value || ''),
+      model: apiProviderModel?.value.trim() || '',
+      enabled: Boolean(apiProviderEnabled?.checked),
+      extraEnv: collectExtraEnvRows(),
+    };
+    const providers = apiProviderSettings.customProviders.some((item) => item.id === nextProvider.id)
+      ? apiProviderSettings.customProviders.map((item) => item.id === nextProvider.id ? nextProvider : item)
+      : [...apiProviderSettings.customProviders, nextProvider];
+    const enabledIds = new Set(providers.filter((item) => item.enabled).map((item) => item.id));
+    const defaultProviderId = enabledIds.has(apiProviderDefaultSelect?.value || '')
+      ? apiProviderDefaultSelect.value
+      : '';
+    const agentProviderByCliId = {};
+    apiProviderAgentBindings?.querySelectorAll('select[data-cli-id]').forEach((select) => {
+      if (select.value === 'inherit' || enabledIds.has(select.value)) {
+        agentProviderByCliId[select.dataset.cliId] = select.value;
+      }
+    });
+
+    return normalizeApiProviderSettings({
+      customProviders: providers,
+      defaultProviderId,
+      agentProviderByCliId,
+    });
+  }
+
+  function collectExtraEnvRows() {
+    const result = {};
+    apiProviderExtraEnv?.querySelectorAll('.api-extra-env-row').forEach((row) => {
+      const key = sanitizeEnvName(row.querySelector('[data-env-key]')?.value || '');
+      const value = row.querySelector('[data-env-value]')?.value || '';
+      if (key) {
+        result[key] = value;
+      }
+    });
+    return result;
+  }
+
+  function showApiSettingsError(text) {
+    if (!apiProviderSettingsError) {
+      return;
+    }
+    apiProviderSettingsError.textContent = text;
+    apiProviderSettingsError.hidden = false;
+  }
+
+  function clearApiSettingsError() {
+    if (!apiProviderSettingsError) {
+      return;
+    }
+    apiProviderSettingsError.textContent = '';
+    apiProviderSettingsError.hidden = true;
+  }
+
+  function saveApiProviderSettings() {
+    const next = collectApiProviderForm();
+    if (!next) {
+      return;
+    }
+    apiProviderSettings = next;
+    clearApiSettingsError();
+    vscode.postMessage({ command: 'saveApiProviderSettings', settings: apiProviderSettings });
+    renderApiProviderSettings();
   }
 
   function providerStateLabel(profile) {
@@ -3091,13 +3460,74 @@
     renderComposer();
   });
 
-  refreshBtn.addEventListener('click', () => {
-    vscode.postMessage({ command: 'checkProfiles' });
-    vscode.postMessage({ command: 'refreshContext', cliId: activeId, contextOptions });
-  });
-
   reloadBtn?.addEventListener('click', () => {
     vscode.postMessage({ command: 'reloadWindow' });
+  });
+
+  apiSettingsBack?.addEventListener('click', closeApiProviderSettings);
+  apiProviderCancel?.addEventListener('click', closeApiProviderSettings);
+
+  apiProviderAdd?.addEventListener('click', () => {
+    const provider = createApiProviderDraft();
+    apiProviderSettings = {
+      ...apiProviderSettings,
+      customProviders: [...apiProviderSettings.customProviders, provider],
+    };
+    editingApiProviderId = provider.id;
+    clearApiSettingsError();
+    renderApiProviderSettings();
+    apiProviderName?.focus();
+  });
+
+  apiProviderList?.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-provider-id]');
+    if (!button) {
+      return;
+    }
+    editingApiProviderId = button.dataset.providerId;
+    clearApiSettingsError();
+    renderApiProviderSettings();
+  });
+
+  apiProviderAddEnv?.addEventListener('click', () => {
+    apiProviderExtraEnv?.appendChild(createExtraEnvRow('', ''));
+  });
+
+  apiProviderExtraEnv?.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-remove-env]');
+    if (!button) {
+      return;
+    }
+    const row = button.closest('.api-extra-env-row');
+    row?.remove();
+    if (!apiProviderExtraEnv.children.length) {
+      apiProviderExtraEnv.appendChild(createExtraEnvRow('', ''));
+    }
+  });
+
+  apiProviderDelete?.addEventListener('click', () => {
+    const provider = currentApiProvider();
+    if (!provider) {
+      return;
+    }
+    const customProviders = apiProviderSettings.customProviders.filter((item) => item.id !== provider.id);
+    const agentProviderByCliId = Object.fromEntries(
+      Object.entries(apiProviderSettings.agentProviderByCliId).filter(([, providerId]) => providerId !== provider.id)
+    );
+    apiProviderSettings = normalizeApiProviderSettings({
+      customProviders,
+      defaultProviderId: apiProviderSettings.defaultProviderId === provider.id ? '' : apiProviderSettings.defaultProviderId,
+      agentProviderByCliId,
+    });
+    editingApiProviderId = apiProviderSettings.customProviders[0]?.id || '';
+    clearApiSettingsError();
+    vscode.postMessage({ command: 'saveApiProviderSettings', settings: apiProviderSettings });
+    renderApiProviderSettings();
+  });
+
+  apiProviderForm?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    saveApiProviderSettings();
   });
 
   taskBoard?.addEventListener('click', (event) => {
@@ -3313,6 +3743,10 @@
 
   window.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
+      if (apiSettingsPage && !apiSettingsPage.hidden) {
+        closeApiProviderSettings();
+        return;
+      }
       closeComposerMenus();
     }
   });
@@ -3359,6 +3793,17 @@
         renderProviderHint();
         renderContextSummaryLabel();
         renderContextBudget();
+        break;
+      case 'apiProviderSettings':
+        apiProviderSettings = normalizeApiProviderSettings(message.settings);
+        apiProviderEnvStatusById = message.envStatusByProviderId || {};
+        if (!editingApiProviderId || !apiProviderSettings.customProviders.some((provider) => provider.id === editingApiProviderId)) {
+          editingApiProviderId = apiProviderSettings.customProviders[0]?.id || '';
+        }
+        renderApiProviderSettings();
+        break;
+      case 'openProviderSettings':
+        openApiProviderSettings();
         break;
       case 'requestStarted':
         if (!activeId || !installedProfiles().some((profile) => profile.id === activeId)) {
@@ -3407,6 +3852,9 @@
             index: assistant.index,
             buffer: '',
           };
+          if (message.apiProviderWarning) {
+            addMessage(message.cliId, 'system', normalizeMessageText(message.apiProviderWarning), undefined, false, threadId);
+          }
         }
         persist();
         renderAll();
@@ -3452,6 +3900,7 @@
   });
 
   vscode.postMessage({ command: 'checkProfiles' });
+  vscode.postMessage({ command: 'refreshApiProviderSettings' });
   refreshActiveContext();
   renderAll();
 })();
