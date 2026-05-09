@@ -141,29 +141,6 @@
               <option value="generateTests" data-i18n="action.generateTests"></option>
               <option value="refactorSelection" data-i18n="action.refactorSelection"></option>
             </select>
-            <details class="context-menu">
-              <summary class="context-summary" data-i18n-title="context.label">
-                <span class="chip-prefix">@</span><span id="contextSummaryLabel" data-i18n="context.short"></span>
-              </summary>
-              <div class="context-popover" aria-label="Context" data-i18n-aria="context.label">
-                <label class="context-chip">
-                  <input type="checkbox" data-context="includeWorkspace" checked>
-                  <span class="chip-prefix">@</span><span data-i18n="context.workspace"></span>
-                </label>
-                <label class="context-chip">
-                  <input type="checkbox" data-context="includeCurrentFile" checked>
-                  <span class="chip-prefix">@</span><span data-i18n="context.file"></span>
-                </label>
-                <label class="context-chip">
-                  <input type="checkbox" data-context="includeSelection" checked>
-                  <span class="chip-prefix">@</span><span data-i18n="context.selection"></span>
-                </label>
-                <label class="context-chip">
-                  <input type="checkbox" data-context="includeDiagnostics" checked>
-                  <span class="chip-prefix">@</span><span data-i18n="context.problems"></span>
-                </label>
-              </div>
-            </details>
           </div>
 
           <div class="prompt-tools" role="toolbar" aria-label="Quick actions" data-i18n-aria="quick.label">
@@ -174,6 +151,32 @@
               <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M9 4l4 4-4 4"/></svg>
             </button>
           </div>
+        </div>
+
+        <div class="context-row">
+          <details class="context-menu">
+            <summary class="context-summary" data-i18n-title="context.label">
+              <span class="chip-prefix">@</span><span id="contextSummaryLabel" data-i18n="context.short"></span>
+            </summary>
+            <div class="context-popover" aria-label="Context" data-i18n-aria="context.label">
+              <label class="context-chip">
+                <input type="checkbox" data-context="includeWorkspace" checked>
+                <span class="chip-prefix">@</span><span data-i18n="context.workspace"></span>
+              </label>
+              <label class="context-chip">
+                <input type="checkbox" data-context="includeCurrentFile" checked>
+                <span class="chip-prefix">@</span><span data-i18n="context.file"></span>
+              </label>
+              <label class="context-chip">
+                <input type="checkbox" data-context="includeSelection" checked>
+                <span class="chip-prefix">@</span><span data-i18n="context.selection"></span>
+              </label>
+              <label class="context-chip">
+                <input type="checkbox" data-context="includeDiagnostics" checked>
+                <span class="chip-prefix">@</span><span data-i18n="context.problems"></span>
+              </label>
+            </div>
+          </details>
         </div>
       </div>
 

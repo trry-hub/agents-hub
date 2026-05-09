@@ -400,6 +400,13 @@ textarea:focus {
   display: block;
 }
 
+.context-row {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
 .option-menu[open] .option-summary,
 .mode-menu[open] .mode-summary,
 .context-menu[open] .context-summary {
@@ -1825,8 +1832,13 @@ body[data-provider="opencode"] .prompt-actions {
   grid-template-columns: minmax(0, 1fr) 30px;
   gap: 6px;
   align-items: center;
-  padding: 5px 7px 6px 8px;
+  padding: 5px 7px 2px 8px;
   border-top: 1px solid color-mix(in srgb, var(--assistant-border) 82%, transparent);
+}
+
+body[data-provider="opencode"] .context-row {
+  min-height: 22px;
+  padding: 0 8px 6px;
 }
 
 body[data-provider="opencode"] .prompt-selectors {
@@ -1859,17 +1871,17 @@ body[data-provider="opencode"] .context-menu.is-visible {
 }
 
 body[data-provider="opencode"] .context-menu.is-visible {
-  order: 2;
-  flex: 0 0 54px;
+  display: block;
+  flex: 0 0 auto;
 }
 
 body[data-provider="opencode"] .model-menu.is-visible {
-  order: 3;
+  order: 2;
   flex: 0 1 116px;
 }
 
 body[data-provider="opencode"] .mode-menu.is-visible {
-  order: 4;
+  order: 3;
   flex: 1 1 132px;
   max-width: 152px;
 }
@@ -1903,20 +1915,26 @@ body[data-provider="opencode"] .mode-summary {
 }
 
 body[data-provider="opencode"] .context-summary {
-  max-width: 54px;
-  gap: 4px;
-  padding: 0 5px;
+  width: 24px;
+  max-width: 24px;
+  gap: 0;
+  padding: 0;
   font-weight: 400;
+  justify-content: center;
 }
 
 body[data-provider="opencode"] .context-summary .chip-prefix {
-  width: 7px;
-  height: 7px;
-  border: 1.5px solid color-mix(in srgb, var(--assistant-muted) 36%, transparent);
+  width: 11px;
+  height: 11px;
+  border: 2px solid color-mix(in srgb, var(--assistant-muted) 48%, transparent);
   border-radius: 50%;
   color: transparent;
   font-size: 0;
   flex: 0 0 auto;
+}
+
+body[data-provider="opencode"] #contextSummaryLabel {
+  display: none;
 }
 
 body[data-provider="opencode"] .option-summary span,
@@ -1928,11 +1946,14 @@ body[data-provider="opencode"] .context-summary span:not(.chip-prefix) {
 }
 
 body[data-provider="opencode"] .option-summary::after,
-body[data-provider="opencode"] .mode-summary::after,
-body[data-provider="opencode"] .context-summary::after {
+body[data-provider="opencode"] .mode-summary::after {
   width: 4px;
   height: 4px;
   opacity: 0.42;
+}
+
+body[data-provider="opencode"] .context-summary::after {
+  display: none;
 }
 
 body[data-provider="opencode"] .mode-menu[open] .mode-summary,

@@ -878,6 +878,7 @@ test('webview renders model selection as a single-layer menu', () => {
 });
 
 test('webview composer follows the selected provider identity', () => {
+  const html = readFileSync(new URL('../media/main.html', import.meta.url), 'utf8');
   const script = readFileSync(new URL('../media/main.js', import.meta.url), 'utf8');
   const css = readFileSync(new URL('../media/main.css', import.meta.url), 'utf8');
   const i18nScript = readFileSync(new URL('../media/i18n.js', import.meta.url), 'utf8');
@@ -892,12 +893,15 @@ test('webview composer follows the selected provider identity', () => {
   assert.match(css, /body\[data-provider="opencode"\] \.prompt-shell/);
   assert.match(css, /body\[data-provider="opencode"\] \.model-menu\.is-visible,\s*body\[data-provider="opencode"\] \.mode-menu\.is-visible/s);
   assert.match(css, /body\[data-provider="opencode"\] \.model-menu \.option-summary::before\s*\{\s*[^}]*display:\s*none;/s);
-  assert.match(css, /body\[data-provider="opencode"\] \.context-menu\.is-visible\s*\{\s*[^}]*order:\s*2;/s);
+  assert.match(html, /class="context-row"[\s\S]*class="context-menu"/);
+  assert.match(css, /body\[data-provider="opencode"\] \.context-row\s*\{\s*[^}]*padding:\s*0 8px 6px;/s);
+  assert.match(css, /body\[data-provider="opencode"\] #contextSummaryLabel\s*\{\s*[^}]*display:\s*none;/s);
   assert.match(css, /body\[data-provider="opencode"\] \.model-menu\.is-visible\s*\{\s*[^}]*flex:\s*0 1 116px;/s);
   assert.match(css, /body\[data-provider="opencode"\] \.mode-menu\.is-visible\s*\{\s*[^}]*max-width:\s*152px;/s);
   assert.match(css, /body\[data-provider="opencode"\] \.mode-summary,\s*body\[data-provider="opencode"\] \.option-summary,\s*body\[data-provider="opencode"\] \.context-summary\s*\{[^}]*border:\s*1px solid transparent;/s);
   assert.match(css, /body\[data-provider="opencode"\] \.mode-summary,\s*body\[data-provider="opencode"\] \.option-summary,\s*body\[data-provider="opencode"\] \.context-summary\s*\{[^}]*background:\s*transparent;/s);
-  assert.match(css, /body\[data-provider="opencode"\] \.context-summary \.chip-prefix\s*\{\s*[^}]*border:\s*1\.5px solid color-mix\(in srgb, var\(--assistant-muted\) 36%, transparent\);/s);
+  assert.match(css, /body\[data-provider="opencode"\] \.context-summary \.chip-prefix\s*\{\s*[^}]*width:\s*11px;/s);
+  assert.match(css, /body\[data-provider="opencode"\] \.context-summary \.chip-prefix\s*\{\s*[^}]*border:\s*2px solid color-mix\(in srgb, var\(--assistant-muted\) 48%, transparent\);/s);
   assert.match(css, /body\[data-provider="opencode"\] \.prompt-actions\s*\{\s*[^}]*border-top:/s);
   assert.match(css, /body\[data-provider="opencode"\] \.send-button\s*\{[^}]*var\(--assistant-accent, #a855f7\)/s);
   assert.match(css, /body\[data-provider="opencode"\] \.send-button:disabled\s*\{[^}]*opacity:\s*1;/s);
