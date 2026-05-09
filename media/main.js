@@ -2290,6 +2290,12 @@
     sendBtn.disabled = !canSend || busy || !canRunAction || missingSelection || missingCustomModel;
     document.querySelectorAll('[data-action]').forEach((button) => {
       const action = button.dataset.action;
+      if (action === 'openSettings') {
+        button.disabled = false;
+        button.title = '';
+        return;
+      }
+
       button.disabled = !canSend || busy || (actionRequiresSelection(action) && !hasSelectionContext());
       button.title = button.disabled && actionRequiresSelection(action)
         ? i18n.t('quick.missingSelection')

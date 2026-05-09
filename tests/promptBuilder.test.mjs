@@ -1526,6 +1526,10 @@ test('webview front-end explains and blocks selection-only actions without selec
   assert.match(script, /function hasSelectionContext\(\)/);
   assert.match(script, /actionRequiresSelection\(selectedAction\) && !hasSelectionContext\(\)/);
   assert.match(script, /quick\.missingSelection/);
+  assert.match(
+    script,
+    /if \(action === 'openSettings'\) \{\s*button\.disabled = false;\s*button\.title = '';\s*return;/
+  );
 });
 
 test('webview confirms deleting conversation history', () => {
