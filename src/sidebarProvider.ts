@@ -50,14 +50,6 @@ const DEFAULT_CLI_ID = 'opencode';
 const NO_OUTPUT_NOTICE_MS = 45_000;
 const LAST_PROVIDER_STATE_KEY = 'agentsHub.lastProviderId';
 const AGENT_MODE_STATE_KEY = 'agentsHub.agentModeByProvider';
-const PROVIDER_ICON_FILES: Record<string, { light: string; dark: string }> = {
-  claude: { light: 'claude.svg', dark: 'claude.svg' },
-  gemini: { light: 'gemini.png', dark: 'gemini.png' },
-  codex: { light: 'codex.png', dark: 'codex.png' },
-  opencode: { light: 'opencode.png', dark: 'opencode.png' },
-  goose: { light: 'goose-light.png', dark: 'goose-dark.png' },
-  aider: { light: 'aider.png', dark: 'aider.png' },
-};
 
 export class SidebarProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'agentsHub.sidebar';
@@ -227,7 +219,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   private async sendProfiles(): Promise<void> {
     const profiles = await this.cliManager.getProfilesWithStatus();
-    const webview = this.view?.webview;
     this.profilesById.clear();
     profiles.forEach((profile) => {
       this.profilesById.set(profile.id, profile);
@@ -238,9 +229,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       command: 'profiles',
       profiles: profiles.map((profile) => ({
         ...profile,
-        iconUris: webview
-          ? this.providerIconUris(webview, profile.id)
-          : undefined,
         vscodeExtension: this.getProviderExtensionStatus(profile.id),
       })),
       defaultProviderId: this.getDefaultCliId(),
@@ -807,21 +795,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
     const separator = uri.includes('?') ? '&' : '?';
     return `${uri}${separator}v=${this.webviewAssetVersion}`;
-  }
-
-  private providerIconUris(
-    webview: vscode.Webview,
-    providerId: string
-  ): { light: string; dark: string } | undefined {
-    const iconFiles = PROVIDER_ICON_FILES[providerId];
-    if (!iconFiles) {
-      return undefined;
-    }
-
-    return {
-      light: this.getWebviewUri(webview, 'media', 'provider-icons', iconFiles.light),
-      dark: this.getWebviewUri(webview, 'media', 'provider-icons', iconFiles.dark),
-    };
   }
 
   private getHtml(webview: vscode.Webview): string {

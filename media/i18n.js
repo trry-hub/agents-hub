@@ -3,7 +3,6 @@
     en: {
       'app.title': 'AI Assistant',
       'provider.label': 'Provider',
-      'provider.switcher': 'Installed providers',
       'provider.ready': 'Ready',
       'provider.readyShort': 'Ready',
       'provider.preparing': 'Preparing',
@@ -184,7 +183,6 @@
     'zh-CN': {
       'app.title': 'AI 助手',
       'provider.label': '提供方',
-      'provider.switcher': '已安装提供方',
       'provider.ready': '就绪',
       'provider.readyShort': '就绪',
       'provider.preparing': '准备中',

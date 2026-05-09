@@ -46,7 +46,6 @@
 
   const taskBoard = document.getElementById('taskBoard');
   const providerSelect = document.getElementById('providerSelect');
-  const providerButtonGroup = document.getElementById('providerButtonGroup');
   const providerHint = document.getElementById('providerHint');
   const modelSelect = document.getElementById('modelSelect');
   const modelSummaryLabel = document.getElementById('modelSummaryLabel');
@@ -1050,50 +1049,6 @@
 
     providerSelect.value = activeId;
     providerSelect.disabled = Boolean(runningByProvider[activeId] || pendingByProvider[activeId]);
-  }
-
-  function providerIconUri(profile) {
-    const iconUris = profile?.iconUris || {};
-    const preferDarkIcon = document.body.classList.contains('vscode-dark') ||
-      document.body.classList.contains('vscode-high-contrast');
-    return (preferDarkIcon ? iconUris.dark : iconUris.light) || iconUris.light || iconUris.dark || '';
-  }
-
-  function renderProviderButtonGroup() {
-    providerButtonGroup.innerHTML = '';
-    const availableProfiles = installedProfiles();
-    providerButtonGroup.hidden = availableProfiles.length === 0;
-
-    if (availableProfiles.length === 0) {
-      return;
-    }
-
-    const busy = Boolean(runningByProvider[activeId] || pendingByProvider[activeId]);
-
-    for (const profile of availableProfiles) {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = `provider-logo-button${profile.id === activeId ? ' is-active' : ''}`;
-      button.dataset.providerId = profile.id;
-      button.disabled = busy;
-      button.setAttribute('aria-pressed', profile.id === activeId ? 'true' : 'false');
-      button.title = `${profile.name} · ${providerStateLabel(profile)}`;
-
-      const iconUri = providerIconUri(profile);
-      if (iconUri) {
-        const img = document.createElement('img');
-        img.src = iconUri;
-        img.alt = '';
-        img.draggable = false;
-        button.appendChild(img);
-      }
-
-      const label = document.createElement('span');
-      label.className = 'sr-only';
-      label.textContent = profile.name;
-      button.appendChild(label);
-      providerButtonGroup.appendChild(button);
-    }
   }
 
   function providerStateLabel(profile) {
@@ -2457,7 +2412,6 @@
     renderClaudeTerminalBanner();
     renderCodexTerminalBanner();
     renderProviderSelect();
-    renderProviderButtonGroup();
     renderTaskBoard();
     renderThreadSelect();
     renderWorkflowMode();
@@ -3118,15 +3072,6 @@
     persistUserSelection();
     renderAll();
     refreshActiveContext();
-  });
-
-  providerButtonGroup.addEventListener('click', (event) => {
-    const button = event.target.closest('[data-provider-id]');
-    if (!button || button.disabled) {
-      return;
-    }
-
-    switchActiveProvider(button.dataset.providerId);
   });
 
   threadSelect.addEventListener('change', () => {

@@ -1075,7 +1075,7 @@ test('webview renders permissions as a Code X style option menu', () => {
   assert.match(css, /body\[data-provider="codex"\] \.permission-menu \.option-summary/);
 });
 
-test('webview renders installed provider logo buttons as a header button group', () => {
+test('extension contributes installed-only provider logo buttons to the native view title', () => {
   const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
   const html = readFileSync(new URL('../media/main.html', import.meta.url), 'utf8');
   const css = readFileSync(new URL('../media/main.css', import.meta.url), 'utf8');
@@ -1095,18 +1095,9 @@ test('webview renders installed provider logo buttons as a header button group',
   const titleActions = manifest.contributes.menus['view/title'] || [];
   const commandPalette = manifest.contributes.menus.commandPalette;
 
-  assert.match(html, /<div class="provider-button-group" id="providerButtonGroup" role="group" hidden data-i18n-aria="provider.switcher"><\/div>/);
-  assert.match(css, /\.provider-button-group\s*\{\s*[^}]*display:\s*inline-flex;/s);
-  assert.match(css, /\.provider-logo-button\s*\{/);
-  assert.match(css, /\.provider-logo-button \+ \.provider-logo-button\s*\{/);
-  assert.match(css, /\.provider-logo-button\.is-active\s*\{/);
-  assert.match(script, /const providerButtonGroup = document\.getElementById\('providerButtonGroup'\);/);
-  assert.match(script, /function renderProviderButtonGroup\(\) \{[\s\S]*const availableProfiles = installedProfiles\(\);/);
-  assert.match(script, /for \(const profile of availableProfiles\) \{/);
-  assert.match(script, /button\.dataset\.providerId = profile\.id;/);
-  assert.match(script, /providerButtonGroup\.addEventListener\('click',/);
-  assert.doesNotMatch(script, /for \(const profile of profiles\) \{[\s\S]*providerButtonGroup/);
-  assert.doesNotMatch(titleActions.map((item) => item.command).join('\n'), /agentsHub\.switchProvider/);
+  assert.doesNotMatch(html, /providerButtonGroup|provider-button-group/);
+  assert.doesNotMatch(css, /\.provider-button-group|\.provider-logo-button/);
+  assert.doesNotMatch(script, /providerButtonGroup|renderProviderButtonGroup|provider-logo-button/);
 
   for (const provider of providers) {
     const command = commands.find((item) => item.command === `agentsHub.switchProvider.${provider}`);
@@ -1124,6 +1115,18 @@ test('webview renders installed provider logo buttons as a header button group',
         assert.equal(icon.subarray(1, 4).toString('ascii'), 'PNG');
       }
     }
+    assert.ok(titleActions.some((item) => (
+      item.command === `agentsHub.switchProvider.${provider}` &&
+      item.when.includes('view == agentsHub.sidebar') &&
+      item.when.includes(`agentsHub.provider.${provider}.installed`) &&
+      item.when.includes(`agentsHub.activeProvider != ${provider}`)
+    )));
+    assert.ok(titleActions.some((item) => (
+      item.command === `agentsHub.switchProviderActive.${provider}` &&
+      item.when.includes('view == agentsHub.sidebar') &&
+      item.when.includes(`agentsHub.provider.${provider}.installed`) &&
+      item.when.includes(`agentsHub.activeProvider == ${provider}`)
+    )));
     assert.ok(commandPalette.some((item) => (
       item.command === `agentsHub.switchProvider.${provider}` &&
       item.when === 'false'
@@ -1137,7 +1140,7 @@ test('webview renders installed provider logo buttons as a header button group',
   assert.match(extensionSource, /registerCommand\(`agentsHub\.switchProvider\.\$\{profile\.id\}`/);
   assert.match(extensionSource, /registerCommand\(`agentsHub\.switchProviderActive\.\$\{profile\.id\}`/);
   assert.match(sidebarSource, /executeCommand\('setContext', 'agentsHub\.activeProvider', providerId\)/);
-  assert.match(sidebarSource, /iconUris:\s*webview\s*\?\s*this\.providerIconUris\(webview, profile\.id\)/);
+  assert.match(sidebarSource, /`agentsHub\.provider\.\$\{profile\.id\}\.installed`/);
   assert.match(sidebarSource, /postMessage\(\{ command: 'switchProvider', providerId \}\)/);
 });
 
@@ -1148,13 +1151,16 @@ test('webview keeps provider switching out of the conversation toolbar', () => {
 
   assert.match(html, /<label class="provider-native-select" hidden>[\s\S]*id="providerSelect"/);
   assert.doesNotMatch(html, /providerTabs|provider-tabs-wrap|provider-tab-button/);
+  assert.doesNotMatch(html, /providerButtonGroup|provider-button-group/);
   assert.doesNotMatch(html, /composer-provider-dock/);
   assert.doesNotMatch(html, /<div class="prompt-selectors">[\s\S]*id="providerSelect"[\s\S]*<\/div>\s*<div class="prompt-tools"/);
   assert.match(css, /\.composer-footer\s*\{\s*[^}]*display:\s*flex;/s);
   assert.match(css, /\.composer-footer\s*\{\s*[^}]*justify-content:\s*space-between;/s);
   assert.doesNotMatch(css, /\.provider-tabs/);
   assert.doesNotMatch(css, /\.provider-tab-button/);
+  assert.doesNotMatch(css, /\.provider-button-group|\.provider-logo-button/);
   assert.doesNotMatch(script, /providerTabs/);
+  assert.doesNotMatch(script, /providerButtonGroup|renderProviderButtonGroup/);
   assert.doesNotMatch(css, /\.composer-provider-dock/);
   assert.match(css, /\.context-budget\s*\{\s*[^}]*height:\s*20px;/s);
   assert.match(css, /\.context-budget\s*\{\s*[^}]*max-width:\s*48px;/s);

@@ -179,6 +179,68 @@
       }
     ],
     "menus": {
+      "view/title": [
+        {
+          "command": "agentsHub.switchProvider.claude",
+          "when": "view == agentsHub.sidebar && agentsHub.provider.claude.installed && agentsHub.activeProvider != claude",
+          "group": "navigation@1"
+        },
+        {
+          "command": "agentsHub.switchProviderActive.claude",
+          "when": "view == agentsHub.sidebar && agentsHub.provider.claude.installed && agentsHub.activeProvider == claude",
+          "group": "navigation@1"
+        },
+        {
+          "command": "agentsHub.switchProvider.gemini",
+          "when": "view == agentsHub.sidebar && agentsHub.provider.gemini.installed && agentsHub.activeProvider != gemini",
+          "group": "navigation@2"
+        },
+        {
+          "command": "agentsHub.switchProviderActive.gemini",
+          "when": "view == agentsHub.sidebar && agentsHub.provider.gemini.installed && agentsHub.activeProvider == gemini",
+          "group": "navigation@2"
+        },
+        {
+          "command": "agentsHub.switchProvider.codex",
+          "when": "view == agentsHub.sidebar && agentsHub.provider.codex.installed && agentsHub.activeProvider != codex",
+          "group": "navigation@3"
+        },
+        {
+          "command": "agentsHub.switchProviderActive.codex",
+          "when": "view == agentsHub.sidebar && agentsHub.provider.codex.installed && agentsHub.activeProvider == codex",
+          "group": "navigation@3"
+        },
+        {
+          "command": "agentsHub.switchProvider.opencode",
+          "when": "view == agentsHub.sidebar && agentsHub.provider.opencode.installed && agentsHub.activeProvider != opencode",
+          "group": "navigation@4"
+        },
+        {
+          "command": "agentsHub.switchProviderActive.opencode",
+          "when": "view == agentsHub.sidebar && agentsHub.provider.opencode.installed && agentsHub.activeProvider == opencode",
+          "group": "navigation@4"
+        },
+        {
+          "command": "agentsHub.switchProvider.goose",
+          "when": "view == agentsHub.sidebar && agentsHub.provider.goose.installed && agentsHub.activeProvider != goose",
+          "group": "navigation@5"
+        },
+        {
+          "command": "agentsHub.switchProviderActive.goose",
+          "when": "view == agentsHub.sidebar && agentsHub.provider.goose.installed && agentsHub.activeProvider == goose",
+          "group": "navigation@5"
+        },
+        {
+          "command": "agentsHub.switchProvider.aider",
+          "when": "view == agentsHub.sidebar && agentsHub.provider.aider.installed && agentsHub.activeProvider != aider",
+          "group": "navigation@6"
+        },
+        {
+          "command": "agentsHub.switchProviderActive.aider",
+          "when": "view == agentsHub.sidebar && agentsHub.provider.aider.installed && agentsHub.activeProvider == aider",
+          "group": "navigation@6"
+        }
+      ],
       "commandPalette": [
         {
           "command": "agentsHub.switchProvider.claude",
