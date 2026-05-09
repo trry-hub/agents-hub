@@ -794,6 +794,7 @@ test('webview includes an advanced controls toggle for composer settings', () =>
   assert.match(i18nScript, /'composer\.advancedHide': 'Hide advanced'/);
 
   assert.match(script, /appendEmptyState\(titleText, subtitleText, showSetupAction = false\)/);
+  assert.match(script, /function providerUnavailableMessage\(profile\)/);
   assert.match(script, /const firstInstallHintProfile = profiles\.find\(\(profile\) => profile\?\.installHint && !profile\.installed\);/);
   assert.match(script, /const suggestionActions = showSetupAction\s*\?\s*\[\['openSettings', 'empty\.configureProviders'\]\]\s*:/);
   assert.match(script, /'openSettings'/);
@@ -804,6 +805,8 @@ test('webview includes an advanced controls toggle for composer settings', () =>
   assert.match(i18nScript, /'empty\.configureProviders': '前往设置配置提供方'/);
   assert.match(i18nScript, /'provider\.unavailableWithHint': 'Provider is not installed\. Install one first \(for example: \{hint\}\), then refresh\.'/);
   assert.match(i18nScript, /'provider\.unavailableWithHint': '该提供方尚未安装。请先安装一个提供方（例如：\{hint\}），然后刷新。'/);
+  assert.match(script, /providerUnavailableMessage\(profile\)/);
+  assert.match(script, /providerUnavailableMessage\(profile \|\| providerId\)/);
 });
 
 test('webview renders the Codex local mode menu like Code X', () => {

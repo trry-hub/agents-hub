@@ -1827,7 +1827,7 @@
     if (!activeId) {
       const firstInstallHintProfile = profiles.find((profile) => profile?.installHint && !profile.installed);
       const noProviderSubtitle = firstInstallHintProfile
-        ? i18n.t('provider.unavailableWithHint', { hint: firstInstallHintProfile.installHint })
+        ? providerUnavailableMessage(firstInstallHintProfile)
         : i18n.t('provider.unavailable');
       syncMessageStatusTimer(false);
       appendEmptyState(i18n.t('provider.noInstalled'), noProviderSubtitle, true);
@@ -1982,6 +1982,18 @@
 
     empty.appendChild(suggestions);
     messages.appendChild(empty);
+  }
+
+  function providerUnavailableMessage(profile) {
+    const resolvedProfile = typeof profile === 'string'
+      ? profiles.find((item) => item.id === profile)
+      : profile;
+
+    if (resolvedProfile?.installHint) {
+      return i18n.t('provider.unavailableWithHint', { hint: resolvedProfile.installHint });
+    }
+
+    return i18n.t('provider.unavailable');
   }
 
   function appendLoadingMessage(text) {
@@ -2422,7 +2434,7 @@
 
     const profile = activeProfile();
     if (!profile?.installed) {
-      addMessage(activeId, 'error', i18n.t('provider.noInstalled'));
+      addMessage(activeId, 'error', providerUnavailableMessage(profile));
       return;
     }
 
@@ -2445,7 +2457,7 @@
   function sendToProvider(providerId, action, text, preferredWorkflowMode, attachments) {
     const profile = profiles.find((item) => item.id === providerId);
     if (!profile || !profile.installed) {
-      addMessage(providerId || activeId, 'error', i18n.t('provider.unavailable'));
+      addMessage(providerId || activeId, 'error', providerUnavailableMessage(profile || providerId));
       return false;
     }
     if (runningByProvider[providerId] || pendingByProvider[providerId]) {
