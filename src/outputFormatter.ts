@@ -11,7 +11,7 @@ const ORPHAN_ANSI_PATTERN =
 
 const INTERNAL_PROMPT_START = 'You are an AI coding assistant embedded in VS Code.';
 const INTERNAL_PROMPT_END_MARKER =
-  '- If context is missing, say what is missing and proceed with the best available information.';
+  '- Risks and caveats: call out assumptions, follow-up work, and edge cases.';
 
 export interface NormalizedCliOutputChunk {
   text: string;

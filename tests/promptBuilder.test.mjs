@@ -79,6 +79,32 @@ test('buildAssistantPrompt includes provider agent mode, action, user request, a
   assert.match(prompt, /What does this do\?/);
   assert.match(prompt, /src\/example\.ts/);
   assert.match(prompt, /return a \+ b;/);
+  assert.match(prompt, /If the request involves code changes, include a compact delivery checklist:/);
+  assert.match(prompt, /Files changed: list each file path and the exact change/);
+});
+
+test('buildAssistantPrompt requires delivery checklist for OpenCode freeform prompts', () => {
+  const prompt = buildAssistantPrompt({
+    provider: { id: 'opencode', name: 'OpenCode' },
+    mode: 'agent',
+    agentMode: {
+      id: 'sisyphus',
+      label: 'Sisyphus - Ultraworker',
+      instruction: 'Use provider-native behavior.',
+    },
+    action: 'freeform',
+    message: '我想重构这个登录流程。',
+    context: {
+      workspace: {
+        name: 'agents-hub',
+        rootPath: '/repo/agents-hub',
+      },
+      diagnostics: [],
+    },
+  });
+
+  assert.match(prompt, /Verification: commands or checks that confirm the change is correct/);
+  assert.match(prompt, /Risks and caveats: call out assumptions, follow-up work, and edge cases/);
 });
 
 test('buildAssistantPrompt gives provider agent mode stronger implementation instructions', () => {

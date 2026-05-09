@@ -6,8 +6,7 @@
   const ORPHAN_ANSI_PATTERN = /(?:^|(?<=\s))\[(?:\??25[hl]|[0-9;]*[ABCDEFGJKSTfimnsu]|[0-9;]*[hl])/g;
   const CONTROL_PATTERN = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
   const INTERNAL_PROMPT_START = 'You are an AI coding assistant embedded in VS Code.';
-  const INTERNAL_PROMPT_END_MARKER =
-    '- If context is missing, say what is missing and proceed with the best available information.';
+  const INTERNAL_PROMPT_END_MARKER = '- Risks and caveats: call out assumptions, follow-up work, and edge cases.';
   const MAX_IMAGE_ATTACHMENTS = 8;
   const MAX_IMAGE_ATTACHMENT_BYTES = 12 * 1024 * 1024;
   const TASK_STATUSES = ['preparing', 'running', 'completed', 'failed', 'stopped'];

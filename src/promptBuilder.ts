@@ -26,6 +26,13 @@ const ACTION_INSTRUCTIONS: Record<AssistantActionId, string> = {
     'Refactor the selected code while preserving behavior. Keep changes scoped and explain the resulting improvement.',
 };
 
+const DELIVERY_REQUIREMENTS = [
+  'If the request involves code changes, include a compact delivery checklist:',
+  '- Files changed: list each file path and the exact change.',
+  '- Verification: commands or checks that confirm the change is correct (or explain why verification is not possible).',
+  '- Risks and caveats: call out assumptions, follow-up work, and edge cases.',
+].join('\n');
+
 export function buildAssistantPrompt(request: AssistantPromptRequest): string {
   if (request.provider.id === 'opencode' && request.action === 'freeform') {
     return buildOpenCodeFreeformPrompt(request);
@@ -57,6 +64,7 @@ export function buildAssistantPrompt(request: AssistantPromptRequest): string {
     '- Use concise Markdown.',
     '- When suggesting code changes, include file paths and minimal patches or snippets.',
     '- If context is missing, say what is missing and proceed with the best available information.',
+    DELIVERY_REQUIREMENTS,
   ];
 
   return lines.filter((line, index, all) => line !== '' || all[index - 1] !== '').join('\n');
@@ -91,6 +99,8 @@ function buildOpenCodeFreeformPrompt(request: AssistantPromptRequest): string {
   }
 
   lines.push('Keep the answer concise. Do not inspect the project unless the request needs it.');
+  lines.push('');
+  lines.push(DELIVERY_REQUIREMENTS);
 
   return lines.filter((line, index, all) => line !== '' || all[index - 1] !== '').join('\n');
 }
