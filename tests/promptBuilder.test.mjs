@@ -1075,12 +1075,11 @@ test('webview renders permissions as a Code X style option menu', () => {
   assert.match(css, /body\[data-provider="codex"\] \.permission-menu \.option-summary/);
 });
 
-test('extension contributes installed-only provider logo buttons to the native view title', () => {
+test('webview renders installed provider logo tabs in the header', () => {
   const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
   const html = readFileSync(new URL('../media/main.html', import.meta.url), 'utf8');
   const css = readFileSync(new URL('../media/main.css', import.meta.url), 'utf8');
   const script = readFileSync(new URL('../media/main.js', import.meta.url), 'utf8');
-  const extensionSource = readFileSync(new URL('../src/extension.ts', import.meta.url), 'utf8');
   const sidebarSource = readFileSync(new URL('../src/sidebarProvider.ts', import.meta.url), 'utf8');
   const providers = ['claude', 'gemini', 'codex', 'opencode', 'goose', 'aider'];
   const providerIcons = {
@@ -1093,25 +1092,28 @@ test('extension contributes installed-only provider logo buttons to the native v
   };
   const commands = manifest.contributes.commands;
   const titleActions = manifest.contributes.menus['view/title'] || [];
-  const commandPalette = manifest.contributes.menus.commandPalette;
-  const indicatorCommand = commands.find((item) => item.command === 'agentsHub.activeProviderIndicator');
 
-  assert.doesNotMatch(html, /providerButtonGroup|provider-button-group/);
-  assert.doesNotMatch(css, /\.provider-button-group|\.provider-logo-button/);
-  assert.doesNotMatch(script, /providerButtonGroup|renderProviderButtonGroup|provider-logo-button/);
-  assert.deepEqual(indicatorCommand, {
-    command: 'agentsHub.activeProviderIndicator',
-    title: '%command.activeProviderIndicator.title%',
-    icon: '$(check)',
-  });
+  assert.match(html, /<div class="provider-tabs" id="providerTabs" role="tablist" aria-label="Provider tabs"/);
+  assert.match(html, /<div class="toolbar-actions"[\s\S]*<\/div>\s*<div class="provider-tabs" id="providerTabs"/);
+  assert.doesNotMatch(JSON.stringify(commands), /activeProviderIndicator|switchProvider/);
+  assert.doesNotMatch(JSON.stringify(titleActions), /activeProviderIndicator|switchProvider/);
+  assert.match(css, /\.provider-tabs\s*\{/);
+  assert.match(css, /\.provider-tab-button\s*\{/);
+  assert.match(css, /\.provider-tab-button\.is-active\s*\{/);
+  assert.match(css, /\.provider-tab-logo\s*\{/);
+  assert.match(css, /\.provider-tab-version\s*\{/);
+  assert.match(script, /const providerTabs = document\.getElementById\('providerTabs'\)/);
+  assert.match(script, /function renderProviderTabs\(\)/);
+  assert.match(script, /const availableProfiles = installedProfiles\(\)/);
+  assert.match(script, /button\.className = `provider-tab-button\$\{isActive \? ' is-active' : ''\}`/);
+  assert.match(script, /logo\.className = 'provider-tab-logo'/);
+  assert.match(script, /version\.className = 'provider-tab-version'/);
+  assert.match(script, /version\.textContent = formatProviderVersion\(profile\.version\)/);
+  assert.match(script, /providerTabs\.addEventListener\('click'/);
+  assert.match(script, /switchActiveProvider\(button\.dataset\.providerId\)/);
+  assert.match(sidebarSource, /webviewIcon: this\.getProviderIconUris\(profile\.id\)/);
 
   for (const provider of providers) {
-    const command = commands.find((item) => item.command === `agentsHub.switchProvider.${provider}`);
-    const activeCommand = commands.find((item) => item.command === `agentsHub.switchProviderActive.${provider}`);
-    assert.ok(command, `missing provider command for ${provider}`);
-    assert.ok(activeCommand, `missing active provider command for ${provider}`);
-    assert.deepEqual(command.icon, providerIcons[provider]);
-    assert.deepEqual(activeCommand.icon, providerIcons[provider]);
     for (const iconPath of new Set(Object.values(providerIcons[provider]))) {
       const icon = readFileSync(new URL(`../${iconPath}`, import.meta.url));
       assert.ok(icon.length > 0, `missing provider icon asset for ${provider}`);
@@ -1121,63 +1123,27 @@ test('extension contributes installed-only provider logo buttons to the native v
         assert.equal(icon.subarray(1, 4).toString('ascii'), 'PNG');
       }
     }
-    assert.ok(titleActions.some((item) => (
-      item.command === `agentsHub.switchProvider.${provider}` &&
-      item.when.includes('view == agentsHub.sidebar') &&
-      item.when.includes(`agentsHub.provider.${provider}.installed`) &&
-      item.when.includes(`agentsHub.activeProvider != ${provider}`)
-    )));
-    assert.ok(titleActions.some((item) => (
-      item.command === `agentsHub.switchProviderActive.${provider}` &&
-      item.when.includes('view == agentsHub.sidebar') &&
-      item.when.includes(`agentsHub.provider.${provider}.installed`) &&
-      item.when.includes(`agentsHub.activeProvider == ${provider}`)
-    )));
-    assert.ok(titleActions.some((item) => (
-      item.command === 'agentsHub.activeProviderIndicator' &&
-      item.when.includes('view == agentsHub.sidebar') &&
-      item.when.includes(`agentsHub.provider.${provider}.installed`) &&
-      item.when.includes(`agentsHub.activeProvider == ${provider}`)
-    )));
-    assert.ok(commandPalette.some((item) => (
-      item.command === `agentsHub.switchProvider.${provider}` &&
-      item.when === 'false'
-    )));
-    assert.ok(commandPalette.some((item) => (
-      item.command === `agentsHub.switchProviderActive.${provider}` &&
-      item.when === 'false'
-    )));
+    assert.match(sidebarSource, new RegExp(`${provider}: \\{ light: '${providerIcons[provider].light}'`));
   }
 
-  assert.match(extensionSource, /registerCommand\(`agentsHub\.switchProvider\.\$\{profile\.id\}`/);
-  assert.match(extensionSource, /registerCommand\(`agentsHub\.switchProviderActive\.\$\{profile\.id\}`/);
-  assert.match(extensionSource, /registerCommand\('agentsHub\.activeProviderIndicator'/);
-  assert.ok(commandPalette.some((item) => (
-    item.command === 'agentsHub.activeProviderIndicator' &&
-    item.when === 'false'
-  )));
-  assert.match(sidebarSource, /executeCommand\('setContext', 'agentsHub\.activeProvider', providerId\)/);
-  assert.match(sidebarSource, /`agentsHub\.provider\.\$\{profile\.id\}\.installed`/);
-  assert.match(sidebarSource, /postMessage\(\{ command: 'switchProvider', providerId \}\)/);
+  assert.match(sidebarSource, /private getProviderIconUris\(providerId: string\)/);
 });
 
-test('webview keeps provider switching out of the conversation toolbar', () => {
+test('webview keeps provider switching in the header and out of the conversation toolbar', () => {
   const html = readFileSync(new URL('../media/main.html', import.meta.url), 'utf8');
   const css = readFileSync(new URL('../media/main.css', import.meta.url), 'utf8');
   const script = readFileSync(new URL('../media/main.js', import.meta.url), 'utf8');
 
   assert.match(html, /<label class="provider-native-select" hidden>[\s\S]*id="providerSelect"/);
-  assert.doesNotMatch(html, /providerTabs|provider-tabs-wrap|provider-tab-button/);
-  assert.doesNotMatch(html, /providerButtonGroup|provider-button-group/);
+  assert.match(html, /id="providerTabs"/);
   assert.doesNotMatch(html, /composer-provider-dock/);
   assert.doesNotMatch(html, /<div class="prompt-selectors">[\s\S]*id="providerSelect"[\s\S]*<\/div>\s*<div class="prompt-tools"/);
   assert.match(css, /\.composer-footer\s*\{\s*[^}]*display:\s*flex;/s);
   assert.match(css, /\.composer-footer\s*\{\s*[^}]*justify-content:\s*space-between;/s);
-  assert.doesNotMatch(css, /\.provider-tabs/);
-  assert.doesNotMatch(css, /\.provider-tab-button/);
-  assert.doesNotMatch(css, /\.provider-button-group|\.provider-logo-button/);
-  assert.doesNotMatch(script, /providerTabs/);
-  assert.doesNotMatch(script, /providerButtonGroup|renderProviderButtonGroup/);
+  assert.match(css, /\.toolbar-main[\s\S]*\.provider-tabs/s);
+  assert.match(css, /\.provider-tab-button/);
+  assert.doesNotMatch(css, /\.composer-provider-dock/);
+  assert.match(script, /renderProviderTabs/);
   assert.doesNotMatch(css, /\.composer-provider-dock/);
   assert.match(css, /\.context-budget\s*\{\s*[^}]*height:\s*20px;/s);
   assert.match(css, /\.context-budget\s*\{\s*[^}]*max-width:\s*48px;/s);
@@ -1241,7 +1207,7 @@ test('webview composer controls wrap before narrow sidebars clip the send button
   const css = readFileSync(new URL('../media/main.css', import.meta.url), 'utf8');
 
   assert.match(css, /@media \(max-width:\s*460px\)\s*\{[\s\S]*?\.prompt-selectors\s*\{[\s\S]*?flex-wrap:\s*wrap;/s);
-  assert.match(css, /@media \(max-width:\s*460px\)\s*\{[\s\S]*?\.provider-hint\.has-version\s*\{[\s\S]*?max-width:\s*44px;/s);
+  assert.match(css, /@media \(max-width:\s*460px\)\s*\{[\s\S]*?\.provider-tabs\s*\{[\s\S]*?max-width:\s*min\(52vw,\s*190px\);/s);
   assert.match(css, /\.composer\s*\{\s*[^}]*min-width:\s*0;/s);
   assert.match(css, /\.composer\s*\{\s*[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);/s);
   assert.match(css, /\.prompt-shell\s*\{\s*[^}]*min-width:\s*0;/s);
@@ -1386,13 +1352,13 @@ test('webview provider status keeps transient running text out of the composer',
   assert.match(script, /provider\.preparing/);
   assert.match(script, /provider\.running/);
   assert.match(script, /providerHint\.textContent = '';/);
-  assert.match(script, /formatProviderVersion\(profile\.version\)/);
-  assert.match(script, /providerHint\.classList\.toggle\('has-version', Boolean\(versionLabel\)\)/);
+  assert.match(script, /renderProviderTabs\(\);/);
+  assert.match(script, /version\.textContent = formatProviderVersion\(profile\.version\)/);
   assert.doesNotMatch(script, /providerHint\.classList\.add\('is-busy'\)/);
   assert.doesNotMatch(script, /prompt-shell'\)\?\.classList\.toggle\('is-busy'/);
   assert.match(css, /\.provider-hint\s*\{\s*[^}]*display:\s*none;/s);
   assert.match(css, /\.provider-hint\.is-warning\s*\{\s*[^}]*display:\s*inline-flex;/s);
-  assert.match(css, /\.provider-hint\.has-version\s*\{\s*[^}]*display:\s*inline-flex;/s);
+  assert.doesNotMatch(css, /\.provider-hint\.has-version\s*\{/);
   assert.doesNotMatch(css, /\.provider-hint\.is-busy\s*\{/);
   assert.doesNotMatch(css, /\.prompt-shell\.is-busy\s*\{/);
 });

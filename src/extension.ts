@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { SidebarProvider } from './sidebarProvider';
 import { CliManager } from './cliManager';
-import { CLI_PROFILES } from './cliProfiles';
 import { resolveRuntimeLocale, runtimeT } from './localization';
 
 export function activate(context: vscode.ExtensionContext) {
@@ -78,23 +77,6 @@ export function activate(context: vscode.ExtensionContext) {
       void sidebarProvider.runEditorAction('refactorSelection');
     })
   );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand('agentsHub.activeProviderIndicator', () => undefined)
-  );
-
-  for (const profile of CLI_PROFILES) {
-    context.subscriptions.push(
-      vscode.commands.registerCommand(`agentsHub.switchProvider.${profile.id}`, () => {
-        void sidebarProvider.switchProvider(profile.id);
-      })
-    );
-    context.subscriptions.push(
-      vscode.commands.registerCommand(`agentsHub.switchProviderActive.${profile.id}`, () => {
-        void sidebarProvider.switchProvider(profile.id);
-      })
-    );
-  }
 
   // Clean up on deactivate
   context.subscriptions.push({

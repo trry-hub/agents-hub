@@ -37,6 +37,15 @@ import {
 } from './localization';
 import { getProviderExtensionBridge } from './providerExtensions';
 
+const PROVIDER_ICON_PATHS = {
+  claude: { light: 'media/provider-icons/claude.svg', dark: 'media/provider-icons/claude.svg' },
+  gemini: { light: 'media/provider-icons/gemini.png', dark: 'media/provider-icons/gemini.png' },
+  codex: { light: 'media/provider-icons/codex.png', dark: 'media/provider-icons/codex.png' },
+  opencode: { light: 'media/provider-icons/opencode.png', dark: 'media/provider-icons/opencode.png' },
+  goose: { light: 'media/provider-icons/goose-light.png', dark: 'media/provider-icons/goose-dark.png' },
+  aider: { light: 'media/provider-icons/aider.png', dark: 'media/provider-icons/aider.png' },
+} as const;
+
 interface SidebarProviderOptions {
   contextCollector?: AssistantContextCollector;
   extensionMode?: vscode.ExtensionMode;
@@ -230,6 +239,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       profiles: profiles.map((profile) => ({
         ...profile,
         vscodeExtension: this.getProviderExtensionStatus(profile.id),
+        webviewIcon: this.getProviderIconUris(profile.id),
       })),
       defaultProviderId: this.getDefaultCliId(),
       activeProviderId: storedProviderId,
@@ -795,6 +805,18 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
     const separator = uri.includes('?') ? '&' : '?';
     return `${uri}${separator}v=${this.webviewAssetVersion}`;
+  }
+
+  private getProviderIconUris(providerId: string) {
+    const iconPaths = PROVIDER_ICON_PATHS[providerId as keyof typeof PROVIDER_ICON_PATHS];
+    if (!iconPaths || !this.view) {
+      return undefined;
+    }
+
+    return {
+      light: this.getWebviewUri(this.view.webview, ...iconPaths.light.split('/')),
+      dark: this.getWebviewUri(this.view.webview, ...iconPaths.dark.split('/')),
+    };
   }
 
   private getHtml(webview: vscode.Webview): string {

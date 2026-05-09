@@ -46,6 +46,7 @@
 
   const taskBoard = document.getElementById('taskBoard');
   const providerSelect = document.getElementById('providerSelect');
+  const providerTabs = document.getElementById('providerTabs');
   const providerHint = document.getElementById('providerHint');
   const modelSelect = document.getElementById('modelSelect');
   const modelSummaryLabel = document.getElementById('modelSummaryLabel');
@@ -423,6 +424,18 @@
     }
 
     return value.startsWith('v') ? value : `v${value}`;
+  }
+
+  function providerIconUri(profile) {
+    const icon = profile?.webviewIcon;
+    if (!icon) {
+      return '';
+    }
+
+    const prefersDarkIcon =
+      document.body.classList.contains('vscode-dark') ||
+      document.body.classList.contains('vscode-high-contrast');
+    return prefersDarkIcon ? icon.dark || icon.light || '' : icon.light || icon.dark || '';
   }
 
   function formatTokenCount(tokens) {
@@ -1051,6 +1064,54 @@
     providerSelect.disabled = Boolean(runningByProvider[activeId] || pendingByProvider[activeId]);
   }
 
+  function renderProviderTabs() {
+    if (!providerTabs) {
+      return;
+    }
+
+    providerTabs.innerHTML = '';
+    const availableProfiles = installedProfiles();
+    providerTabs.hidden = availableProfiles.length === 0;
+
+    const activeIsBusy = Boolean(runningByProvider[activeId] || pendingByProvider[activeId]);
+    for (const profile of availableProfiles) {
+      const isActive = profile.id === activeId;
+      const versionLabel = formatProviderVersion(profile.version);
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = `provider-tab-button${isActive ? ' is-active' : ''}`;
+      button.dataset.providerId = profile.id;
+      button.setAttribute('role', 'tab');
+      button.setAttribute('aria-selected', String(isActive));
+      button.title = `${profile.name}${versionLabel ? ` · ${versionLabel}` : ''}`;
+      button.disabled = activeIsBusy && !isActive;
+
+      const iconUri = providerIconUri(profile);
+      if (iconUri) {
+        const logo = document.createElement('img');
+        logo.className = 'provider-tab-logo';
+        logo.src = iconUri;
+        logo.alt = '';
+        logo.draggable = false;
+        button.appendChild(logo);
+      } else {
+        const fallback = document.createElement('span');
+        fallback.className = 'provider-tab-logo';
+        fallback.textContent = profile.icon || profile.name.slice(0, 1);
+        button.appendChild(fallback);
+      }
+
+      if (isActive && versionLabel) {
+        const version = document.createElement('span');
+        version.className = 'provider-tab-version';
+        version.textContent = formatProviderVersion(profile.version);
+        button.appendChild(version);
+      }
+
+      providerTabs.appendChild(button);
+    }
+  }
+
   function providerStateLabel(profile) {
     if (!profile?.installed) {
       return i18n.t('provider.missing');
@@ -1194,7 +1255,7 @@
 
   function renderProviderHint() {
     const profile = activeProfile();
-    providerHint.classList.remove('is-warning', 'has-version');
+    providerHint.classList.remove('is-warning');
     providerHint.textContent = '';
     providerHint.title = '';
 
@@ -1211,8 +1272,6 @@
     }
 
     const versionLabel = formatProviderVersion(profile.version);
-    providerHint.classList.toggle('has-version', Boolean(versionLabel));
-    providerHint.textContent = versionLabel;
 
     if (runningByProvider[profile.id]) {
       providerHint.title = `${profile.name} · ${i18n.t('provider.running')} · ${activeAgentMode(profile).label}${versionLabel ? ` · ${versionLabel}` : ''}`;
@@ -2412,6 +2471,7 @@
     renderClaudeTerminalBanner();
     renderCodexTerminalBanner();
     renderProviderSelect();
+    renderProviderTabs();
     renderTaskBoard();
     renderThreadSelect();
     renderWorkflowMode();
@@ -3072,6 +3132,15 @@
     persistUserSelection();
     renderAll();
     refreshActiveContext();
+  });
+
+  providerTabs.addEventListener('click', (event) => {
+    const button = event.target.closest('.provider-tab-button');
+    if (!button || button.disabled) {
+      return;
+    }
+
+    switchActiveProvider(button.dataset.providerId);
   });
 
   threadSelect.addEventListener('change', () => {

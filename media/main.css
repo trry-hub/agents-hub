@@ -163,24 +163,6 @@ select {
   background: color-mix(in srgb, var(--vscode-inputValidation-warningForeground, #cca700) 8%, transparent);
 }
 
-.provider-hint.has-version {
-  display: inline-flex;
-  height: 20px;
-  min-width: 0;
-  max-width: 70px;
-  padding: 0 5px;
-  border-color: color-mix(in srgb, var(--assistant-border) 74%, transparent);
-  color: color-mix(in srgb, var(--assistant-muted) 92%, var(--vscode-foreground));
-  background: color-mix(in srgb, var(--assistant-panel) 44%, transparent);
-  font-size: 11px;
-  line-height: 18px;
-  font-variant-numeric: tabular-nums;
-}
-
-.provider-hint.has-version::before {
-  display: none;
-}
-
 .context-budget {
   position: relative;
   height: 20px;
@@ -337,6 +319,108 @@ select {
   align-items: center;
   gap: 3px;
   flex: 0 0 auto;
+}
+
+.toolbar-main .provider-tabs {
+  margin-left: 2px;
+}
+
+.provider-tabs {
+  min-width: 0;
+  max-width: min(44vw, 280px);
+  height: 28px;
+  display: inline-flex;
+  align-items: stretch;
+  justify-content: flex-end;
+  flex: 0 1 auto;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 1px solid color-mix(in srgb, var(--assistant-border) 82%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--assistant-panel) 48%, transparent);
+  scrollbar-width: none;
+}
+
+.provider-tabs:empty,
+.provider-tabs[hidden] {
+  display: none;
+}
+
+.provider-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.provider-tab-button {
+  position: relative;
+  min-width: 30px;
+  max-width: 112px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 7px;
+  border: 0;
+  border-left: 1px solid color-mix(in srgb, var(--assistant-border) 66%, transparent);
+  border-radius: 0;
+  color: var(--assistant-muted);
+  background: transparent;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.provider-tab-button:first-child {
+  border-left: 0;
+  border-top-left-radius: 5px;
+  border-bottom-left-radius: 5px;
+}
+
+.provider-tab-button:last-child {
+  border-top-right-radius: 5px;
+  border-bottom-right-radius: 5px;
+}
+
+.provider-tab-button:hover {
+  color: var(--vscode-foreground);
+  background: var(--assistant-hover);
+}
+
+.provider-tab-button:focus-visible {
+  z-index: 2;
+  outline: 1px solid var(--assistant-accent);
+  outline-offset: -1px;
+}
+
+.provider-tab-button.is-active {
+  z-index: 1;
+  color: var(--vscode-foreground);
+  background: color-mix(in srgb, var(--assistant-accent) 14%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--assistant-accent) 82%, transparent);
+}
+
+.provider-tab-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.provider-tab-logo {
+  width: 16px;
+  height: 16px;
+  display: block;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+
+.provider-tab-version {
+  min-width: 0;
+  max-width: 58px;
+  overflow: hidden;
+  color: inherit;
+  font-size: 11px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 #providerSelect:focus,
@@ -2687,7 +2771,16 @@ textarea:disabled {
     row-gap: 5px;
   }
 
-  .provider-hint.has-version {
+  .provider-tabs {
+    max-width: min(52vw, 190px);
+  }
+
+  .provider-tab-button {
+    min-width: 28px;
+    padding: 0 6px;
+  }
+
+  .provider-tab-version {
     max-width: 44px;
   }
 

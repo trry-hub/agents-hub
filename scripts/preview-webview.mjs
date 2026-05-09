@@ -11,6 +11,9 @@ fs.mkdirSync(previewRoot, { recursive: true });
 for (const file of ['main.css', 'main.js', 'i18n.js']) {
   fs.copyFileSync(path.join(root, 'media', file), path.join(previewRoot, file));
 }
+fs.cpSync(path.join(root, 'media', 'provider-icons'), path.join(previewRoot, 'provider-icons'), {
+  recursive: true,
+});
 
 const i18nUri = './i18n.js';
 const mainJsUri = './main.js';
@@ -68,6 +71,14 @@ const opencodeModels = [
   { id: 'opencode/big-pickle', label: 'opencode/big-pickle', summaryLabel: 'big-pickle', description: 'OpenCode hosted model.', args: ['--model', 'opencode/big-pickle'] },
   { id: 'custom', label: 'Custom', description: 'Enter a provider/model string accepted by OpenCode.', custom: true },
 ];
+const providerIcons = {
+  claude: { light: './provider-icons/claude.svg', dark: './provider-icons/claude.svg' },
+  gemini: { light: './provider-icons/gemini.png', dark: './provider-icons/gemini.png' },
+  codex: { light: './provider-icons/codex.png', dark: './provider-icons/codex.png' },
+  opencode: { light: './provider-icons/opencode.png', dark: './provider-icons/opencode.png' },
+  goose: { light: './provider-icons/goose-light.png', dark: './provider-icons/goose-dark.png' },
+  aider: { light: './provider-icons/aider.png', dark: './provider-icons/aider.png' },
+};
 
 const vscodeStub = `
 <script>
@@ -91,10 +102,10 @@ window.acquireVsCodeApi = () => ({
         command: 'profiles',
         defaultProviderId: 'opencode',
         profiles: [
-          { id: 'claude', name: 'Claude Code', accent: '#d97757', installed: true, version: '2.1.118', installHint: 'curl -fsSL https://claude.ai/install.sh | bash', defaultAgentMode: 'build', agentModes: claudeModes, defaultPermissionMode: 'default', permissionModes: claudePermissions },
-          { id: 'gemini', name: 'Gemini CLI', accent: '#4285f4', installed: true, version: '0.40.0', installHint: 'npm install -g @google/gemini-cli', defaultAgentMode: 'assist', agentModes: geminiModes },
-          { id: 'codex', name: 'Codex CLI', accent: '#10a37f', installed: true, version: '0.128.0', installHint: 'npm install -g @openai/codex', defaultAgentMode: 'build', agentModes: codexModes, defaultModel: 'gpt-5.4', modelOptions: codexModels, defaultRuntime: 'localProcessing', runtimeModes: codexRuntimes, defaultPermissionMode: 'workspaceWrite', permissionModes: codexPermissions },
-          { id: 'opencode', name: 'OpenCode', accent: '#a855f7', installed: true, installHint: 'brew install opencode-ai/tap/opencode', defaultAgentMode: 'Sisyphus - Ultraworker', agentModes: opencodeModes, defaultModel: 'mimo/mimo-v2.5-pro', modelOptions: opencodeModels },
+          { id: 'claude', name: 'Claude Code', accent: '#d97757', installed: true, version: '2.1.118', webviewIcon: ${JSON.stringify(providerIcons.claude)}, installHint: 'curl -fsSL https://claude.ai/install.sh | bash', defaultAgentMode: 'build', agentModes: claudeModes, defaultPermissionMode: 'default', permissionModes: claudePermissions },
+          { id: 'gemini', name: 'Gemini CLI', accent: '#4285f4', installed: true, version: '0.40.0', webviewIcon: ${JSON.stringify(providerIcons.gemini)}, installHint: 'npm install -g @google/gemini-cli', defaultAgentMode: 'assist', agentModes: geminiModes },
+          { id: 'codex', name: 'Codex CLI', accent: '#10a37f', installed: true, version: '0.128.0', webviewIcon: ${JSON.stringify(providerIcons.codex)}, installHint: 'npm install -g @openai/codex', defaultAgentMode: 'build', agentModes: codexModes, defaultModel: 'gpt-5.4', modelOptions: codexModels, defaultRuntime: 'localProcessing', runtimeModes: codexRuntimes, defaultPermissionMode: 'workspaceWrite', permissionModes: codexPermissions },
+          { id: 'opencode', name: 'OpenCode', accent: '#a855f7', installed: true, webviewIcon: ${JSON.stringify(providerIcons.opencode)}, installHint: 'brew install opencode-ai/tap/opencode', defaultAgentMode: 'Sisyphus - Ultraworker', agentModes: opencodeModes, defaultModel: 'mimo/mimo-v2.5-pro', modelOptions: opencodeModels },
           { id: 'missing', name: 'Missing CLI', accent: '#d97757', installed: false, installHint: 'install missing-cli' }
         ],
       }})), 20);
