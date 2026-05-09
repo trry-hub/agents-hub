@@ -1120,14 +1120,14 @@ test('webview renders installed provider logo tabs in the header', () => {
   assert.match(JSON.stringify(titleActions), /agentsHub\.refreshProviders/);
   assert.match(JSON.stringify(titleActions), /agentsHub\.openProviderSettings/);
   assert.match(css, /\.provider-tabs\s*\{/);
-  assert.match(css, /\.provider-tabs\s*\{\s*[^}]*height:\s*28px;/s);
+  assert.match(css, /\.provider-tabs\s*\{\s*[^}]*height:\s*24px;/s);
   assert.match(css, /\.provider-tab-button\s*\{/);
-  assert.match(css, /\.provider-tab-button\s*\{\s*[^}]*--provider-tab-collapsed-width:\s*28px;/s);
-  assert.match(css, /\.provider-tab-button\s*\{\s*[^}]*height:\s*24px;/s);
+  assert.match(css, /\.provider-tab-button\s*\{\s*[^}]*--provider-tab-collapsed-width:\s*24px;/s);
+  assert.match(css, /\.provider-tab-button\s*\{\s*[^}]*height:\s*20px;/s);
   assert.match(css, /\.provider-tab-button\.is-active\s*\{/);
   assert.match(css, /\.provider-tab-button\.is-active\s*\{\s*[^}]*width:\s*var\(--provider-tab-collapsed-width\);/s);
   assert.match(css, /\.provider-tab-logo\s*\{/);
-  assert.match(css, /\.provider-tab-logo\s*\{\s*[^}]*width:\s*18px;/s);
+  assert.match(css, /\.provider-tab-logo\s*\{\s*[^}]*width:\s*15px;/s);
   assert.match(css, /\.provider-tab-version\s*\{/);
   assert.match(css, /\.provider-tab-version\s*\{\s*[^}]*display:\s*none;/s);
   assert.doesNotMatch(css, /\.provider-tab-version\s*\{[^}]*text-overflow:\s*ellipsis;/s);

@@ -341,8 +341,8 @@ select {
 
 .provider-tabs {
   min-width: 0;
-  max-width: min(46vw, 220px);
-  height: 28px;
+  max-width: min(42vw, 196px);
+  height: 24px;
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
@@ -352,7 +352,7 @@ select {
   overflow-x: auto;
   overflow-y: hidden;
   border: 1px solid color-mix(in srgb, var(--assistant-border) 88%, transparent);
-  border-radius: 7px;
+  border-radius: 6px;
   background: color-mix(in srgb, var(--assistant-panel) 56%, var(--assistant-surface));
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--assistant-surface) 40%, transparent);
   scrollbar-width: none;
@@ -368,11 +368,11 @@ select {
 }
 
 .provider-tab-button {
-  --provider-tab-collapsed-width: 28px;
+  --provider-tab-collapsed-width: 24px;
   position: relative;
   width: var(--provider-tab-collapsed-width);
   min-width: var(--provider-tab-collapsed-width);
-  height: 24px;
+  height: 20px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -436,8 +436,8 @@ select {
 }
 
 .provider-tab-logo {
-  width: 18px;
-  height: 18px;
+  width: 15px;
+  height: 15px;
   display: block;
   object-fit: contain;
   flex: 0 0 auto;
@@ -3373,15 +3373,15 @@ textarea:disabled {
 
   .provider-tabs {
     max-width: min(58vw, 220px);
-    height: 28px;
-    border-radius: 7px;
+    height: 24px;
+    border-radius: 6px;
     padding: 1px;
   }
 
   .provider-tab-button {
-    min-width: 28px;
-    height: 24px;
-    --provider-tab-collapsed-width: 28px;
+    min-width: 24px;
+    height: 20px;
+    --provider-tab-collapsed-width: 24px;
     padding: 0;
   }
 
@@ -3390,8 +3390,8 @@ textarea:disabled {
   }
 
   .provider-tab-logo {
-    width: 18px;
-    height: 18px;
+    width: 15px;
+    height: 15px;
   }
 
   .composer-meta {
