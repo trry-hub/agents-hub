@@ -794,7 +794,7 @@ test('webview includes an advanced controls toggle for composer settings', () =>
   assert.match(i18nScript, /'composer\.advancedHide': 'Hide advanced'/);
 
   assert.match(script, /appendEmptyState\(titleText, subtitleText, showSetupAction = false\)/);
-  assert.match(script, /const suggestionActions = showSetupAction[\s\S]*'openSettings', 'empty\.configureProviders'/);
+  assert.match(script, /const suggestionActions = showSetupAction\s*\?\s*\[\['openSettings', 'empty\.configureProviders'\]\]\s*:/);
   assert.match(script, /'openSettings'/);
   assert.match(script, /button\.classList\.add\('suggestion-button--primary'\)/);
   assert.match(sidebarSource, /case 'openSettings':/);
