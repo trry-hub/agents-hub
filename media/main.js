@@ -46,7 +46,6 @@
 
   const taskBoard = document.getElementById('taskBoard');
   const providerSelect = document.getElementById('providerSelect');
-  const providerTabs = document.getElementById('providerTabs');
   const providerHint = document.getElementById('providerHint');
   const modelSelect = document.getElementById('modelSelect');
   const modelSummaryLabel = document.getElementById('modelSummaryLabel');
@@ -1018,7 +1017,6 @@
 
   function renderProviderSelect() {
     providerSelect.innerHTML = '';
-    providerTabs.innerHTML = '';
     const availableProfiles = installedProfiles();
 
     if (availableProfiles.length === 0) {
@@ -1029,11 +1027,8 @@
       activeId = '';
       providerSelect.value = '';
       providerSelect.disabled = true;
-      providerTabs.hidden = true;
       return;
     }
-
-    providerTabs.hidden = false;
 
     if (!availableProfiles.some((profile) => profile.id === activeId)) {
       activeId = availableProfiles[0].id;
@@ -1050,48 +1045,10 @@
       option.value = profile.id;
       option.textContent = profile.name;
       providerSelect.appendChild(option);
-
-      const tab = document.createElement('button');
-      tab.type = 'button';
-      tab.className = 'provider-tab-button';
-      tab.dataset.providerId = profile.id;
-      tab.setAttribute('role', 'tab');
-      tab.setAttribute('aria-selected', profile.id === activeId ? 'true' : 'false');
-      tab.style.setProperty('--provider-accent', profile.accent || 'var(--assistant-accent)');
-      tab.title = profile.version
-        ? `${profile.name} · ${formatProviderVersion(profile.version)}`
-        : profile.name;
-
-      const iconUri = profile.id === activeId
-        ? profile.activeIconUri || profile.iconUri
-        : profile.iconUri;
-      if (iconUri) {
-        const icon = document.createElement('span');
-        icon.className = 'provider-tab-icon';
-        icon.setAttribute('aria-hidden', 'true');
-        icon.style.setProperty('--provider-tab-icon', `url("${iconUri}")`);
-        tab.appendChild(icon);
-      } else {
-        const logo = document.createElement('span');
-        logo.className = 'provider-tab-logo';
-        logo.setAttribute('aria-hidden', 'true');
-        logo.textContent = profile.icon || profile.name?.trim()?.charAt(0) || '?';
-        tab.appendChild(logo);
-      }
-
-      const label = document.createElement('span');
-      label.className = 'sr-only';
-      label.textContent = profile.name;
-      tab.appendChild(label);
-
-      providerTabs.appendChild(tab);
     }
 
     providerSelect.value = activeId;
     providerSelect.disabled = Boolean(runningByProvider[activeId] || pendingByProvider[activeId]);
-    providerTabs.querySelectorAll('.provider-tab-button').forEach((tab) => {
-      tab.disabled = providerSelect.disabled;
-    });
   }
 
   function providerStateLabel(profile) {
@@ -2397,9 +2354,6 @@
     });
     actionSelect.disabled = !canSend || busy;
     providerSelect.disabled = installedProfiles().length === 0 || busy;
-    providerTabs?.querySelectorAll('.provider-tab-button').forEach((button) => {
-      button.disabled = providerSelect.disabled;
-    });
     threadSelect.disabled = !activeId || busy;
     modelSelect.disabled = !canSend || busy;
     runtimeSelect.disabled = !canSend || busy;
@@ -3105,14 +3059,6 @@
     }
     persist();
     renderAll();
-  });
-
-  providerTabs?.addEventListener('click', (event) => {
-    const tab = event.target.closest('[data-provider-id]');
-    if (!tab || tab.disabled) {
-      return;
-    }
-    switchActiveProvider(tab.dataset.providerId);
   });
 
   providerSelect.addEventListener('change', () => {

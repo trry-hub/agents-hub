@@ -1,3 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
-  <path d="M8 1.5c.75 3.7 2.8 5.75 6.5 6.5-3.7.75-5.75 2.8-6.5 6.5C7.25 10.8 5.2 8.75 1.5 8 5.2 7.25 7.25 5.2 8 1.5Z" fill="currentColor"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+  <title>Gemini</title>
+  <defs>
+    <linearGradient id="gemini-a" x1="4" y1="20" x2="20" y2="4" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#34A853"/>
+      <stop offset=".34" stop-color="#4285F4"/>
+      <stop offset=".68" stop-color="#A142F4"/>
+      <stop offset="1" stop-color="#FABB05"/>
+    </linearGradient>
+  </defs>
+  <path d="M12 2.25c1.18 5.22 4.53 8.57 9.75 9.75-5.22 1.18-8.57 4.53-9.75 9.75C10.82 16.53 7.47 13.18 2.25 12 7.47 10.82 10.82 7.47 12 2.25Z" fill="url(#gemini-a)"/>
 </svg>

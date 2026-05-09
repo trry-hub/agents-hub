@@ -1090,13 +1090,11 @@ test('extension contributes provider logo buttons to the native view title', () 
     assert.ok(command, `missing provider command for ${provider}`);
     assert.ok(activeCommand, `missing active provider command for ${provider}`);
     assert.equal(command.icon.light, `media/provider-icons/${provider}.svg`);
-    assert.equal(activeCommand.icon.light, `media/provider-icons/${provider}-active.svg`);
-    assert.match(readFileSync(new URL(`../media/provider-icons/${provider}.svg`, import.meta.url), 'utf8'), /currentColor/);
-    assert.match(readFileSync(new URL(`../media/provider-icons/${provider}-active.svg`, import.meta.url), 'utf8'), /currentColor/);
+    assert.equal(activeCommand.icon.light, `media/provider-icons/${provider}.svg`);
+    assert.match(readFileSync(new URL(`../media/provider-icons/${provider}.svg`, import.meta.url), 'utf8'), /<svg/);
     assert.ok(titleActions.some((item) => (
       item.command === `agentsHub.switchProvider.${provider}` &&
       item.when.includes('view == agentsHub.sidebar') &&
-      item.when.includes(`agentsHub.provider.${provider}.installed`) &&
       item.when.includes(`agentsHub.activeProvider != ${provider}`)
     )));
     assert.ok(titleActions.some((item) => (
@@ -1113,27 +1111,22 @@ test('extension contributes provider logo buttons to the native view title', () 
   assert.match(extensionSource, /registerCommand\(`agentsHub\.switchProviderActive\.\$\{profile\.id\}`/);
   assert.match(sidebarSource, /executeCommand\('setContext', 'agentsHub\.activeProvider', providerId\)/);
   assert.match(sidebarSource, /postMessage\(\{ command: 'switchProvider', providerId \}\)/);
-  assert.match(sidebarSource, /iconUri: this\.getProviderIconUri\(profile\.id\)/);
-  assert.match(sidebarSource, /activeIconUri: this\.getProviderIconUri\(profile\.id, true\)/);
 });
 
-test('webview keeps the provider logo button group visible in the toolbar', () => {
+test('webview keeps provider switching out of the conversation toolbar', () => {
   const html = readFileSync(new URL('../media/main.html', import.meta.url), 'utf8');
   const css = readFileSync(new URL('../media/main.css', import.meta.url), 'utf8');
   const script = readFileSync(new URL('../media/main.js', import.meta.url), 'utf8');
 
   assert.match(html, /<label class="provider-native-select" hidden>[\s\S]*id="providerSelect"/);
-  assert.match(html, /<div class="provider-tabs-wrap">[\s\S]*id="providerTabs"[\s\S]*<\/div>/);
+  assert.doesNotMatch(html, /providerTabs|provider-tabs-wrap|provider-tab-button/);
   assert.doesNotMatch(html, /composer-provider-dock/);
   assert.doesNotMatch(html, /<div class="prompt-selectors">[\s\S]*id="providerSelect"[\s\S]*<\/div>\s*<div class="prompt-tools"/);
   assert.match(css, /\.composer-footer\s*\{\s*[^}]*display:\s*flex;/s);
   assert.match(css, /\.composer-footer\s*\{\s*[^}]*justify-content:\s*space-between;/s);
-  assert.match(css, /\.provider-tabs\s*\{\s*[^}]*display:\s*inline-flex;/s);
-  assert.match(css, /\.provider-tab-button\s*\{\s*[^}]*width:\s*24px;/s);
-  assert.match(css, /\.provider-tab-icon\s*\{\s*[^}]*mask:\s*var\(--provider-tab-icon\)/s);
-  assert.match(script, /const providerTabs = document\.getElementById\('providerTabs'\);/);
-  assert.match(script, /icon\.style\.setProperty\('--provider-tab-icon', `url\("\$\{iconUri\}"\)`\);/);
-  assert.match(script, /providerTabs\?\.addEventListener\('click'/);
+  assert.doesNotMatch(css, /\.provider-tabs/);
+  assert.doesNotMatch(css, /\.provider-tab-button/);
+  assert.doesNotMatch(script, /providerTabs/);
   assert.doesNotMatch(css, /\.composer-provider-dock/);
   assert.match(css, /\.context-budget\s*\{\s*[^}]*height:\s*20px;/s);
   assert.match(css, /\.context-budget\s*\{\s*[^}]*max-width:\s*48px;/s);

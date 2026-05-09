@@ -169,6 +169,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       return;
     }
 
+    if (!this.profilesById.has(providerId)) {
+      await this.sendProfiles();
+    }
+
     const knownProfile = this.profilesById.get(providerId);
     if (knownProfile && !knownProfile.installed) {
       vscode.window.showWarningMessage(`${knownProfile.name} is not installed.`);
@@ -225,8 +229,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       command: 'profiles',
       profiles: profiles.map((profile) => ({
         ...profile,
-        iconUri: this.getProviderIconUri(profile.id),
-        activeIconUri: this.getProviderIconUri(profile.id, true),
         vscodeExtension: this.getProviderExtensionStatus(profile.id),
       })),
       defaultProviderId: this.getDefaultCliId(),
@@ -253,19 +255,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         )
       )),
     ]);
-  }
-
-  private getProviderIconUri(providerId: string, active = false): string | undefined {
-    if (!this.view) {
-      return undefined;
-    }
-
-    return this.getWebviewUri(
-      this.view.webview,
-      'media',
-      'provider-icons',
-      `${providerId}${active ? '-active' : ''}.svg`
-    );
   }
 
   private getStoredProviderId(profiles: CliProfile[]): string | undefined {
