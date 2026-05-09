@@ -794,6 +794,7 @@ test('webview includes an advanced controls toggle for composer settings', () =>
   assert.match(i18nScript, /'composer\.advancedHide': 'Hide advanced'/);
 
   assert.match(script, /appendEmptyState\(titleText, subtitleText, showSetupAction = false\)/);
+  assert.match(script, /const firstInstallHintProfile = profiles\.find\(\(profile\) => profile\?\.installHint && !profile\.installed\);/);
   assert.match(script, /const suggestionActions = showSetupAction\s*\?\s*\[\['openSettings', 'empty\.configureProviders'\]\]\s*:/);
   assert.match(script, /'openSettings'/);
   assert.match(script, /button\.classList\.add\('suggestion-button--primary'\)/);
@@ -801,6 +802,8 @@ test('webview includes an advanced controls toggle for composer settings', () =>
   assert.match(extensionSource, /agentsHub\.openSettings/);
   assert.match(i18nScript, /'empty\.configureProviders': 'Open provider settings'/);
   assert.match(i18nScript, /'empty\.configureProviders': '前往设置配置提供方'/);
+  assert.match(i18nScript, /'provider\.unavailableWithHint': 'Provider is not installed\. Install one first \(for example: \{hint\}\), then refresh\.'/);
+  assert.match(i18nScript, /'provider\.unavailableWithHint': '该提供方尚未安装。请先安装一个提供方（例如：\{hint\}），然后刷新。'/);
 });
 
 test('webview renders the Codex local mode menu like Code X', () => {
@@ -812,6 +815,7 @@ test('webview renders the Codex local mode menu like Code X', () => {
   assert.match(html, /id="runtimeOptionList"[^>]*role="menu"/);
   assert.match(script, /const runtimeOptionList = document\.getElementById\('runtimeOptionList'\);/);
   assert.match(script, /function renderRuntimeOptionList\(options, selectedId\)/);
+  assert.match(script, /runtimeMenu\?\.classList\.toggle\('is-danger', Boolean\(runtime\?\.dangerous\)\);/);
   assert.match(script, /i18n\.t\('runtime\.continue'\)/);
   assert.match(script, /displayRuntime\.summaryLabel \|\| displayRuntime\.label/);
   assert.match(script, /function selectableOption\(option\)/);
@@ -819,6 +823,8 @@ test('webview renders the Codex local mode menu like Code X', () => {
   assert.match(css, /\.runtime-option-list\s*\{/);
   assert.match(css, /\.runtime-option-list \.option-list-item\s*\{/);
   assert.match(css, /\.option-list-item-trailing\s*\{/);
+  assert.match(css, /\.runtime-menu\.is-danger \.option-summary/);
+  assert.match(css, /body\[data-provider="codex"\] \.runtime-menu\.is-danger \.option-summary/);
   assert.match(i18nScript, /'runtime\.continue': '继续使用'/);
   assert.match(i18nScript, /'option\.runtime\.localProcessing': '在本地处理'/);
   assert.match(i18nScript, /'option\.runtime\.localProcessing\.summary': '本地模式'/);
@@ -1038,13 +1044,16 @@ test('webview renders permissions as a Code X style option menu', () => {
   assert.match(script, /'permission-option-item'/);
   assert.match(script, /icon\.className = 'permission-option-icon';/);
   assert.match(script, /check\.className = 'permission-option-check';/);
+  assert.match(script, /function appendDangerBadge\(button, option\)/);
+  assert.match(script, /warning\.className = 'option-list-item-warning';/);
   assert.match(script, /permissionOptionList\.addEventListener\('click'/);
   assert.match(script, /activePermissionByProvider\[activeId\] = button\.dataset\.value;/);
   assert.match(script, /permissionMenu\.open = false;/);
   assert.match(css, /\.permission-option-list\s*\{/);
-  assert.match(css, /\.permission-option-list \.option-list-item\s*\{\s*[^}]*grid-template-columns:\s*14px minmax\(0,\s*1fr\) 12px;/s);
+  assert.match(css, /\.permission-option-list \.option-list-item\s*\{\s*[^}]*grid-template-columns:\s*14px minmax\(0,\s*1fr\) 12px auto;/s);
   assert.match(css, /\.permission-option-list \.option-list-item::before\s*\{\s*[^}]*display:\s*none;/s);
   assert.match(css, /\.permission-option-item\.is-selected \.permission-option-check\s*\{/);
+  assert.match(css, /\.option-list-item-warning/);
   assert.match(css, /body\[data-provider="codex"\] \.permission-menu \.option-summary/);
 });
 

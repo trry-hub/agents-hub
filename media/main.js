@@ -1825,8 +1825,12 @@
     messages.innerHTML = '';
 
     if (!activeId) {
+      const firstInstallHintProfile = profiles.find((profile) => profile?.installHint && !profile.installed);
+      const noProviderSubtitle = firstInstallHintProfile
+        ? i18n.t('provider.unavailableWithHint', { hint: firstInstallHintProfile.installHint })
+        : i18n.t('provider.unavailable');
       syncMessageStatusTimer(false);
-      appendEmptyState(i18n.t('provider.noInstalled'), i18n.t('provider.unavailable'), true);
+      appendEmptyState(i18n.t('provider.noInstalled'), noProviderSubtitle, true);
       return;
     }
 
@@ -2030,6 +2034,19 @@
     select.value = value;
   }
 
+  function appendDangerBadge(button, option) {
+    if (!option?.dangerous) {
+      return;
+    }
+
+    const warning = document.createElement('span');
+    warning.className = 'option-list-item-warning';
+    warning.textContent = '!';
+    warning.title = i18n.t('option.danger');
+    warning.setAttribute('aria-label', i18n.t('option.danger'));
+    button.appendChild(warning);
+  }
+
   function renderRuntimeOptionList(options, selectedId) {
     if (!runtimeOptionList) {
       return;
@@ -2073,6 +2090,7 @@
       trailing.setAttribute('aria-hidden', 'true');
       trailing.textContent = option.external ? '↗' : (option.actionOnly ? '›' : '');
       button.appendChild(trailing);
+      appendDangerBadge(button, option);
 
       runtimeOptionList.appendChild(button);
     });
@@ -2117,6 +2135,7 @@
       check.className = 'permission-option-check';
       check.setAttribute('aria-hidden', 'true');
       button.appendChild(check);
+      appendDangerBadge(button, option);
 
       permissionOptionList.appendChild(button);
     });
@@ -2183,8 +2202,15 @@
     renderRuntimeOptionList(options, runtime.id);
     runtimeSelect.title = displayRuntime.description || i18n.t('runtime.label');
     runtimeSummaryLabel.textContent = displayRuntime.summaryLabel || displayRuntime.label || i18n.t('runtime.short');
-    runtimeSummaryLabel.closest('.option-summary')?.setAttribute('title', displayRuntime.description || i18n.t('runtime.label'));
+    runtimeSummaryLabel.closest('.option-summary')?.setAttribute(
+      'title',
+      [
+        displayRuntime.description || i18n.t('runtime.label'),
+        runtime.dangerous ? i18n.t('option.danger') : '',
+      ].filter(Boolean).join(' · ')
+    );
     runtimeMenu?.classList.toggle('is-visible', Boolean(profile && options.length > 1));
+    runtimeMenu?.classList.toggle('is-danger', Boolean(runtime?.dangerous));
   }
 
   function renderPermissionSelect() {
@@ -2196,7 +2222,13 @@
     renderPermissionOptionList(options, permission.id);
     permissionSelect.title = displayPermission.description || i18n.t('permission.label');
     permissionSummaryLabel.textContent = displayPermission.label || i18n.t('permission.short');
-    permissionSummaryLabel.closest('.option-summary')?.setAttribute('title', displayPermission.description || i18n.t('permission.label'));
+    permissionSummaryLabel.closest('.option-summary')?.setAttribute(
+      'title',
+      [
+        displayPermission.description || i18n.t('permission.label'),
+        permission.dangerous ? i18n.t('option.danger') : '',
+      ].filter(Boolean).join(' · ')
+    );
     permissionMenu?.classList.toggle('is-visible', Boolean(profile && options.length > 1));
     permissionMenu?.classList.toggle('is-danger', Boolean(permission.dangerous));
   }
