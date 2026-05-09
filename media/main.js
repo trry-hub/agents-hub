@@ -24,6 +24,7 @@
   let claudeTerminalBannerDismissed = Boolean(saved.claudeTerminalBannerDismissed);
   let taskBoardDismissed = Boolean(saved.taskBoardDismissed);
   let legacyWorkflowMode = saved.workflowMode || (saved.mode === 'agent' ? 'execute' : undefined);
+  let hasAppliedPersistentSelection = false;
   let threadsByProvider = normalizeSavedThreads(saved.threadsByProvider, saved.conversations);
   let tasks = normalizeSavedTasks(saved.tasks);
   let activeThreadByProvider = saved.activeThreadByProvider || {};
@@ -355,6 +356,30 @@
       tasks: serializeTasksForState(tasks),
       activeThreadByProvider,
       contextOptions,
+    });
+  }
+
+  function persistedSelectionMap(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return {};
+    }
+
+    return Object.fromEntries(
+      Object.entries(value).filter(([providerId, modeId]) => (
+        typeof providerId === 'string' && typeof modeId === 'string'
+      ))
+    );
+  }
+
+  function persistUserSelection() {
+    if (!activeId) {
+      return;
+    }
+
+    vscode.postMessage({
+      command: 'saveSelectionState',
+      activeProviderId: activeId,
+      activeAgentModeByProvider,
     });
   }
 
@@ -1127,6 +1152,7 @@
     activeRuntimeId(activeId);
     activePermissionId(activeId);
     persist();
+    persistUserSelection();
     renderAll();
     refreshActiveContext();
     input.focus();
@@ -3043,6 +3069,7 @@
     activeRuntimeId(activeId);
     activePermissionId(activeId);
     persist();
+    persistUserSelection();
     renderAll();
     refreshActiveContext();
   });
@@ -3059,6 +3086,7 @@
     activeAgentModeByProvider[activeId] = agentModeSelect.value;
     legacyWorkflowMode = undefined;
     persist();
+    persistUserSelection();
     renderAll();
   });
 
@@ -3072,6 +3100,7 @@
     agentModeSelect.value = button.dataset.value;
     legacyWorkflowMode = undefined;
     persist();
+    persistUserSelection();
     renderAll();
     modeMenu.open = false;
   });
@@ -3231,9 +3260,20 @@
         profiles = message.profiles || [];
         {
           const availableProfiles = installedProfiles();
+          const storedAgentModes = persistedSelectionMap(message.activeAgentModeByProvider);
+          activeAgentModeByProvider = hasAppliedPersistentSelection
+            ? { ...storedAgentModes, ...activeAgentModeByProvider }
+            : { ...activeAgentModeByProvider, ...storedAgentModes };
+          const storedProviderProfile = availableProfiles.find(
+            (profile) => profile.id === message.activeProviderId
+          );
           const defaultProfile = availableProfiles.find(
             (profile) => profile.id === message.defaultProviderId
           );
+          if (!hasAppliedPersistentSelection && storedProviderProfile) {
+            activeId = storedProviderProfile.id;
+          }
+          hasAppliedPersistentSelection = true;
           if (!activeId || !availableProfiles.some((profile) => profile.id === activeId)) {
             activeId = defaultProfile?.id || availableProfiles[0]?.id || '';
           }

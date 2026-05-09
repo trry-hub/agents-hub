@@ -669,6 +669,7 @@ test('extension contributes reload window command for debugging', () => {
 
 test('extension defaults to OpenCode as the active provider', () => {
   const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  const extensionSource = readFileSync(new URL('../src/extension.ts', import.meta.url), 'utf8');
   const sidebarSource = readFileSync(new URL('../src/sidebarProvider.ts', import.meta.url), 'utf8');
   const previewSource = readFileSync(new URL('../scripts/preview-webview.mjs', import.meta.url), 'utf8');
   const defaultProvider = manifest.contributes.configuration.properties['agentsHub.defaultProvider'];
@@ -679,6 +680,11 @@ test('extension defaults to OpenCode as the active provider', () => {
   assert.match(sidebarSource, /get<string>\('defaultProvider', DEFAULT_CLI_ID\)/);
   assert.match(sidebarSource, /getCliProfile\(DEFAULT_CLI_ID\)\?\.id/);
   assert.match(previewSource, /defaultProviderId: 'opencode'/);
+  assert.match(extensionSource, /state:\s*context\.globalState/);
+  assert.match(sidebarSource, /LAST_PROVIDER_STATE_KEY = 'agentsHub\.lastProviderId'/);
+  assert.match(sidebarSource, /AGENT_MODE_STATE_KEY = 'agentsHub\.agentModeByProvider'/);
+  assert.match(sidebarSource, /activeProviderId: this\.getStoredProviderId\(profiles\)/);
+  assert.match(sidebarSource, /activeAgentModeByProvider: this\.getStoredAgentModeState\(\)/);
 });
 
 test('workspace debug config starts the extension host with the watch task', () => {
@@ -1488,11 +1494,22 @@ test('webview disables freeform send until the prompt has text', () => {
 
 test('agent mode select is persisted per provider', () => {
   const script = readFileSync(new URL('../media/main.js', import.meta.url), 'utf8');
+  const sidebarSource = readFileSync(new URL('../src/sidebarProvider.ts', import.meta.url), 'utf8');
 
   assert.match(script, /activeAgentModeByProvider/);
   assert.match(script, /activeModelByProvider/);
   assert.match(script, /activeRuntimeByProvider/);
   assert.match(script, /activePermissionByProvider/);
+  assert.match(script, /let hasAppliedPersistentSelection = false;/);
+  assert.match(script, /function persistUserSelection\(\)/);
+  assert.match(script, /command: 'saveSelectionState'/);
+  assert.match(script, /activeProviderId: activeId/);
+  assert.match(script, /persistedSelectionMap\(message\.activeAgentModeByProvider\)/);
+  assert.match(script, /message\.activeProviderId/);
+  assert.match(sidebarSource, /case 'saveSelectionState':/);
+  assert.match(sidebarSource, /private async saveSelectionState\(message: unknown\)/);
+  assert.match(sidebarSource, /this\.state\.update\(LAST_PROVIDER_STATE_KEY, providerId\)/);
+  assert.match(sidebarSource, /this\.state\.update\(\s*AGENT_MODE_STATE_KEY,/s);
   assert.match(script, /agentModeSelect\.addEventListener\('change'/);
   assert.match(script, /modelSelect\.addEventListener\('change'/);
   assert.match(script, /modelOptionList\?\.addEventListener\('click'/);

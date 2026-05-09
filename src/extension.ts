@@ -8,6 +8,7 @@ export function activate(context: vscode.ExtensionContext) {
   const cliManager = new CliManager();
   const sidebarProvider = new SidebarProvider(context.extensionUri, cliManager, {
     extensionMode: context.extensionMode,
+    state: context.globalState,
     storageUri: context.globalStorageUri,
   });
   const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 90);

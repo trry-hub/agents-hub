@@ -40,6 +40,7 @@ import { getProviderExtensionBridge } from './providerExtensions';
 interface SidebarProviderOptions {
   contextCollector?: AssistantContextCollector;
   extensionMode?: vscode.ExtensionMode;
+  state?: vscode.Memento;
   storageUri?: vscode.Uri;
 }
 
@@ -47,6 +48,8 @@ const MAX_IMAGE_ATTACHMENTS = 8;
 const MAX_IMAGE_ATTACHMENT_BYTES = 12 * 1024 * 1024;
 const DEFAULT_CLI_ID = 'opencode';
 const NO_OUTPUT_NOTICE_MS = 45_000;
+const LAST_PROVIDER_STATE_KEY = 'agentsHub.lastProviderId';
+const AGENT_MODE_STATE_KEY = 'agentsHub.agentModeByProvider';
 
 export class SidebarProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'agentsHub.sidebar';
@@ -65,6 +68,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   private readonly contextCollector: AssistantContextCollector;
   private readonly extensionMode: vscode.ExtensionMode;
   private readonly attachmentStorageUri: vscode.Uri;
+  private readonly state?: vscode.Memento;
 
   constructor(
     private readonly extensionUri: vscode.Uri,
@@ -73,6 +77,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   ) {
     this.contextCollector = options.contextCollector ?? new AssistantContextCollector();
     this.extensionMode = options.extensionMode ?? vscode.ExtensionMode.Production;
+    this.state = options.state;
     this.attachmentStorageUri = options.storageUri ?? vscode.Uri.joinPath(this.extensionUri, '.agents-hub');
     this.registerDevelopmentWebviewWatcher();
   }
@@ -117,6 +122,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           break;
         case 'copyInstallCommand':
           await this.copyInstallCommand(message.installCommand);
+          break;
+        case 'saveSelectionState':
+          await this.saveSelectionState(message);
           break;
         case 'reloadWindow':
           await vscode.commands.executeCommand('agentsHub.reloadWindow');
@@ -189,7 +197,21 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         vscodeExtension: this.getProviderExtensionStatus(profile.id),
       })),
       defaultProviderId: this.getDefaultCliId(),
+      activeProviderId: this.getStoredProviderId(profiles),
+      activeAgentModeByProvider: this.getStoredAgentModeState(),
     });
+  }
+
+  private getStoredProviderId(profiles: CliProfile[]): string | undefined {
+    const providerId = this.state?.get<string>(LAST_PROVIDER_STATE_KEY);
+    if (providerId && profiles.some((profile) => profile.id === providerId && profile.installed)) {
+      return providerId;
+    }
+    return undefined;
+  }
+
+  private getStoredAgentModeState(): Record<string, string> {
+    return this.normalizeAgentModeState(this.state?.get(AGENT_MODE_STATE_KEY));
   }
 
   private getProviderExtensionStatus(providerId: string) {
@@ -531,6 +553,45 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     }
     await vscode.env.clipboard.writeText(text);
     vscode.window.showInformationMessage(runtimeT(this.locale, 'notification.installCommandCopied'));
+  }
+
+  private async saveSelectionState(message: unknown): Promise<void> {
+    if (!this.state || !message || typeof message !== 'object') {
+      return;
+    }
+
+    const payload = message as {
+      activeProviderId?: unknown;
+      activeAgentModeByProvider?: unknown;
+    };
+    const providerId = typeof payload.activeProviderId === 'string' ? payload.activeProviderId : '';
+    if (providerId && getCliProfile(providerId)) {
+      await this.state.update(LAST_PROVIDER_STATE_KEY, providerId);
+    }
+
+    await this.state.update(
+      AGENT_MODE_STATE_KEY,
+      this.normalizeAgentModeState(payload.activeAgentModeByProvider)
+    );
+  }
+
+  private normalizeAgentModeState(value: unknown): Record<string, string> {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return {};
+    }
+
+    const result: Record<string, string> = {};
+    for (const [providerId, modeId] of Object.entries(value)) {
+      if (typeof providerId !== 'string' || typeof modeId !== 'string') {
+        continue;
+      }
+      const profile = this.profilesById.get(providerId) ?? getCliProfile(providerId);
+      const mode = profile?.agentModes.find((item) => item.id === modeId && !item.disabled);
+      if (mode) {
+        result[providerId] = modeId;
+      }
+    }
+    return result;
   }
 
   private resolveCliId(message: AssistantWebviewRequest): string {
