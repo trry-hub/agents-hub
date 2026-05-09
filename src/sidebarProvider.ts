@@ -113,6 +113,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     webviewView.webview.html = this.getHtml(webviewView.webview);
     void this.sendProfiles();
     void this.sendContextSummary();
+    void this.sendHomeAgentSettings();
     void this.sendApiProviderSettings();
     void this.flushPendingRequests();
 
@@ -123,7 +124,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           await this.handleAssistantRequest(message);
           break;
         case 'openSettings':
-          await vscode.commands.executeCommand('agentsHub.openProviderSettings');
+          await this.openProviderSettings(message.section);
+          break;
+        case 'saveHomeAgentSettings':
+          await this.saveHomeAgentSettings(message.settings);
           break;
         case 'saveApiProviderSettings':
           await this.saveApiProviderSettings(message.settings);
@@ -218,14 +222,16 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   async refreshProviders(): Promise<void> {
     await this.sendProfiles();
     await this.sendContextSummary();
+    await this.sendHomeAgentSettings();
     await this.sendApiProviderSettings();
   }
 
-  async openProviderSettings(): Promise<void> {
+  async openProviderSettings(section = 'agents'): Promise<void> {
     await vscode.commands.executeCommand('agentsHub.sidebar.focus');
     this.view?.show(true);
+    await this.sendHomeAgentSettings();
     await this.sendApiProviderSettings();
-    await this.view?.webview.postMessage({ command: 'openProviderSettings' });
+    await this.view?.webview.postMessage({ command: 'openProviderSettings', section });
   }
 
   private async postSwitchProviderMessage(providerId: string): Promise<void> {
@@ -293,6 +299,21 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     });
   }
 
+  private async sendHomeAgentSettings(): Promise<void> {
+    this.view?.webview.postMessage({
+      command: 'homeAgentSettings',
+      settings: this.getHomeAgentSettings(),
+    });
+  }
+
+  private async saveHomeAgentSettings(rawSettings: unknown): Promise<void> {
+    const settings = this.normalizeHomeAgentSettings(rawSettings);
+    const config = vscode.workspace.getConfiguration('agentsHub.home');
+    await config.update('visibleAgentIds', settings.visibleAgentIds, vscode.ConfigurationTarget.Global);
+    await this.sendHomeAgentSettings();
+    await this.sendProfiles();
+  }
+
   private async saveApiProviderSettings(rawSettings: unknown): Promise<void> {
     const settings = sanitizeApiProviderSettings(rawSettings);
     const config = vscode.workspace.getConfiguration('agentsHub.apiProviders');
@@ -317,6 +338,31 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       defaultProviderId: config.get<string>('defaultProviderId', ''),
       agentProviderByCliId: config.get<Record<string, string>>('agentProviderByCliId', {}),
     });
+  }
+
+  private getHomeAgentSettings(): { visibleAgentIds: string[] } {
+    const config = vscode.workspace.getConfiguration('agentsHub.home');
+    return this.normalizeHomeAgentSettings({
+      visibleAgentIds: config.get<string[]>('visibleAgentIds', []),
+    });
+  }
+
+  private normalizeHomeAgentSettings(rawSettings: unknown): { visibleAgentIds: string[] } {
+    const knownIds = new Set(CLI_PROFILES.map((profile) => profile.id));
+    const record = rawSettings && typeof rawSettings === 'object' ? rawSettings as { visibleAgentIds?: unknown } : {};
+    const seen = new Set<string>();
+    const visibleAgentIds = Array.isArray(record.visibleAgentIds)
+      ? record.visibleAgentIds
+          .map((id) => String(id || '').trim())
+          .filter((id) => {
+            if (!knownIds.has(id) || seen.has(id)) {
+              return false;
+            }
+            seen.add(id);
+            return true;
+          })
+      : [];
+    return { visibleAgentIds };
   }
 
   private async updateProviderTitleContexts(

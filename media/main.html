@@ -37,76 +37,99 @@
       </div>
     </header>
 
-    <section class="api-settings-page" id="apiProviderSettingsPage" aria-labelledby="apiProviderSettingsTitle" hidden>
+    <section class="api-settings-page" id="apiProviderSettingsPage" aria-labelledby="settingsTitle" hidden>
       <div class="api-settings-panel">
         <header class="api-settings-header">
           <button class="api-settings-back tool-button" id="apiProviderSettingsClose" type="button" data-i18n-title="apiSettings.back" data-i18n-aria="apiSettings.back" aria-label="Back">
             <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 4 6 8l4 4"/></svg>
           </button>
           <div>
-            <h2 id="apiProviderSettingsTitle" data-i18n="apiSettings.title"></h2>
-            <p data-i18n="apiSettings.subtitle"></p>
+            <h2 id="settingsTitle" data-i18n="settings.title"></h2>
+            <p data-i18n="settings.subtitle"></p>
           </div>
         </header>
 
-        <div class="api-settings-body">
-          <aside class="api-provider-list-pane">
-            <div class="api-settings-section-title" data-i18n="apiSettings.providers"></div>
-            <div class="api-provider-list" id="apiProviderList" role="list"></div>
-            <button class="api-provider-add" id="apiProviderAdd" type="button" data-i18n="apiSettings.addProvider"></button>
-          </aside>
+        <div class="settings-layout">
+          <nav class="settings-nav" id="settingsNav" aria-label="Settings sections" data-i18n-aria="settings.sections">
+            <button class="settings-nav-item" id="settingsNavAgents" type="button" data-settings-section="agents" data-i18n="settings.agents"></button>
+            <button class="settings-nav-item" id="settingsNavApiProviders" type="button" data-settings-section="apiProviders" data-i18n="settings.apiProviders"></button>
+          </nav>
 
-          <form class="api-provider-form" id="apiProviderForm">
-            <div class="api-provider-grid">
-              <label class="api-field">
-                <span data-i18n="apiSettings.name"></span>
-                <input id="apiProviderName" autocomplete="off">
-              </label>
-              <label class="api-field">
-                <span data-i18n="apiSettings.baseUrl"></span>
-                <input id="apiProviderBaseUrl" autocomplete="off" spellcheck="false">
-              </label>
-              <label class="api-field">
-                <span data-i18n="apiSettings.apiKeyEnv"></span>
-                <input id="apiProviderApiKeyEnv" autocomplete="off" spellcheck="false">
-              </label>
-              <label class="api-field">
-                <span data-i18n="apiSettings.model"></span>
-                <input id="apiProviderModel" autocomplete="off" spellcheck="false">
-              </label>
-            </div>
-
-            <label class="api-provider-enabled">
-              <input id="apiProviderEnabled" type="checkbox">
-              <span data-i18n="apiSettings.enabled"></span>
-            </label>
-
-            <div class="api-settings-section">
-              <div class="api-settings-row-title">
-                <span data-i18n="apiSettings.extraEnv"></span>
-                <button class="api-link-button" id="apiProviderAddEnv" type="button" data-i18n="apiSettings.addEnv"></button>
+          <div class="settings-content">
+            <section class="settings-section-panel" id="settingsSectionAgents" data-settings-panel="agents">
+              <div class="settings-section-heading">
+                <h3 data-i18n="homeAgents.title"></h3>
+                <p data-i18n="homeAgents.subtitle"></p>
               </div>
-              <div class="api-extra-env-list" id="apiProviderExtraEnv"></div>
-            </div>
+              <div class="home-agent-list" id="homeAgentList"></div>
+              <footer class="settings-section-actions">
+                <button class="api-secondary-button" id="homeAgentsReset" type="button" data-i18n="homeAgents.showAll"></button>
+                <button class="api-primary-button" id="homeAgentsSave" type="button" data-i18n="apiSettings.save"></button>
+              </footer>
+            </section>
 
-            <div class="api-settings-section">
-              <div class="api-settings-section-title" data-i18n="apiSettings.binding"></div>
-              <label class="api-field">
-                <span data-i18n="apiSettings.globalDefault"></span>
-                <select id="apiProviderDefaultSelect"></select>
-              </label>
-              <div class="api-agent-bindings" id="apiProviderAgentBindings"></div>
-            </div>
+            <section class="settings-section-panel api-provider-settings-section" id="settingsSectionApiProviders" data-settings-panel="apiProviders" hidden>
+              <div class="api-settings-body">
+                <aside class="api-provider-list-pane">
+                  <div class="api-settings-section-title" data-i18n="apiSettings.providers"></div>
+                  <div class="api-provider-list" id="apiProviderList" role="list"></div>
+                  <button class="api-provider-add" id="apiProviderAdd" type="button" data-i18n="apiSettings.addProvider"></button>
+                </aside>
 
-            <div class="api-settings-error" id="apiProviderSettingsError" role="alert" hidden></div>
+                <form class="api-provider-form" id="apiProviderForm">
+                  <div class="api-provider-grid">
+                    <label class="api-field">
+                      <span data-i18n="apiSettings.name"></span>
+                      <input id="apiProviderName" autocomplete="off">
+                    </label>
+                    <label class="api-field">
+                      <span data-i18n="apiSettings.baseUrl"></span>
+                      <input id="apiProviderBaseUrl" autocomplete="off" spellcheck="false">
+                    </label>
+                    <label class="api-field">
+                      <span data-i18n="apiSettings.apiKeyEnv"></span>
+                      <input id="apiProviderApiKeyEnv" autocomplete="off" spellcheck="false">
+                    </label>
+                    <label class="api-field">
+                      <span data-i18n="apiSettings.model"></span>
+                      <input id="apiProviderModel" autocomplete="off" spellcheck="false">
+                    </label>
+                  </div>
 
-            <footer class="api-settings-footer">
-              <button class="api-danger-button" id="apiProviderDelete" type="button" data-i18n="apiSettings.deleteProvider"></button>
-              <span></span>
-              <button class="api-secondary-button" id="apiProviderCancel" type="button" data-i18n="action.dismiss"></button>
-              <button class="api-primary-button" type="submit" data-i18n="apiSettings.save"></button>
-            </footer>
-          </form>
+                  <label class="api-provider-enabled">
+                    <input id="apiProviderEnabled" type="checkbox">
+                    <span data-i18n="apiSettings.enabled"></span>
+                  </label>
+
+                  <div class="api-settings-section">
+                    <div class="api-settings-row-title">
+                      <span data-i18n="apiSettings.extraEnv"></span>
+                      <button class="api-link-button" id="apiProviderAddEnv" type="button" data-i18n="apiSettings.addEnv"></button>
+                    </div>
+                    <div class="api-extra-env-list" id="apiProviderExtraEnv"></div>
+                  </div>
+
+                  <div class="api-settings-section">
+                    <div class="api-settings-section-title" data-i18n="apiSettings.binding"></div>
+                    <label class="api-field">
+                      <span data-i18n="apiSettings.globalDefault"></span>
+                      <select id="apiProviderDefaultSelect"></select>
+                    </label>
+                    <div class="api-agent-bindings" id="apiProviderAgentBindings"></div>
+                  </div>
+
+                  <div class="api-settings-error" id="apiProviderSettingsError" role="alert" hidden></div>
+
+                  <footer class="api-settings-footer">
+                    <button class="api-danger-button" id="apiProviderDelete" type="button" data-i18n="apiSettings.deleteProvider"></button>
+                    <span></span>
+                    <button class="api-secondary-button" id="apiProviderCancel" type="button" data-i18n="action.dismiss"></button>
+                    <button class="api-primary-button" type="submit" data-i18n="apiSettings.save"></button>
+                  </footer>
+                </form>
+              </div>
+            </section>
+          </div>
         </div>
       </div>
     </section>

@@ -6,7 +6,7 @@
   "command.openPanel.title": "AI 助手：打开面板",
   "command.reloadWindow.title": "AI 助手：重新加载窗口",
   "command.refreshProviders.title": "AI 助手：刷新提供方",
-  "command.openProviderSettings.title": "AI 助手：API 供应商设置",
+  "command.openProviderSettings.title": "AI 助手：设置",
   "command.stopAll.title": "AI 助手：停止所有进程",
   "command.explainSelection.title": "AI 助手：解释选区",
   "command.reviewFile.title": "AI 助手：审查当前文件",
@@ -21,6 +21,7 @@
   "config.maxFileChars.description": "助手请求中附加的活动文件上下文最大字符数。",
   "config.maxSelectionChars.description": "助手请求中附加的选中代码最大字符数。",
   "config.maxDiagnostics.description": "助手请求中附加的活动文件诊断最大数量。",
+  "config.home.visibleAgentIds.description": "AI 助手首页标题区展示的已安装 CLI Agent。留空表示展示所有已安装 Agent。",
   "config.apiProviders.customProviders.description": "可供多个 CLI Agent 使用的自定义 API 供应商。API Key 仅通过环境变量名引用。",
   "config.apiProviders.defaultProviderId.description": "全局默认自定义 API 供应商 ID。",
   "config.apiProviders.agentProviderByCliId.description": "每个 Agent 的自定义 API 供应商覆盖配置。使用 inherit 表示跟随全局默认。"

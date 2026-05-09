@@ -1116,7 +1116,7 @@ test('webview renders installed provider logo tabs in the header', () => {
   assert.match(script, /const providerTabs = document\.getElementById\('providerTabs'\)/);
   assert.match(script, /return value\.replace\(\s*\/\^v\/i,\s*''\s*\);/);
   assert.match(script, /function renderProviderTabs\(\)/);
-  assert.match(script, /const availableProfiles = installedProfiles\(\)/);
+  assert.match(script, /const availableProfiles = visibleInstalledProfiles\(\)/);
   assert.match(script, /button\.className = 'provider-tab-button'/);
   assert.match(script, /logo\.className = 'provider-tab-logo'/);
   assert.doesNotMatch(script, /version\.className = 'provider-tab-version'/);
@@ -1176,11 +1176,18 @@ test('manifest exposes title actions and custom API provider settings', () => {
   assert.ok(properties['agentsHub.apiProviders.customProviders']);
   assert.ok(properties['agentsHub.apiProviders.defaultProviderId']);
   assert.ok(properties['agentsHub.apiProviders.agentProviderByCliId']);
+  assert.ok(properties['agentsHub.home.visibleAgentIds']);
+  assert.match(html, /id="settingsNavAgents"/);
+  assert.match(html, /id="settingsNavApiProviders"/);
+  assert.match(html, /id="homeAgentList"/);
   assert.match(html, /id="apiProviderSettingsPage"/);
   assert.doesNotMatch(html, /aria-modal="true"/);
   assert.match(html, /id="apiProviderApiKeyEnv"/);
   assert.doesNotMatch(html, /id="apiProviderApiKey"/);
+  assert.match(script, /function visibleInstalledProfiles\(\)/);
+  assert.match(script, /function renderHomeAgentSettings\(\)/);
   assert.match(script, /saveApiProviderSettings/);
+  assert.match(script, /saveHomeAgentSettings/);
   assert.match(script, /refreshApiProviderSettings/);
   assert.match(script, /openProviderSettings/);
 });

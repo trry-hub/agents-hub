@@ -170,6 +170,22 @@
           "minimum": 0,
           "description": "%config.maxDiagnostics.description%"
         },
+        "agentsHub.home.visibleAgentIds": {
+          "type": "array",
+          "default": [],
+          "description": "%config.home.visibleAgentIds.description%",
+          "items": {
+            "type": "string",
+            "enum": [
+              "claude",
+              "gemini",
+              "codex",
+              "opencode",
+              "goose",
+              "aider"
+            ]
+          }
+        },
         "agentsHub.apiProviders.customProviders": {
           "type": "array",
           "default": [],

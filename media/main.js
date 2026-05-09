@@ -22,8 +22,10 @@
   let activeRuntimeByProvider = saved.activeRuntimeByProvider || {};
   let activePermissionByProvider = saved.activePermissionByProvider || {};
   let apiProviderSettings = { customProviders: [], defaultProviderId: '', agentProviderByCliId: {} };
+  let homeAgentSettings = { visibleAgentIds: [] };
   let apiProviderEnvStatusById = {};
   let editingApiProviderId = '';
+  let activeSettingsSection = 'agents';
   let claudeTerminalBannerDismissed = Boolean(saved.claudeTerminalBannerDismissed);
   let taskBoardDismissed = Boolean(saved.taskBoardDismissed);
   let legacyWorkflowMode = saved.workflowMode || (saved.mode === 'agent' ? 'execute' : undefined);
@@ -99,6 +101,14 @@
   const reloadBtn = document.getElementById('reloadBtn');
   const apiSettingsPage = document.getElementById('apiProviderSettingsPage');
   const apiSettingsBack = document.getElementById('apiProviderSettingsClose');
+  const settingsNav = document.getElementById('settingsNav');
+  const settingsNavAgents = document.getElementById('settingsNavAgents');
+  const settingsNavApiProviders = document.getElementById('settingsNavApiProviders');
+  const settingsSectionAgents = document.getElementById('settingsSectionAgents');
+  const settingsSectionApiProviders = document.getElementById('settingsSectionApiProviders');
+  const homeAgentList = document.getElementById('homeAgentList');
+  const homeAgentsReset = document.getElementById('homeAgentsReset');
+  const homeAgentsSave = document.getElementById('homeAgentsSave');
   const apiProviderList = document.getElementById('apiProviderList');
   const apiProviderAdd = document.getElementById('apiProviderAdd');
   const apiProviderForm = document.getElementById('apiProviderForm');
@@ -434,6 +444,18 @@
 
   function installedProfiles() {
     return profiles.filter((profile) => profile.installed);
+  }
+
+  function visibleInstalledProfiles() {
+    const installed = installedProfiles();
+    const visibleIds = normalizeHomeAgentSettings(homeAgentSettings).visibleAgentIds;
+    if (visibleIds.length === 0) {
+      return installed;
+    }
+
+    const visibleSet = new Set(visibleIds);
+    const visible = installed.filter((profile) => visibleSet.has(profile.id));
+    return visible.length > 0 ? visible : installed;
   }
 
   function formatProviderVersion(version) {
@@ -1049,7 +1071,7 @@
 
   function renderProviderSelect() {
     providerSelect.innerHTML = '';
-    const availableProfiles = installedProfiles();
+    const availableProfiles = visibleInstalledProfiles();
 
     if (availableProfiles.length === 0) {
       const option = document.createElement('option');
@@ -1088,7 +1110,7 @@
       return;
     }
 
-    const availableProfiles = installedProfiles();
+    const availableProfiles = visibleInstalledProfiles();
     providerTabs.hidden = availableProfiles.length === 0;
 
     if (availableProfiles.length === 0) {
@@ -1142,6 +1164,143 @@
     }
 
     existingButtons.forEach((button) => button.remove());
+  }
+
+  function normalizeHomeAgentSettings(value) {
+    const record = value && typeof value === 'object' ? value : {};
+    const rawIds = Array.isArray(record.visibleAgentIds) ? record.visibleAgentIds : [];
+    const seen = new Set();
+    const visibleAgentIds = rawIds
+      .map((id) => String(id || '').trim())
+      .filter((id) => {
+        if (!id || seen.has(id)) {
+          return false;
+        }
+        seen.add(id);
+        return true;
+      });
+    return { visibleAgentIds };
+  }
+
+  function openSettingsPage(section = 'agents') {
+    if (!apiSettingsPage) {
+      return;
+    }
+    activeSettingsSection = section === 'apiProviders' ? 'apiProviders' : 'agents';
+    if (!editingApiProviderId) {
+      editingApiProviderId = apiProviderSettings.customProviders[0]?.id || '';
+    }
+    renderSettingsPage();
+    apiSettingsPage.hidden = false;
+    document.body.classList.add('is-api-settings-open');
+    const focusTarget = activeSettingsSection === 'apiProviders'
+      ? apiProviderName
+      : homeAgentList?.querySelector('input');
+    focusTarget?.focus();
+  }
+
+  function renderSettingsPage() {
+    renderSettingsSection();
+    renderHomeAgentSettings();
+    renderApiProviderSettings();
+  }
+
+  function renderSettingsSection() {
+    const isAgents = activeSettingsSection === 'agents';
+    settingsNavAgents?.classList.toggle('is-active', isAgents);
+    settingsNavApiProviders?.classList.toggle('is-active', !isAgents);
+    settingsNavAgents?.setAttribute('aria-current', isAgents ? 'page' : 'false');
+    settingsNavApiProviders?.setAttribute('aria-current', !isAgents ? 'page' : 'false');
+    if (settingsSectionAgents) {
+      settingsSectionAgents.hidden = !isAgents;
+    }
+    if (settingsSectionApiProviders) {
+      settingsSectionApiProviders.hidden = isAgents;
+    }
+  }
+
+  function renderHomeAgentSettings() {
+    if (!homeAgentList) {
+      return;
+    }
+    homeAgentList.innerHTML = '';
+    const availableProfiles = installedProfiles();
+    if (availableProfiles.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'api-provider-status';
+      empty.textContent = i18n.t('provider.noInstalled');
+      homeAgentList.appendChild(empty);
+      return;
+    }
+
+    const selectedIds = homeAgentSelectionForUi();
+    availableProfiles.forEach((profile) => {
+      const row = document.createElement('label');
+      row.className = 'home-agent-item';
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.dataset.homeAgentId = profile.id;
+      checkbox.checked = selectedIds.has(profile.id);
+      row.appendChild(checkbox);
+
+      const icon = document.createElement('span');
+      icon.className = 'home-agent-icon';
+      const iconUri = providerIconUri(profile);
+      if (iconUri) {
+        const logo = document.createElement('img');
+        logo.src = iconUri;
+        logo.alt = '';
+        logo.draggable = false;
+        icon.appendChild(logo);
+      } else {
+        icon.textContent = profile.icon || profile.name.slice(0, 1);
+      }
+      row.appendChild(icon);
+
+      const copy = document.createElement('span');
+      copy.className = 'home-agent-copy';
+      const name = document.createElement('span');
+      name.className = 'home-agent-name';
+      name.textContent = profile.name;
+      copy.appendChild(name);
+
+      const meta = document.createElement('span');
+      meta.className = 'home-agent-meta';
+      const version = formatProviderVersion(profile.version);
+      meta.textContent = version
+        ? i18n.t('homeAgents.installedVersion', { version })
+        : i18n.t('provider.readyShort');
+      copy.appendChild(meta);
+      row.appendChild(copy);
+
+      homeAgentList.appendChild(row);
+    });
+  }
+
+  function homeAgentSelectionForUi() {
+    const installedIds = installedProfiles().map((profile) => profile.id);
+    const configured = normalizeHomeAgentSettings(homeAgentSettings).visibleAgentIds;
+    const selectedIds = configured.length > 0
+      ? configured.filter((id) => installedIds.includes(id))
+      : installedIds;
+    return new Set(selectedIds.length > 0 ? selectedIds : installedIds);
+  }
+
+  function collectHomeAgentSettings() {
+    const checkedIds = Array.from(homeAgentList?.querySelectorAll('input[data-home-agent-id]:checked') || [])
+      .map((input) => input.dataset.homeAgentId)
+      .filter(Boolean);
+    const installedIds = installedProfiles().map((profile) => profile.id);
+    const allSelected = installedIds.length > 0 && checkedIds.length === installedIds.length;
+    return normalizeHomeAgentSettings({ visibleAgentIds: allSelected ? [] : checkedIds });
+  }
+
+  function saveHomeAgentSettings() {
+    homeAgentSettings = collectHomeAgentSettings();
+    vscode.postMessage({ command: 'saveHomeAgentSettings', settings: homeAgentSettings });
+    renderAll();
+    renderHomeAgentSettings();
   }
 
   function normalizeApiProviderSettings(value) {
@@ -1200,16 +1359,7 @@
   }
 
   function openApiProviderSettings() {
-    if (!apiSettingsPage) {
-      return;
-    }
-    if (!editingApiProviderId) {
-      editingApiProviderId = apiProviderSettings.customProviders[0]?.id || '';
-    }
-    renderApiProviderSettings();
-    apiSettingsPage.hidden = false;
-    document.body.classList.add('is-api-settings-open');
-    apiProviderName?.focus();
+    openSettingsPage('agents');
   }
 
   function closeApiProviderSettings() {
@@ -2781,7 +2931,7 @@
         : '';
     });
     actionSelect.disabled = !canSend || busy;
-    providerSelect.disabled = installedProfiles().length === 0 || busy;
+    providerSelect.disabled = visibleInstalledProfiles().length === 0 || busy;
     threadSelect.disabled = !activeId || busy;
     modelSelect.disabled = !canSend || busy;
     runtimeSelect.disabled = !canSend || busy;
@@ -2851,6 +3001,9 @@
     renderMessages();
     renderAttachmentStrip();
     renderComposer();
+    if (apiSettingsPage && !apiSettingsPage.hidden) {
+      renderSettingsPage();
+    }
   }
 
   function send(action, text, preferredWorkflowMode) {
@@ -3467,6 +3620,23 @@
   apiSettingsBack?.addEventListener('click', closeApiProviderSettings);
   apiProviderCancel?.addEventListener('click', closeApiProviderSettings);
 
+  settingsNav?.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-settings-section]');
+    if (!button) {
+      return;
+    }
+    activeSettingsSection = button.dataset.settingsSection === 'apiProviders' ? 'apiProviders' : 'agents';
+    renderSettingsPage();
+  });
+
+  homeAgentsReset?.addEventListener('click', () => {
+    homeAgentList?.querySelectorAll('input[data-home-agent-id]').forEach((checkbox) => {
+      checkbox.checked = true;
+    });
+  });
+
+  homeAgentsSave?.addEventListener('click', saveHomeAgentSettings);
+
   apiProviderAdd?.addEventListener('click', () => {
     const provider = createApiProviderDraft();
     apiProviderSettings = {
@@ -3701,7 +3871,7 @@
     if (action === 'openSettings') {
       event.preventDefault();
       event.stopPropagation();
-      vscode.postMessage({ command: 'openSettings' });
+      vscode.postMessage({ command: 'openSettings', section: 'apiProviders' });
       return;
     }
 
@@ -3762,7 +3932,7 @@
       case 'profiles':
         profiles = message.profiles || [];
         {
-          const availableProfiles = installedProfiles();
+          const availableProfiles = visibleInstalledProfiles();
           const storedAgentModes = persistedSelectionMap(message.activeAgentModeByProvider);
           activeAgentModeByProvider = hasAppliedPersistentSelection
             ? { ...storedAgentModes, ...activeAgentModeByProvider }
@@ -3800,10 +3970,14 @@
         if (!editingApiProviderId || !apiProviderSettings.customProviders.some((provider) => provider.id === editingApiProviderId)) {
           editingApiProviderId = apiProviderSettings.customProviders[0]?.id || '';
         }
-        renderApiProviderSettings();
+        renderSettingsPage();
+        break;
+      case 'homeAgentSettings':
+        homeAgentSettings = normalizeHomeAgentSettings(message.settings);
+        renderAll();
         break;
       case 'openProviderSettings':
-        openApiProviderSettings();
+        openSettingsPage(message.section);
         break;
       case 'requestStarted':
         if (!activeId || !installedProfiles().some((profile) => profile.id === activeId)) {
