@@ -771,6 +771,26 @@ test('webview keeps local remote runtime outside the prompt input shell', () => 
   assert.match(css, /\.composer-runtime \.runtime-menu\.is-visible\s*\{\s*[^}]*display:\s*block;/s);
 });
 
+test('webview includes an advanced controls toggle for composer settings', () => {
+  const html = readFileSync(new URL('../media/main.html', import.meta.url), 'utf8');
+  const script = readFileSync(new URL('../media/main.js', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../media/main.css', import.meta.url), 'utf8');
+  const i18nScript = readFileSync(new URL('../media/i18n.js', import.meta.url), 'utf8');
+
+  assert.match(html, /id="composerAdvancedToggle"/);
+  assert.match(html, /data-i18n-title="composer\.advanced"/);
+  assert.match(script, /let composerAdvancedVisible = Boolean\(saved\.composerAdvanced\);/);
+  assert.match(script, /composerShell\.dataset\.advanced = composerAdvancedVisible \? 'true' : 'false';/);
+  assert.match(script, /function applyComposerAdvancedState\(\)/);
+  assert.match(script, /function setComposerAdvancedVisible\(next\)/);
+  assert.match(script, /composerAdvancedToggle\?\.addEventListener\('click',/);
+  assert.match(script, /setComposerAdvancedVisible\(true\);/);
+  assert.match(css, /\.advanced-toggle\s*\{/s);
+  assert.match(css, /\.prompt-shell\[data-advanced="false"\] \.option-menu,/s);
+  assert.match(i18nScript, /'composer\.advanced': 'Advanced'/);
+  assert.match(i18nScript, /'composer\.advancedHide': 'Hide advanced'/);
+});
+
 test('webview renders the Codex local mode menu like Code X', () => {
   const html = readFileSync(new URL('../media/main.html', import.meta.url), 'utf8');
   const script = readFileSync(new URL('../media/main.js', import.meta.url), 'utf8');
