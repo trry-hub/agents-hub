@@ -1113,20 +1113,27 @@ test('extension contributes provider logo buttons to the native view title', () 
   assert.match(extensionSource, /registerCommand\(`agentsHub\.switchProviderActive\.\$\{profile\.id\}`/);
   assert.match(sidebarSource, /executeCommand\('setContext', 'agentsHub\.activeProvider', providerId\)/);
   assert.match(sidebarSource, /postMessage\(\{ command: 'switchProvider', providerId \}\)/);
+  assert.match(sidebarSource, /iconUri: this\.getProviderIconUri\(profile\.id\)/);
+  assert.match(sidebarSource, /activeIconUri: this\.getProviderIconUri\(profile\.id, true\)/);
 });
 
-test('webview keeps provider switch state hidden outside the composer', () => {
+test('webview keeps the provider logo button group visible in the toolbar', () => {
   const html = readFileSync(new URL('../media/main.html', import.meta.url), 'utf8');
   const css = readFileSync(new URL('../media/main.css', import.meta.url), 'utf8');
+  const script = readFileSync(new URL('../media/main.js', import.meta.url), 'utf8');
 
   assert.match(html, /<label class="provider-native-select" hidden>[\s\S]*id="providerSelect"/);
-  assert.doesNotMatch(html, /providerTabs|provider-tabs-wrap|provider-tab-button/);
+  assert.match(html, /<div class="provider-tabs-wrap">[\s\S]*id="providerTabs"[\s\S]*<\/div>/);
   assert.doesNotMatch(html, /composer-provider-dock/);
   assert.doesNotMatch(html, /<div class="prompt-selectors">[\s\S]*id="providerSelect"[\s\S]*<\/div>\s*<div class="prompt-tools"/);
   assert.match(css, /\.composer-footer\s*\{\s*[^}]*display:\s*flex;/s);
   assert.match(css, /\.composer-footer\s*\{\s*[^}]*justify-content:\s*space-between;/s);
-  assert.doesNotMatch(css, /\.provider-tabs/);
-  assert.doesNotMatch(css, /\.provider-tab-button/);
+  assert.match(css, /\.provider-tabs\s*\{\s*[^}]*display:\s*inline-flex;/s);
+  assert.match(css, /\.provider-tab-button\s*\{\s*[^}]*width:\s*24px;/s);
+  assert.match(css, /\.provider-tab-icon\s*\{\s*[^}]*mask:\s*var\(--provider-tab-icon\)/s);
+  assert.match(script, /const providerTabs = document\.getElementById\('providerTabs'\);/);
+  assert.match(script, /icon\.style\.setProperty\('--provider-tab-icon', `url\("\$\{iconUri\}"\)`\);/);
+  assert.match(script, /providerTabs\?\.addEventListener\('click'/);
   assert.doesNotMatch(css, /\.composer-provider-dock/);
   assert.match(css, /\.context-budget\s*\{\s*[^}]*height:\s*20px;/s);
   assert.match(css, /\.context-budget\s*\{\s*[^}]*max-width:\s*48px;/s);
