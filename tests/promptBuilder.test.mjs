@@ -1128,6 +1128,8 @@ test('webview renders installed provider logo tabs in the header', () => {
   assert.match(css, /\.provider-tab-button\.is-active\s*\{\s*[^}]*width:\s*var\(--provider-tab-collapsed-width\);/s);
   assert.match(css, /\.provider-tab-logo\s*\{/);
   assert.match(css, /\.provider-tab-logo\s*\{\s*[^}]*width:\s*15px;/s);
+  assert.match(css, /\.provider-tab-logo\s*\{\s*[^}]*filter:\s*grayscale\(1\) saturate\(0\.12\);/s);
+  assert.match(css, /\.provider-tab-button\.is-active \.provider-tab-logo\s*\{\s*[^}]*filter:\s*none;/s);
   assert.match(css, /\.provider-tab-version\s*\{/);
   assert.match(css, /\.provider-tab-version\s*\{\s*[^}]*display:\s*none;/s);
   assert.doesNotMatch(css, /\.provider-tab-version\s*\{[^}]*text-overflow:\s*ellipsis;/s);

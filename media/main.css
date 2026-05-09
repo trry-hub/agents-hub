@@ -441,6 +441,22 @@ select {
   display: block;
   object-fit: contain;
   flex: 0 0 auto;
+  filter: grayscale(1) saturate(0.12);
+  opacity: 0.58;
+  transition: filter 160ms ease, opacity 160ms ease;
+}
+
+.provider-tab-button:hover .provider-tab-logo {
+  opacity: 0.82;
+}
+
+.provider-tab-button.is-active .provider-tab-logo {
+  filter: none;
+  opacity: 1;
+}
+
+.provider-tab-button.is-active:hover .provider-tab-logo {
+  opacity: 1;
 }
 
 .provider-tab-version {
@@ -449,6 +465,7 @@ select {
 
 @media (prefers-reduced-motion: reduce) {
   .provider-tab-button,
+  .provider-tab-logo,
   .provider-tab-version {
     transition: none;
   }
