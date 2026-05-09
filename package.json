@@ -93,8 +93,8 @@
         "command": "agentsHub.switchProviderActive.claude",
         "title": "%command.switchProvider.claude.title%",
         "icon": {
-          "light": "media/provider-icons/claude.svg",
-          "dark": "media/provider-icons/claude.svg"
+          "light": "media/provider-icons/claude-active.svg",
+          "dark": "media/provider-icons/claude-active.svg"
         }
       },
       {
@@ -109,8 +109,8 @@
         "command": "agentsHub.switchProviderActive.gemini",
         "title": "%command.switchProvider.gemini.title%",
         "icon": {
-          "light": "media/provider-icons/gemini.png",
-          "dark": "media/provider-icons/gemini.png"
+          "light": "media/provider-icons/gemini-active.svg",
+          "dark": "media/provider-icons/gemini-active.svg"
         }
       },
       {
@@ -125,8 +125,8 @@
         "command": "agentsHub.switchProviderActive.codex",
         "title": "%command.switchProvider.codex.title%",
         "icon": {
-          "light": "media/provider-icons/codex.png",
-          "dark": "media/provider-icons/codex.png"
+          "light": "media/provider-icons/codex-active.svg",
+          "dark": "media/provider-icons/codex-active.svg"
         }
       },
       {
@@ -141,8 +141,8 @@
         "command": "agentsHub.switchProviderActive.opencode",
         "title": "%command.switchProvider.opencode.title%",
         "icon": {
-          "light": "media/provider-icons/opencode.png",
-          "dark": "media/provider-icons/opencode.png"
+          "light": "media/provider-icons/opencode-active.svg",
+          "dark": "media/provider-icons/opencode-active.svg"
         }
       },
       {
@@ -157,8 +157,8 @@
         "command": "agentsHub.switchProviderActive.goose",
         "title": "%command.switchProvider.goose.title%",
         "icon": {
-          "light": "media/provider-icons/goose-light.png",
-          "dark": "media/provider-icons/goose-dark.png"
+          "light": "media/provider-icons/goose-light-active.svg",
+          "dark": "media/provider-icons/goose-dark-active.svg"
         }
       },
       {
@@ -173,8 +173,8 @@
         "command": "agentsHub.switchProviderActive.aider",
         "title": "%command.switchProvider.aider.title%",
         "icon": {
-          "light": "media/provider-icons/aider.png",
-          "dark": "media/provider-icons/aider.png"
+          "light": "media/provider-icons/aider-active.svg",
+          "dark": "media/provider-icons/aider-active.svg"
         }
       }
     ],

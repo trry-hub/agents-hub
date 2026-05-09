@@ -1091,6 +1091,14 @@ test('extension contributes installed-only provider logo buttons to the native v
     goose: { light: 'media/provider-icons/goose-light.png', dark: 'media/provider-icons/goose-dark.png' },
     aider: { light: 'media/provider-icons/aider.png', dark: 'media/provider-icons/aider.png' },
   };
+  const activeProviderIcons = {
+    claude: { light: 'media/provider-icons/claude-active.svg', dark: 'media/provider-icons/claude-active.svg' },
+    gemini: { light: 'media/provider-icons/gemini-active.svg', dark: 'media/provider-icons/gemini-active.svg' },
+    codex: { light: 'media/provider-icons/codex-active.svg', dark: 'media/provider-icons/codex-active.svg' },
+    opencode: { light: 'media/provider-icons/opencode-active.svg', dark: 'media/provider-icons/opencode-active.svg' },
+    goose: { light: 'media/provider-icons/goose-light-active.svg', dark: 'media/provider-icons/goose-dark-active.svg' },
+    aider: { light: 'media/provider-icons/aider-active.svg', dark: 'media/provider-icons/aider-active.svg' },
+  };
   const commands = manifest.contributes.commands;
   const titleActions = manifest.contributes.menus['view/title'] || [];
   const commandPalette = manifest.contributes.menus.commandPalette;
@@ -1105,12 +1113,19 @@ test('extension contributes installed-only provider logo buttons to the native v
     assert.ok(command, `missing provider command for ${provider}`);
     assert.ok(activeCommand, `missing active provider command for ${provider}`);
     assert.deepEqual(command.icon, providerIcons[provider]);
-    assert.deepEqual(activeCommand.icon, providerIcons[provider]);
-    for (const iconPath of new Set(Object.values(providerIcons[provider]))) {
+    assert.deepEqual(activeCommand.icon, activeProviderIcons[provider]);
+    assert.notDeepEqual(activeCommand.icon, command.icon);
+    for (const iconPath of new Set([
+      ...Object.values(providerIcons[provider]),
+      ...Object.values(activeProviderIcons[provider]),
+    ])) {
       const icon = readFileSync(new URL(`../${iconPath}`, import.meta.url));
       assert.ok(icon.length > 0, `missing provider icon asset for ${provider}`);
       if (iconPath.endsWith('.svg')) {
         assert.match(icon.toString('utf8'), /<svg/);
+        if (iconPath.includes('-active')) {
+          assert.match(icon.toString('utf8'), /stroke="#c586ff"/);
+        }
       } else {
         assert.equal(icon.subarray(1, 4).toString('ascii'), 'PNG');
       }

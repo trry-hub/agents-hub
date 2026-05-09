@@ -6,3 +6,4 @@
 - OpenCode: OpenCode VS Code extension, `images/icon.png`.
 - Goose: `https://goose-docs.ai/img/logo_light.png` and `https://goose-docs.ai/img/logo_dark.png`.
 - Aider: `https://github.com/Aider-AI.png`.
+- `*-active.svg` files are local highlight wrappers around the same provider logo assets.
