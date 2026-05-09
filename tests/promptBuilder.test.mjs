@@ -776,6 +776,8 @@ test('webview includes an advanced controls toggle for composer settings', () =>
   const script = readFileSync(new URL('../media/main.js', import.meta.url), 'utf8');
   const css = readFileSync(new URL('../media/main.css', import.meta.url), 'utf8');
   const i18nScript = readFileSync(new URL('../media/i18n.js', import.meta.url), 'utf8');
+  const extensionSource = readFileSync(new URL('../src/extension.ts', import.meta.url), 'utf8');
+  const sidebarSource = readFileSync(new URL('../src/sidebarProvider.ts', import.meta.url), 'utf8');
 
   assert.match(html, /id="composerAdvancedToggle"/);
   assert.match(html, /data-i18n-title="composer\.advanced"/);
@@ -789,6 +791,14 @@ test('webview includes an advanced controls toggle for composer settings', () =>
   assert.match(css, /\.prompt-shell\[data-advanced="false"\] \.option-menu,/s);
   assert.match(i18nScript, /'composer\.advanced': 'Advanced'/);
   assert.match(i18nScript, /'composer\.advancedHide': 'Hide advanced'/);
+
+  assert.match(script, /appendEmptyState\(titleText, subtitleText, showSetupAction = false\)/);
+  assert.match(script, /if \(showSetupAction\) \{/);
+  assert.match(script, /'openSettings'/);
+  assert.match(sidebarSource, /case 'openSettings':/);
+  assert.match(extensionSource, /agentsHub\.openSettings/);
+  assert.match(i18nScript, /'empty\.configureProviders': 'Open provider settings'/);
+  assert.match(i18nScript, /'empty\.configureProviders': '前往设置配置提供方'/);
 });
 
 test('webview renders the Codex local mode menu like Code X', () => {

@@ -100,6 +100,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case 'quickAction':
           await this.handleAssistantRequest(message);
           break;
+        case 'openSettings':
+          await vscode.commands.executeCommand('agentsHub.openSettings');
+          break;
         case 'stop':
           this.handleStop(this.resolveCliId(message));
           break;

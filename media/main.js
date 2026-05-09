@@ -1826,7 +1826,7 @@
 
     if (!activeId) {
       syncMessageStatusTimer(false);
-      appendEmptyState(i18n.t('provider.noInstalled'), i18n.t('provider.unavailable'));
+      appendEmptyState(i18n.t('provider.noInstalled'), i18n.t('provider.unavailable'), true);
       return;
     }
 
@@ -1935,7 +1935,7 @@
     container.appendChild(wrap);
   }
 
-  function appendEmptyState(titleText, subtitleText) {
+  function appendEmptyState(titleText, subtitleText, showSetupAction = false) {
       const empty = document.createElement('div');
       empty.className = 'empty-state';
 
@@ -1957,6 +1957,10 @@
         ['generateTests', 'empty.tests'],
         ['refactorSelection', 'empty.refactor'],
       ];
+
+      if (showSetupAction) {
+        suggestionActions.push(['openSettings', 'empty.configureProviders']);
+      }
 
       for (const [action, labelKey] of suggestionActions) {
       const button = document.createElement('button');
@@ -3140,6 +3144,11 @@
     }
 
     const action = button.dataset.action;
+    if (action === 'openSettings') {
+      vscode.postMessage({ command: 'openSettings' });
+      return;
+    }
+
     actionSelect.value = action;
     send(action, input.value || quickActionText(action));
   });

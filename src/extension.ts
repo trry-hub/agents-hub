@@ -41,6 +41,12 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
+    vscode.commands.registerCommand('agentsHub.openSettings', async () => {
+      await vscode.commands.executeCommand('workbench.action.openSettings', 'agentsHub');
+    })
+  );
+
+  context.subscriptions.push(
     vscode.commands.registerCommand('agentsHub.stopAll', () => {
       sidebarProvider.stopAll();
       vscode.window.showInformationMessage(runtimeT(locale, 'notification.stoppedAll'));
