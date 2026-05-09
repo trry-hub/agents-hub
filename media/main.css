@@ -121,6 +121,75 @@ select {
   background: var(--assistant-hover);
 }
 
+.provider-tabs-wrap {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.provider-tab-select {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.provider-tabs {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px;
+  border: 1px solid color-mix(in srgb, var(--assistant-border) 58%, transparent);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--assistant-panel) 34%, transparent);
+}
+
+.provider-tab-button {
+  width: 24px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--assistant-muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.provider-tab-button:hover {
+  color: var(--vscode-foreground);
+  background: var(--assistant-hover);
+}
+
+.provider-tab-button:focus-visible {
+  outline: 1px solid var(--assistant-accent);
+  outline-offset: 1px;
+}
+
+.provider-tab-button[aria-selected="true"] {
+  color: var(--vscode-foreground);
+  border-color: color-mix(in srgb, var(--provider-accent, var(--assistant-accent)) 48%, transparent);
+  background: color-mix(in srgb, var(--provider-accent, var(--assistant-accent)) 10%, transparent);
+}
+
+.provider-tab-button:disabled {
+  cursor: default;
+  opacity: 0.56;
+}
+
+.provider-tab-logo {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .provider-hint {
   height: 20px;
   display: none;
@@ -1419,68 +1488,6 @@ textarea:focus {
   flex: 0 0 auto;
 }
 
-.composer-provider-dock {
-  min-width: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 3px;
-  margin-left: auto;
-  color: var(--assistant-muted);
-  opacity: 0.62;
-  transition: opacity 120ms ease;
-}
-
-.composer-provider-dock:hover,
-.composer-provider-dock:focus-within {
-  opacity: 0.9;
-}
-
-.composer-provider-dock .compact-select {
-  min-width: 76px;
-  max-width: 116px;
-  height: 20px;
-  flex: 0 1 94px;
-  border-color: transparent;
-  background: transparent;
-}
-
-.composer-provider-dock .compact-select:focus-within {
-  border-color: color-mix(in srgb, var(--assistant-border) 70%, transparent);
-  background: transparent;
-}
-
-.composer-provider-dock .compact-select select {
-  min-width: 0;
-  height: 20px;
-  flex: 1 1 auto;
-  padding: 0 17px 0 4px;
-  color: var(--assistant-muted);
-  font-size: 11px;
-}
-
-.composer-provider-dock .compact-select::after {
-  right: 6px;
-  opacity: 0.68;
-}
-
-.composer-provider-dock .provider-hint.has-version {
-  height: 20px;
-  max-width: 58px;
-  padding: 0 2px;
-  border-color: transparent;
-  color: var(--assistant-muted);
-  background: transparent;
-  font-size: 10.5px;
-}
-
-.composer-provider-dock .provider-hint.is-warning {
-  max-width: 132px;
-  padding: 0 2px;
-  background: transparent;
-  font-size: 10.5px;
-}
-
 .prompt-shell {
   position: relative;
   display: grid;
@@ -2140,23 +2147,11 @@ body[data-provider="opencode"] .send-button:disabled svg {
   background: color-mix(in srgb, var(--assistant-accent) 7%, transparent);
 }
 
-.compact-select,
 .agent-select {
   min-width: 0;
   position: relative;
 }
 
-.compact-select {
-  min-width: 92px;
-  max-width: 132px;
-  flex: 0 1 112px;
-  height: 24px;
-  border-color: color-mix(in srgb, var(--assistant-border) 82%, transparent);
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--vscode-dropdown-background, var(--assistant-surface)) 86%, transparent);
-}
-
-.compact-select select,
 .agent-select select {
   appearance: none;
   max-width: 112px;
@@ -2168,16 +2163,6 @@ body[data-provider="opencode"] .send-button:disabled svg {
   background: transparent;
   outline: none;
   font-size: 12px;
-}
-
-.compact-select select {
-  min-width: 0;
-  flex: 1 1 auto;
-  width: auto;
-  max-width: none;
-  padding-left: 7px;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .agent-select select {
@@ -2597,7 +2582,6 @@ body[data-provider="opencode"] .send-button:disabled svg {
   text-align: right;
 }
 
-.compact-select::after,
 .agent-select::after {
   content: "";
   position: absolute;
@@ -2785,10 +2769,6 @@ textarea:disabled {
     padding: 0 2px;
   }
 
-  .composer-provider-dock {
-    max-width: 100%;
-  }
-
   .option-summary,
   .mode-summary,
   .context-summary {
@@ -2821,19 +2801,10 @@ textarea:disabled {
     flex-direction: column;
   }
 
-  .composer-provider-dock {
-    width: 100%;
-  }
-
-  .compact-select {
-    flex: 1 1 auto;
-  }
-
   .composer-meta {
     max-width: none;
   }
 
-  .compact-select select,
   .agent-select select {
     width: 100%;
     max-width: none;

@@ -1074,27 +1074,28 @@ test('webview renders permissions as a Code X style option menu', () => {
   assert.match(css, /body\[data-provider="codex"\] \.permission-menu \.option-summary/);
 });
 
-test('webview provider selector reserves space for the selected CLI name', () => {
+test('webview provider switcher renders as compact logo tabs', () => {
   const css = readFileSync(new URL('../media/main.css', import.meta.url), 'utf8');
 
-  assert.match(css, /\.composer-provider-dock \.compact-select\s*\{\s*[^}]*min-width:\s*76px;/s);
-  assert.match(css, /\.composer-provider-dock \.compact-select\s*\{\s*[^}]*max-width:\s*116px;/s);
-  assert.match(css, /\.composer-provider-dock \.compact-select select\s*\{\s*[^}]*min-width:\s*0;/s);
-  assert.match(css, /\.composer-provider-dock \.compact-select select\s*\{\s*[^}]*flex:\s*1 1 auto;/s);
+  assert.match(css, /\.provider-tabs\s*\{\s*[^}]*display:\s*inline-flex;/s);
+  assert.match(css, /\.provider-tab-button\s*\{\s*[^}]*width:\s*24px;/s);
+  assert.match(css, /\.provider-tab-button\s*\{\s*[^}]*height:\s*24px;/s);
+  assert.match(css, /\.provider-tab-button\[aria-selected="true"\]\s*\{/);
+  assert.match(css, /\.provider-tab-logo\s*\{\s*[^}]*font-size:\s*12px;/s);
 });
 
-test('webview moves provider selector and version into a low emphasis footer dock', () => {
+test('webview moves provider switcher into the top toolbar', () => {
   const html = readFileSync(new URL('../media/main.html', import.meta.url), 'utf8');
   const css = readFileSync(new URL('../media/main.css', import.meta.url), 'utf8');
 
-  assert.match(html, /<div class="composer-footer"[\s\S]*<div class="composer-runtime"[\s\S]*<div class="composer-provider-dock">[\s\S]*id="providerSelect"[\s\S]*id="providerHint"[\s\S]*<\/div>/);
+  assert.match(html, /<div class="toolbar-main">[\s\S]*id="threadSelect"[\s\S]*<div class="provider-tabs-wrap">[\s\S]*id="providerSelect"[\s\S]*id="providerTabs"[\s\S]*id="providerHint"[\s\S]*<div class="toolbar-actions"/);
+  assert.doesNotMatch(html, /composer-provider-dock/);
   assert.doesNotMatch(html, /<div class="prompt-selectors">[\s\S]*id="providerSelect"[\s\S]*<\/div>\s*<div class="prompt-tools"/);
   assert.match(css, /\.composer-footer\s*\{\s*[^}]*display:\s*flex;/s);
   assert.match(css, /\.composer-footer\s*\{\s*[^}]*justify-content:\s*space-between;/s);
-  assert.match(css, /\.composer-provider-dock\s*\{\s*[^}]*margin-left:\s*auto;/s);
-  assert.match(css, /\.composer-provider-dock\s*\{\s*[^}]*opacity:\s*0\.62;/s);
-  assert.match(css, /\.composer-provider-dock:hover,\s*\.composer-provider-dock:focus-within\s*\{\s*[^}]*opacity:\s*0\.9;/s);
-  assert.match(css, /\.composer-provider-dock \.provider-hint\.has-version\s*\{\s*[^}]*background:\s*transparent;/s);
+  assert.match(css, /\.provider-tabs-wrap\s*\{\s*[^}]*justify-content:\s*flex-end;/s);
+  assert.match(css, /\.provider-tab-select\s*\{\s*[^}]*position:\s*absolute;/s);
+  assert.doesNotMatch(css, /\.composer-provider-dock/);
   assert.match(css, /\.context-budget\s*\{\s*[^}]*height:\s*20px;/s);
   assert.match(css, /\.context-budget\s*\{\s*[^}]*max-width:\s*48px;/s);
 });

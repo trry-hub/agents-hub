@@ -16,6 +16,14 @@
           <span class="sr-only" data-i18n="history.label"></span>
           <select id="threadSelect" name="assistantThread" autocomplete="off" data-i18n-title="history.label"></select>
         </label>
+        <div class="provider-tabs-wrap">
+          <label class="provider-tab-select">
+            <span class="sr-only" data-i18n="provider.label"></span>
+            <select id="providerSelect" name="assistantProvider" autocomplete="off"></select>
+          </label>
+          <div class="provider-tabs" id="providerTabs" role="tablist" aria-label="Provider" data-i18n-aria="provider.label"></div>
+          <div class="provider-hint" id="providerHint" aria-live="polite"></div>
+        </div>
         <div class="toolbar-actions" role="toolbar" aria-label="Conversation actions" data-i18n-aria="toolbar.actions">
           <button class="tool-button" id="newChatBtn" data-i18n-title="history.newThread" aria-label="New session">
             <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>
@@ -194,13 +202,6 @@
               <div class="option-list runtime-option-list" id="runtimeOptionList" role="menu"></div>
             </div>
           </details>
-        </div>
-        <div class="composer-provider-dock">
-          <label class="select-field compact-select">
-            <span class="sr-only" data-i18n="provider.label"></span>
-            <select id="providerSelect" name="assistantProvider" autocomplete="off"></select>
-          </label>
-          <div class="provider-hint" id="providerHint" aria-live="polite"></div>
         </div>
       </div>
     </footer>
