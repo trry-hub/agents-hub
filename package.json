@@ -101,80 +101,80 @@
         "command": "agentsHub.switchProvider.gemini",
         "title": "%command.switchProvider.gemini.title%",
         "icon": {
-          "light": "media/provider-icons/gemini.svg",
-          "dark": "media/provider-icons/gemini.svg"
+          "light": "media/provider-icons/gemini.png",
+          "dark": "media/provider-icons/gemini.png"
         }
       },
       {
         "command": "agentsHub.switchProviderActive.gemini",
         "title": "%command.switchProvider.gemini.title%",
         "icon": {
-          "light": "media/provider-icons/gemini.svg",
-          "dark": "media/provider-icons/gemini.svg"
+          "light": "media/provider-icons/gemini.png",
+          "dark": "media/provider-icons/gemini.png"
         }
       },
       {
         "command": "agentsHub.switchProvider.codex",
         "title": "%command.switchProvider.codex.title%",
         "icon": {
-          "light": "media/provider-icons/codex.svg",
-          "dark": "media/provider-icons/codex.svg"
+          "light": "media/provider-icons/codex.png",
+          "dark": "media/provider-icons/codex.png"
         }
       },
       {
         "command": "agentsHub.switchProviderActive.codex",
         "title": "%command.switchProvider.codex.title%",
         "icon": {
-          "light": "media/provider-icons/codex.svg",
-          "dark": "media/provider-icons/codex.svg"
+          "light": "media/provider-icons/codex.png",
+          "dark": "media/provider-icons/codex.png"
         }
       },
       {
         "command": "agentsHub.switchProvider.opencode",
         "title": "%command.switchProvider.opencode.title%",
         "icon": {
-          "light": "media/provider-icons/opencode.svg",
-          "dark": "media/provider-icons/opencode.svg"
+          "light": "media/provider-icons/opencode.png",
+          "dark": "media/provider-icons/opencode.png"
         }
       },
       {
         "command": "agentsHub.switchProviderActive.opencode",
         "title": "%command.switchProvider.opencode.title%",
         "icon": {
-          "light": "media/provider-icons/opencode.svg",
-          "dark": "media/provider-icons/opencode.svg"
+          "light": "media/provider-icons/opencode.png",
+          "dark": "media/provider-icons/opencode.png"
         }
       },
       {
         "command": "agentsHub.switchProvider.goose",
         "title": "%command.switchProvider.goose.title%",
         "icon": {
-          "light": "media/provider-icons/goose.svg",
-          "dark": "media/provider-icons/goose.svg"
+          "light": "media/provider-icons/goose-light.png",
+          "dark": "media/provider-icons/goose-dark.png"
         }
       },
       {
         "command": "agentsHub.switchProviderActive.goose",
         "title": "%command.switchProvider.goose.title%",
         "icon": {
-          "light": "media/provider-icons/goose.svg",
-          "dark": "media/provider-icons/goose.svg"
+          "light": "media/provider-icons/goose-light.png",
+          "dark": "media/provider-icons/goose-dark.png"
         }
       },
       {
         "command": "agentsHub.switchProvider.aider",
         "title": "%command.switchProvider.aider.title%",
         "icon": {
-          "light": "media/provider-icons/aider.svg",
-          "dark": "media/provider-icons/aider.svg"
+          "light": "media/provider-icons/aider.png",
+          "dark": "media/provider-icons/aider.png"
         }
       },
       {
         "command": "agentsHub.switchProviderActive.aider",
         "title": "%command.switchProvider.aider.title%",
         "icon": {
-          "light": "media/provider-icons/aider.svg",
-          "dark": "media/provider-icons/aider.svg"
+          "light": "media/provider-icons/aider.png",
+          "dark": "media/provider-icons/aider.png"
         }
       }
     ],

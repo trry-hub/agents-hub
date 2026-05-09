@@ -1080,6 +1080,14 @@ test('extension contributes provider logo buttons to the native view title', () 
   const extensionSource = readFileSync(new URL('../src/extension.ts', import.meta.url), 'utf8');
   const sidebarSource = readFileSync(new URL('../src/sidebarProvider.ts', import.meta.url), 'utf8');
   const providers = ['claude', 'gemini', 'codex', 'opencode', 'goose', 'aider'];
+  const providerIcons = {
+    claude: { light: 'media/provider-icons/claude.svg', dark: 'media/provider-icons/claude.svg' },
+    gemini: { light: 'media/provider-icons/gemini.png', dark: 'media/provider-icons/gemini.png' },
+    codex: { light: 'media/provider-icons/codex.png', dark: 'media/provider-icons/codex.png' },
+    opencode: { light: 'media/provider-icons/opencode.png', dark: 'media/provider-icons/opencode.png' },
+    goose: { light: 'media/provider-icons/goose-light.png', dark: 'media/provider-icons/goose-dark.png' },
+    aider: { light: 'media/provider-icons/aider.png', dark: 'media/provider-icons/aider.png' },
+  };
   const commands = manifest.contributes.commands;
   const titleActions = manifest.contributes.menus['view/title'];
   const commandPalette = manifest.contributes.menus.commandPalette;
@@ -1089,9 +1097,17 @@ test('extension contributes provider logo buttons to the native view title', () 
     const activeCommand = commands.find((item) => item.command === `agentsHub.switchProviderActive.${provider}`);
     assert.ok(command, `missing provider command for ${provider}`);
     assert.ok(activeCommand, `missing active provider command for ${provider}`);
-    assert.equal(command.icon.light, `media/provider-icons/${provider}.svg`);
-    assert.equal(activeCommand.icon.light, `media/provider-icons/${provider}.svg`);
-    assert.match(readFileSync(new URL(`../media/provider-icons/${provider}.svg`, import.meta.url), 'utf8'), /<svg/);
+    assert.deepEqual(command.icon, providerIcons[provider]);
+    assert.deepEqual(activeCommand.icon, providerIcons[provider]);
+    for (const iconPath of new Set(Object.values(providerIcons[provider]))) {
+      const icon = readFileSync(new URL(`../${iconPath}`, import.meta.url));
+      assert.ok(icon.length > 0, `missing provider icon asset for ${provider}`);
+      if (iconPath.endsWith('.svg')) {
+        assert.match(icon.toString('utf8'), /<svg/);
+      } else {
+        assert.equal(icon.subarray(1, 4).toString('ascii'), 'PNG');
+      }
+    }
     assert.ok(titleActions.some((item) => (
       item.command === `agentsHub.switchProvider.${provider}` &&
       item.when.includes('view == agentsHub.sidebar') &&
