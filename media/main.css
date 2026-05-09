@@ -322,12 +322,12 @@ select {
 }
 
 .toolbar-main .provider-tabs {
-  margin-left: 2px;
+  margin-left: 4px;
 }
 
 .provider-tabs {
   min-width: 0;
-  max-width: min(44vw, 280px);
+  max-width: min(62vw, 380px);
   height: 28px;
   display: inline-flex;
   align-items: stretch;
@@ -392,6 +392,7 @@ select {
 }
 
 .provider-tab-button.is-active {
+  max-width: none;
   z-index: 1;
   color: var(--vscode-foreground);
   background: color-mix(in srgb, var(--assistant-accent) 14%, transparent);
@@ -413,14 +414,17 @@ select {
 
 .provider-tab-version {
   min-width: 0;
-  max-width: 58px;
-  overflow: hidden;
+  overflow: visible;
   color: inherit;
   font-size: 11px;
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.toolbar-refresh {
+  margin-left: 3px;
+  flex: 0 0 auto;
 }
 
 #providerSelect:focus,
@@ -2772,16 +2776,12 @@ textarea:disabled {
   }
 
   .provider-tabs {
-    max-width: min(52vw, 190px);
+    max-width: min(62vw, 260px);
   }
 
   .provider-tab-button {
     min-width: 28px;
     padding: 0 6px;
-  }
-
-  .provider-tab-version {
-    max-width: 44px;
   }
 
   .composer-meta {

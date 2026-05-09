@@ -1094,15 +1094,20 @@ test('webview renders installed provider logo tabs in the header', () => {
   const titleActions = manifest.contributes.menus['view/title'] || [];
 
   assert.match(html, /<div class="provider-tabs" id="providerTabs" role="tablist" aria-label="Provider tabs"/);
-  assert.match(html, /<div class="toolbar-actions"[\s\S]*<\/div>\s*<div class="provider-tabs" id="providerTabs"/);
+  assert.match(html, /<div class="toolbar-actions"[\s\S]*id="deleteThreadBtn"[\s\S]*<\/div>\s*<div class="provider-tabs" id="providerTabs"[\s\S]*<\/div>\s*<button class="tool-button toolbar-refresh" id="refreshBtn"/);
   assert.doesNotMatch(JSON.stringify(commands), /activeProviderIndicator|switchProvider/);
   assert.doesNotMatch(JSON.stringify(titleActions), /activeProviderIndicator|switchProvider/);
   assert.match(css, /\.provider-tabs\s*\{/);
   assert.match(css, /\.provider-tab-button\s*\{/);
   assert.match(css, /\.provider-tab-button\.is-active\s*\{/);
+  assert.match(css, /\.provider-tab-button\.is-active\s*\{\s*[^}]*max-width:\s*none;/s);
   assert.match(css, /\.provider-tab-logo\s*\{/);
   assert.match(css, /\.provider-tab-version\s*\{/);
+  assert.match(css, /\.provider-tab-version\s*\{\s*[^}]*overflow:\s*visible;/s);
+  assert.doesNotMatch(css, /\.provider-tab-version\s*\{[^}]*text-overflow:\s*ellipsis;/s);
+  assert.match(css, /\.toolbar-refresh\s*\{/);
   assert.match(script, /const providerTabs = document\.getElementById\('providerTabs'\)/);
+  assert.match(script, /return value\.replace\(\s*\/\^v\/i,\s*''\s*\);/);
   assert.match(script, /function renderProviderTabs\(\)/);
   assert.match(script, /const availableProfiles = installedProfiles\(\)/);
   assert.match(script, /button\.className = `provider-tab-button\$\{isActive \? ' is-active' : ''\}`/);
@@ -1207,7 +1212,7 @@ test('webview composer controls wrap before narrow sidebars clip the send button
   const css = readFileSync(new URL('../media/main.css', import.meta.url), 'utf8');
 
   assert.match(css, /@media \(max-width:\s*460px\)\s*\{[\s\S]*?\.prompt-selectors\s*\{[\s\S]*?flex-wrap:\s*wrap;/s);
-  assert.match(css, /@media \(max-width:\s*460px\)\s*\{[\s\S]*?\.provider-tabs\s*\{[\s\S]*?max-width:\s*min\(52vw,\s*190px\);/s);
+  assert.match(css, /@media \(max-width:\s*460px\)\s*\{[\s\S]*?\.provider-tabs\s*\{[\s\S]*?max-width:\s*min\(62vw,\s*260px\);/s);
   assert.match(css, /\.composer\s*\{\s*[^}]*min-width:\s*0;/s);
   assert.match(css, /\.composer\s*\{\s*[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);/s);
   assert.match(css, /\.prompt-shell\s*\{\s*[^}]*min-width:\s*0;/s);

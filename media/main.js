@@ -423,7 +423,7 @@
       return '';
     }
 
-    return value.startsWith('v') ? value : `v${value}`;
+    return value.replace(/^v/i, '');
   }
 
   function providerIconUri(profile) {
