@@ -97,6 +97,7 @@
   const imageFileInput = document.getElementById('imageFileInput');
   const sendBtn = document.getElementById('sendBtn');
   const stopBtn = document.getElementById('stopBtn');
+  const composerSettingsBtn = document.getElementById('composerSettingsBtn');
   const newChatBtn = document.getElementById('newChatBtn');
   const reloadBtn = document.getElementById('reloadBtn');
   const apiSettingsPage = document.getElementById('apiProviderSettingsPage');
@@ -2855,7 +2856,7 @@
         `${profile?.name || i18n.t('provider.label')} · ${displayMode?.description || displayMode?.label || ''}`.trim()
       );
     }
-    modeMenu?.classList.toggle('is-visible', Boolean(profile && modes.length > 1));
+    modeMenu?.classList.toggle('is-visible', Boolean(profile && (profile?.id === 'opencode' || modes.length > 1)));
   }
 
   function renderAgentModeOptionList(modes, selectedId) {
@@ -3615,6 +3616,10 @@
 
   reloadBtn?.addEventListener('click', () => {
     vscode.postMessage({ command: 'reloadWindow' });
+  });
+
+  composerSettingsBtn?.addEventListener('click', () => {
+    vscode.postMessage({ command: 'openSettings' });
   });
 
   apiSettingsBack?.addEventListener('click', closeApiProviderSettings);

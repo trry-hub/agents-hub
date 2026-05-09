@@ -902,10 +902,20 @@ test('webview composer follows the selected provider identity', () => {
   assert.match(css, /body\[data-provider="opencode"\] \.model-menu\.is-visible,\s*body\[data-provider="opencode"\] \.mode-menu\.is-visible/s);
   assert.match(css, /body\[data-provider="opencode"\] \.model-menu \.option-summary::before\s*\{\s*[^}]*display:\s*none;/s);
   assert.match(html, /class="context-row"[\s\S]*class="context-menu"/);
-  assert.match(css, /body\[data-provider="opencode"\] \.context-row\s*\{\s*[^}]*padding:\s*0 8px 6px;/s);
+  assert.match(html, /id="composerSettingsBtn"/);
+  assert.match(script, /const composerSettingsBtn = document\.getElementById\('composerSettingsBtn'\)/);
+  assert.match(script, /composerSettingsBtn\?\.addEventListener\('click'/);
+  assert.match(script, /profile\?\.id === 'opencode' \|\| modes\.length > 1/);
+  assert.match(css, /body\[data-provider="opencode"\] \.context-row\s*\{\s*[^}]*display:\s*none;/s);
+  assert.match(css, /body\[data-provider="opencode"\] \.context-row\s*\{\s*[^}]*padding:\s*0;/s);
   assert.match(css, /body\[data-provider="opencode"\] #contextSummaryLabel\s*\{\s*[^}]*display:\s*none;/s);
-  assert.match(css, /body\[data-provider="opencode"\] \.model-menu\.is-visible\s*\{\s*[^}]*flex:\s*0 1 116px;/s);
-  assert.match(css, /body\[data-provider="opencode"\] \.mode-menu\.is-visible\s*\{\s*[^}]*max-width:\s*152px;/s);
+  assert.match(css, /body\[data-provider="opencode"\] \.mode-menu\.is-visible\s*\{\s*[^}]*order:\s*2;/s);
+  assert.match(css, /body\[data-provider="opencode"\] \.model-menu\.is-visible\s*\{\s*[^}]*order:\s*3;/s);
+  assert.match(css, /body\[data-provider="opencode"\] \.composer-settings-button\s*\{\s*[^}]*order:\s*4;/s);
+  assert.match(css, /body\[data-provider="opencode"\] \.composer-meta\s*\{\s*[^}]*order:\s*5;/s);
+  assert.match(css, /body\[data-provider="opencode"\] #contextBudgetLabel\s*\{\s*[^}]*display:\s*none;/s);
+  assert.match(css, /body\[data-provider="opencode"\] \.model-menu\.is-visible\s*\{\s*[^}]*flex:\s*0 1 112px;/s);
+  assert.match(css, /body\[data-provider="opencode"\] \.mode-menu\.is-visible\s*\{\s*[^}]*max-width:\s*136px;/s);
   assert.match(css, /body\[data-provider="opencode"\] \.mode-summary,\s*body\[data-provider="opencode"\] \.option-summary,\s*body\[data-provider="opencode"\] \.context-summary\s*\{[^}]*border:\s*1px solid transparent;/s);
   assert.match(css, /body\[data-provider="opencode"\] \.mode-summary,\s*body\[data-provider="opencode"\] \.option-summary,\s*body\[data-provider="opencode"\] \.context-summary\s*\{[^}]*background:\s*transparent;/s);
   assert.match(css, /body\[data-provider="opencode"\] \.context-summary \.chip-prefix\s*\{\s*[^}]*width:\s*11px;/s);
@@ -1501,7 +1511,7 @@ test('webview hides low-value default composer chips', () => {
   const script = readFileSync(new URL('../media/main.js', import.meta.url), 'utf8');
   const css = readFileSync(new URL('../media/main.css', import.meta.url), 'utf8');
 
-  assert.match(script, /modeMenu\?\.classList\.toggle\('is-visible', Boolean\(profile && modes\.length > 1\)\);/);
+  assert.match(script, /modeMenu\?\.classList\.toggle\('is-visible', Boolean\(profile && \(profile\?\.id === 'opencode' \|\| modes\.length > 1\)\)\);/);
   assert.match(script, /forceContextMenuVisible/);
   assert.match(script, /contextSummary\.workspace/);
   assert.match(css, /\.mode-menu,\s*\.context-menu\s*\{\s*[^}]*display:\s*none;/s);

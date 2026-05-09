@@ -2345,8 +2345,9 @@ body[data-provider="opencode"] .prompt-actions {
 }
 
 body[data-provider="opencode"] .context-row {
-  min-height: 22px;
-  padding: 0 8px 6px;
+  display: none;
+  min-height: 0;
+  padding: 0;
 }
 
 body[data-provider="opencode"] .prompt-selectors {
@@ -2357,12 +2358,25 @@ body[data-provider="opencode"] .prompt-selectors {
 
 body[data-provider="opencode"] .attach-button {
   order: 1;
+  position: relative;
   width: 24px;
   height: 24px;
+  margin-right: 7px;
   border: 0;
   border-radius: 5px;
   color: color-mix(in srgb, var(--vscode-foreground) 58%, var(--assistant-muted));
   background: transparent;
+}
+
+body[data-provider="opencode"] .attach-button::after {
+  content: "";
+  position: absolute;
+  right: -5px;
+  top: 5px;
+  bottom: 5px;
+  width: 1px;
+  background: color-mix(in srgb, var(--assistant-border) 82%, transparent);
+  pointer-events: none;
 }
 
 body[data-provider="opencode"] .attach-button:hover,
@@ -2384,14 +2398,39 @@ body[data-provider="opencode"] .context-menu.is-visible {
 }
 
 body[data-provider="opencode"] .model-menu.is-visible {
-  order: 2;
-  flex: 0 1 116px;
+  order: 3;
+  flex: 0 1 112px;
 }
 
 body[data-provider="opencode"] .mode-menu.is-visible {
-  order: 3;
-  flex: 1 1 132px;
-  max-width: 152px;
+  order: 2;
+  flex: 0 1 118px;
+  max-width: 136px;
+}
+
+body[data-provider="opencode"] .composer-settings-button {
+  order: 4;
+  display: inline-grid;
+  color: color-mix(in srgb, var(--vscode-foreground) 58%, var(--assistant-muted));
+}
+
+body[data-provider="opencode"] .composer-meta {
+  order: 5;
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+
+body[data-provider="opencode"] .context-budget {
+  width: 24px;
+  max-width: 24px;
+  justify-content: center;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+}
+
+body[data-provider="opencode"] #contextBudgetLabel {
+  display: none;
 }
 
 body[data-provider="opencode"] .mode-summary,
@@ -2415,11 +2454,11 @@ body[data-provider="opencode"] .model-menu .option-summary::before {
 }
 
 body[data-provider="opencode"] .model-menu .option-summary {
-  max-width: 116px;
+  max-width: 112px;
 }
 
 body[data-provider="opencode"] .mode-summary {
-  max-width: 152px;
+  max-width: 136px;
 }
 
 body[data-provider="opencode"] .context-summary {
@@ -2630,6 +2669,37 @@ body[data-provider="opencode"] .send-button:disabled svg {
   color: var(--assistant-muted);
   line-height: 1;
   flex: 0 0 auto;
+}
+
+.composer-settings-button {
+  width: 24px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  color: var(--assistant-muted);
+  background: transparent;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.composer-settings-button svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.composer-settings-button:hover,
+.composer-settings-button:focus-visible {
+  color: var(--vscode-foreground);
+  background: var(--assistant-hover);
+  outline: none;
 }
 
 .select-field {
