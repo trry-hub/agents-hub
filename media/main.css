@@ -1803,7 +1803,7 @@ body[data-provider="opencode"] .prompt-shell {
 }
 
 body[data-provider="opencode"] .prompt-shell:focus-within {
-  border-color: color-mix(in srgb, var(--assistant-accent) 58%, var(--assistant-border));
+  border-color: color-mix(in srgb, var(--assistant-muted) 34%, var(--assistant-border));
 }
 
 body[data-provider="opencode"] .composer {
@@ -1821,11 +1821,11 @@ body[data-provider="opencode"] textarea {
 }
 
 body[data-provider="opencode"] .prompt-actions {
-  min-height: 40px;
+  min-height: 36px;
   grid-template-columns: minmax(0, 1fr) 30px;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
-  padding: 6px 7px 7px 8px;
+  padding: 5px 7px 6px 8px;
   border-top: 1px solid color-mix(in srgb, var(--assistant-border) 82%, transparent);
 }
 
@@ -1837,11 +1837,11 @@ body[data-provider="opencode"] .prompt-selectors {
 
 body[data-provider="opencode"] .attach-button {
   order: 1;
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   border: 0;
-  border-radius: 7px;
-  color: color-mix(in srgb, var(--vscode-foreground) 72%, var(--assistant-muted));
+  border-radius: 5px;
+  color: color-mix(in srgb, var(--vscode-foreground) 58%, var(--assistant-muted));
   background: transparent;
 }
 
@@ -1877,16 +1877,16 @@ body[data-provider="opencode"] .mode-menu.is-visible {
 body[data-provider="opencode"] .mode-summary,
 body[data-provider="opencode"] .option-summary,
 body[data-provider="opencode"] .context-summary {
-  height: 26px;
+  height: 24px;
   max-width: 100%;
-  gap: 6px;
-  padding: 0 8px;
-  border: 1px solid color-mix(in srgb, var(--assistant-border) 78%, transparent);
-  border-radius: 7px;
-  color: color-mix(in srgb, var(--vscode-foreground) 84%, var(--assistant-muted));
-  background: color-mix(in srgb, var(--assistant-panel) 42%, transparent);
+  gap: 5px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  color: color-mix(in srgb, var(--vscode-foreground) 68%, var(--assistant-muted));
+  background: transparent;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: 0;
 }
 
@@ -1905,14 +1905,14 @@ body[data-provider="opencode"] .mode-summary {
 body[data-provider="opencode"] .context-summary {
   max-width: 54px;
   gap: 4px;
-  padding: 0 6px;
-  font-weight: 500;
+  padding: 0 5px;
+  font-weight: 400;
 }
 
 body[data-provider="opencode"] .context-summary .chip-prefix {
-  width: 8px;
-  height: 8px;
-  border: 2px solid color-mix(in srgb, var(--assistant-muted) 42%, transparent);
+  width: 7px;
+  height: 7px;
+  border: 1.5px solid color-mix(in srgb, var(--assistant-muted) 36%, transparent);
   border-radius: 50%;
   color: transparent;
   font-size: 0;
@@ -1932,7 +1932,7 @@ body[data-provider="opencode"] .mode-summary::after,
 body[data-provider="opencode"] .context-summary::after {
   width: 4px;
   height: 4px;
-  opacity: 0.56;
+  opacity: 0.42;
 }
 
 body[data-provider="opencode"] .mode-menu[open] .mode-summary,
@@ -1942,8 +1942,8 @@ body[data-provider="opencode"] .mode-summary:hover,
 body[data-provider="opencode"] .option-summary:hover,
 body[data-provider="opencode"] .context-summary:hover {
   color: var(--vscode-foreground);
-  border-color: color-mix(in srgb, var(--assistant-accent) 34%, var(--assistant-border));
-  background: color-mix(in srgb, var(--assistant-accent) 8%, var(--assistant-panel));
+  border-color: color-mix(in srgb, var(--assistant-border) 70%, transparent);
+  background: color-mix(in srgb, var(--assistant-hover) 55%, transparent);
 }
 
 body[data-provider="opencode"] .prompt-tools {
