@@ -1825,10 +1825,10 @@ textarea:focus {
 
 .message-content {
   display: grid;
-  gap: 2px;
+  gap: 6px;
   color: var(--vscode-foreground);
   font-size: 13px;
-  line-height: 1.36;
+  line-height: 1.5;
 }
 
 .message-content:empty {
@@ -1848,11 +1848,11 @@ textarea:focus {
 }
 
 .md-spacer {
-  height: 1px;
+  height: 5px;
 }
 
 .md-heading {
-  margin: 2px 0 0;
+  margin: 8px 0 2px;
   color: var(--vscode-foreground);
   font-weight: 700;
 }
@@ -1879,14 +1879,22 @@ textarea:focus {
 .md-paragraph,
 .md-list-item,
 .md-numbered-item {
-  min-height: 1.28em;
+  min-height: 1.4em;
+}
+
+.md-section-label {
+  margin: 10px 0 2px;
+  color: var(--assistant-muted);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0;
 }
 
 .md-list-item,
 .md-numbered-item {
   display: grid;
   grid-template-columns: 11px minmax(0, 1fr);
-  column-gap: 4px;
+  column-gap: 7px;
   margin-left: 1px;
 }
 
@@ -1911,6 +1919,7 @@ textarea:focus {
 
 .md-table-wrap {
   max-width: 100%;
+  margin: 4px 0 2px;
   overflow-x: auto;
   border: 1px solid var(--assistant-border);
   border-radius: 6px;
@@ -1961,7 +1970,7 @@ textarea:focus {
   background: var(--vscode-editor-background);
   font-family: var(--vscode-editor-font-family);
   font-size: 12px;
-  line-height: 1.36;
+  line-height: 1.45;
   white-space: pre;
   tab-size: 2;
   scrollbar-width: thin;

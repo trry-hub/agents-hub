@@ -3375,6 +3375,15 @@
       const line = lines[index];
       const trimmed = line.trim();
 
+      const structuralTag = parseAssistantMarkupTag(trimmed);
+      if (structuralTag) {
+        if (!structuralTag.closing) {
+          appendAssistantSectionLabel(container, structuralTag.name);
+        }
+        index += 1;
+        continue;
+      }
+
       if (trimmed.startsWith('```')) {
         const language = trimmed.replace(/^```/, '').trim();
         const codeLines = [];
@@ -3397,7 +3406,14 @@
           tableLines.push(lines[index]);
           index += 1;
         }
-        appendTable(container, tableLines);
+        appendTable(container, tableLines, 'pipe');
+        continue;
+      }
+
+      const tabbedTable = readTabbedTable(lines, index);
+      if (tabbedTable) {
+        appendTable(container, tabbedTable.lines, tabbedTable.kind);
+        index += tabbedTable.lines.length;
         continue;
       }
 
@@ -3413,6 +3429,10 @@
 
     for (const line of lines) {
       const trimmed = line.trim();
+
+      if (parseAssistantMarkupTag(trimmed)) {
+        continue;
+      }
 
       if (trimmed.startsWith('```')) {
         inCodeBlock = !inCodeBlock;
@@ -3451,7 +3471,7 @@
         continue;
       }
 
-      const bullet = /^[-*]\s+(.+)$/.exec(trimmed);
+      const bullet = /^[-*•]\s+(.+)$/.exec(trimmed);
       if (bullet) {
         output.push(`• ${stripInlineMarkdown(bullet[1])}`);
         continue;
@@ -3465,6 +3485,11 @@
 
       if (isTableRow(line)) {
         output.push(splitTableCells(line).map(stripInlineMarkdown).join('\t'));
+        continue;
+      }
+
+      if (isTabbedTableRow(line)) {
+        output.push(splitTabbedCells(line).map(stripInlineMarkdown).join('\t'));
         continue;
       }
 
@@ -3534,6 +3559,14 @@
       return;
     }
 
+    const structuralTag = parseAssistantMarkupTag(trimmed);
+    if (structuralTag) {
+      if (!structuralTag.closing) {
+        appendAssistantSectionLabel(container, structuralTag.name);
+      }
+      return;
+    }
+
     const heading = /^(#{1,6})\s+(.+)$/.exec(trimmed);
     if (heading) {
       const node = document.createElement('div');
@@ -3565,7 +3598,7 @@
       return;
     }
 
-    const bullet = /^[-*]\s+(.+)$/.exec(trimmed);
+    const bullet = /^[-*•]\s+(.+)$/.exec(trimmed);
     if (bullet) {
       appendListItem(container, '•', bullet[1], 'md-list-item');
       return;
@@ -3583,8 +3616,73 @@
     container.appendChild(paragraph);
   }
 
+  function parseAssistantMarkupTag(line) {
+    const tag = /^<\/?([a-z][\w-]*)>\s*$/i.exec(line);
+    if (!tag) {
+      return null;
+    }
+
+    const name = tag[1].toLowerCase();
+    if (!Object.prototype.hasOwnProperty.call(assistantSectionLabels(), name)) {
+      return null;
+    }
+
+    return { name, closing: line.startsWith('</') };
+  }
+
+  function appendAssistantSectionLabel(container, name) {
+    const label = document.createElement('div');
+    label.className = 'md-section-label';
+    label.textContent = assistantSectionLabel(name);
+    container.appendChild(label);
+  }
+
+  function assistantSectionLabel(name) {
+    return assistantSectionLabels()[name] || name.replace(/[_-]+/g, ' ');
+  }
+
+  function assistantSectionLabels() {
+    return {
+      analysis: 'Analysis',
+      results: 'Results',
+      files: 'Files',
+      answer: 'Answer',
+      next_steps: 'Next steps',
+    };
+  }
+
   function isTableStart(lines, index) {
     return isTableRow(lines[index]) && isTableSeparator(lines[index + 1]);
+  }
+
+  function readTabbedTable(lines, startIndex) {
+    if (!isTabbedTableRow(lines[startIndex]) || !isTabbedTableRow(lines[startIndex + 1])) {
+      return null;
+    }
+
+    const tableLines = [];
+    let index = startIndex;
+    while (index < lines.length && isTabbedTableRow(lines[index])) {
+      tableLines.push(lines[index]);
+      index += 1;
+    }
+
+    return { lines: tableLines, kind: 'tabbed' };
+  }
+
+  function isTabbedTableRow(line) {
+    if (typeof line !== 'string' || !line.includes('\t')) {
+      return false;
+    }
+
+    return splitTabbedCells(line).length >= 2;
+  }
+
+  function splitTabbedCells(line) {
+    return String(line || '')
+      .split('\t')
+      .map((cell) => cell.trim())
+      .filter((cell) => cell.length > 0);
   }
 
   function isTableRow(line) {
@@ -3610,9 +3708,10 @@
     return cells.map((cell) => cell.trim());
   }
 
-  function appendTable(container, lines) {
-    const headers = splitTableCells(lines[0]);
-    const rows = lines.slice(2).map(splitTableCells);
+  function appendTable(container, lines, kind = 'pipe') {
+    const splitCells = kind === 'tabbed' ? splitTabbedCells : splitTableCells;
+    const headers = splitCells(lines[0]);
+    const rows = lines.slice(kind === 'tabbed' ? 1 : 2).map(splitCells);
     const wrap = document.createElement('div');
     wrap.className = 'md-table-wrap';
 
