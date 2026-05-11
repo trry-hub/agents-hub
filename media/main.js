@@ -3580,6 +3580,16 @@
         .join('\n');
     }
 
+    if (node.classList.contains('md-file-list')) {
+      return Array.from(node.querySelectorAll('.md-file-row'))
+        .map((row) => {
+          const path = row.querySelector('.md-file-path')?.textContent || '';
+          const detail = row.querySelector('.md-file-detail')?.textContent || '';
+          return [path, detail].filter(Boolean).join(' - ');
+        })
+        .join('\n');
+    }
+
     if (node.classList.contains('md-list-item') || node.classList.contains('md-numbered-item')) {
       const marker = node.querySelector('.md-marker')?.textContent || '';
       const content = Array.from(node.children)
@@ -4117,8 +4127,15 @@
   }
 
   function createFileResultRow(fileResult) {
-    const row = document.createElement('div');
+    const hasDetail = Boolean(fileResult.detail && !isFileStatsOnly(fileResult.detail));
+    const row = document.createElement(hasDetail ? 'details' : 'div');
     row.className = 'md-file-row';
+    if (hasDetail) {
+      row.dataset.collapsible = 'true';
+    }
+
+    const summary = document.createElement(hasDetail ? 'summary' : 'div');
+    summary.className = 'md-file-row-summary';
 
     const body = document.createElement('div');
     body.className = 'md-file-body';
@@ -4135,19 +4152,23 @@
     appendFileStats(title, fileResult, 'md-file-row-stats');
     body.appendChild(title);
 
-    if (fileResult.detail && !isFileStatsOnly(fileResult.detail)) {
-      const detail = document.createElement('span');
-      detail.className = 'md-file-detail';
-      appendInlineMarkdown(detail, normalizeAssistantDisplayLine(fileResult.detail));
-      body.appendChild(detail);
+    summary.appendChild(body);
+
+    if (hasDetail) {
+      const chevron = document.createElement('span');
+      chevron.className = 'md-file-chevron';
+      chevron.textContent = '⌄';
+      summary.appendChild(chevron);
     }
 
-    const chevron = document.createElement('span');
-    chevron.className = 'md-file-chevron';
-    chevron.textContent = '⌄';
+    row.appendChild(summary);
 
-    row.appendChild(body);
-    row.appendChild(chevron);
+    if (hasDetail) {
+      const detail = document.createElement('div');
+      detail.className = 'md-file-detail';
+      appendInlineMarkdown(detail, normalizeAssistantDisplayLine(fileResult.detail));
+      row.appendChild(detail);
+    }
     return row;
   }
 

@@ -1657,12 +1657,15 @@ test('webview conversation transcript surfaces compact metadata and readable cod
   assert.match(script, /function parseFileResultLine\(text\)/);
   assert.match(script, /function appendFileResultList\(container, fileResults\)/);
   assert.match(script, /function createFileResultRow\(fileResult\)/);
+  assert.match(script, /document\.createElement\(hasDetail \? 'details' : 'div'\)/);
+  assert.match(script, /summary\.className = 'md-file-row-summary';/);
   assert.match(script, /\^\[-\*•\]\\s\+\(\.\+\)\$/);
   assert.match(css, /\.message-content\s*\{\s*[^}]*gap:\s*7px;/s);
   assert.match(css, /\.message-content\s*\{\s*[^}]*line-height:\s*1\.56;/s);
   assert.match(css, /\.md-section-label\s*\{/);
   assert.match(css, /\.md-file-list\s*\{/);
-  assert.match(css, /\.md-file-summary,\s*\.md-file-row\s*\{/);
+  assert.match(css, /\.md-file-summary,\s*\.md-file-row-summary\s*\{/);
+  assert.match(css, /\.md-file-row\[data-collapsible\] \.md-file-row-summary\s*\{/);
   assert.match(css, /\.md-file-path\s*\{/);
   assert.match(css, /\.md-file-detail\s*\{/);
   assert.match(css, /\.md-spacer\s*\{\s*[^}]*height:\s*5px;/s);
