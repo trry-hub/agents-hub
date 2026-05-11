@@ -1936,10 +1936,10 @@ textarea:focus {
   display: grid;
   margin: 2px 0;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--assistant-border) 68%, transparent);
+  border: 1px solid color-mix(in srgb, var(--vscode-foreground) 10%, var(--assistant-border));
   border-radius: 8px;
-  background: color-mix(in srgb, var(--assistant-panel) 58%, var(--assistant-surface));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--assistant-surface) 54%, transparent);
+  background: color-mix(in srgb, var(--vscode-foreground) 4%, var(--assistant-surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vscode-foreground) 3%, transparent);
 }
 
 .md-file-summary,
@@ -1955,8 +1955,8 @@ textarea:focus {
 .md-file-summary {
   min-height: 34px;
   color: var(--vscode-foreground);
-  border-bottom: 1px solid color-mix(in srgb, var(--assistant-border) 62%, transparent);
-  background: color-mix(in srgb, var(--assistant-panel) 74%, var(--assistant-surface));
+  border-bottom: 1px solid color-mix(in srgb, var(--vscode-foreground) 8%, var(--assistant-border));
+  background: color-mix(in srgb, var(--vscode-foreground) 7%, var(--assistant-surface));
   font-size: 12px;
   font-weight: 500;
 }
@@ -1979,12 +1979,12 @@ textarea:focus {
 
 .md-file-row {
   min-height: 34px;
-  border-top: 1px solid color-mix(in srgb, var(--assistant-border) 46%, transparent);
-  background: color-mix(in srgb, var(--assistant-surface) 76%, var(--assistant-panel));
+  border-top: 1px solid color-mix(in srgb, var(--vscode-foreground) 6%, transparent);
+  background: color-mix(in srgb, var(--vscode-foreground) 3%, var(--assistant-surface));
 }
 
 .md-file-row:nth-child(2n + 1) {
-  background: color-mix(in srgb, var(--assistant-surface) 66%, var(--assistant-panel));
+  background: color-mix(in srgb, var(--vscode-foreground) 5%, var(--assistant-surface));
 }
 
 .md-file-row-summary {
@@ -2000,7 +2000,7 @@ textarea:focus {
 }
 
 .md-file-row[data-collapsible] .md-file-row-summary:hover {
-  background: color-mix(in srgb, var(--assistant-hover) 64%, var(--assistant-panel));
+  background: color-mix(in srgb, var(--vscode-foreground) 8%, var(--assistant-surface));
 }
 
 .md-file-row-summary:focus-visible {
@@ -2042,9 +2042,9 @@ textarea:focus {
   min-width: 0;
   display: block;
   padding: 7px 34px 9px 10px;
-  border-top: 1px solid color-mix(in srgb, var(--assistant-border) 38%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--vscode-foreground) 6%, transparent);
   color: var(--assistant-muted);
-  background: color-mix(in srgb, var(--assistant-panel) 46%, transparent);
+  background: color-mix(in srgb, var(--vscode-foreground) 6%, var(--assistant-surface));
   font-size: 11.5px;
   line-height: 1.4;
 }
