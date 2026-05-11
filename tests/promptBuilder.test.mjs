@@ -1575,6 +1575,13 @@ test('webview conversation transcript surfaces compact metadata and readable cod
   assert.match(css, /\.message-status\s*\{\s*[^}]*border:\s*0;/s);
   assert.match(script, /function syncMessageStatusTimer\(shouldRun\)/);
   assert.match(script, /messageStatusTimer = setInterval\(\(\) => \{\s*renderMessages\(\);[\s\S]*?\}, 1000\);/);
+  assert.match(script, /const MESSAGE_BOTTOM_STICKY_THRESHOLD = 48;/);
+  assert.match(script, /function shouldAutoScrollMessages\(threadKey\)/);
+  assert.match(script, /function restoreMessageScroll\(shouldStickToBottom, previousScrollTop, threadKey\)/);
+  assert.match(script, /const shouldStickToBottom = shouldAutoScrollMessages\(messageThreadKey\);/);
+  assert.match(script, /const previousScrollTop = messages\.scrollTop;/);
+  assert.match(script, /restoreMessageScroll\(shouldStickToBottom, previousScrollTop, messageThreadKey\);/);
+  assert.doesNotMatch(script, /syncMessageStatusTimer\(hasVisibleRunningMessage\);\s*messages\.scrollTop = messages\.scrollHeight;/);
   assert.match(script, /function runningMessageStatusText\(stage, startedAt\)/);
   assert.match(script, /i18n\.t\('message\.statusElapsed', \{ status: stage, elapsed \}\)/);
   assert.match(script, /item\.runningNotice \|\|[\s\S]*item\.text \? i18n\.t\('message\.generating'\) : i18n\.t\('message\.thinking'\),\s*item\.startedAt/s);

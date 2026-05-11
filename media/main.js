@@ -12,6 +12,7 @@
   const TASK_STATUSES = ['preparing', 'running', 'completed', 'failed', 'stopped'];
   const TASK_ACTIVE_STATUSES = ['preparing', 'running'];
   const VISUAL_TASK_BOARD_ENABLED = false;
+  const MESSAGE_BOTTOM_STICKY_THRESHOLD = 48;
 
   const saved = vscode.getState() || {};
   let profiles = [];
@@ -47,6 +48,7 @@
   let pendingByProvider = {};
   let pendingThreadByProvider = {};
   let messageStatusTimer = undefined;
+  let renderedMessageThreadKey = '';
   let promptAttachments = [];
 
   const taskBoard = document.getElementById('taskBoard');
@@ -2463,6 +2465,9 @@
   function renderMessages() {
     const conversation = ensureConversation(activeId);
     const activeThread = ensureActiveThread(activeId);
+    const messageThreadKey = `${activeId || 'none'}:${activeThread?.id || 'none'}`;
+    const shouldStickToBottom = shouldAutoScrollMessages(messageThreadKey);
+    const previousScrollTop = messages.scrollTop;
     const isPending = Boolean(pendingByProvider[activeId]);
     const selectedProfile = activeProfile();
     messages.innerHTML = '';
@@ -2479,6 +2484,7 @@
         true,
         firstInstallHintProfile?.installHint
       );
+      restoreMessageScroll(shouldStickToBottom, previousScrollTop, messageThreadKey);
       return;
     }
 
@@ -2491,10 +2497,12 @@
           true,
           selectedProfile.installHint
         );
+        restoreMessageScroll(shouldStickToBottom, previousScrollTop, messageThreadKey);
         return;
       }
 
       appendEmptyState(i18n.t('empty.title'), i18n.t('empty.subtitle'));
+      restoreMessageScroll(shouldStickToBottom, previousScrollTop, messageThreadKey);
       return;
     }
 
@@ -2546,7 +2554,30 @@
     }
 
     syncMessageStatusTimer(hasVisibleRunningMessage);
-    messages.scrollTop = messages.scrollHeight;
+    restoreMessageScroll(shouldStickToBottom, previousScrollTop, messageThreadKey);
+  }
+
+  function shouldAutoScrollMessages(threadKey) {
+    if (threadKey !== renderedMessageThreadKey) {
+      return true;
+    }
+
+    if (messages.scrollHeight <= messages.clientHeight) {
+      return true;
+    }
+
+    const distanceFromBottom = messages.scrollHeight - messages.scrollTop - messages.clientHeight;
+    return distanceFromBottom <= MESSAGE_BOTTOM_STICKY_THRESHOLD;
+  }
+
+  function restoreMessageScroll(shouldStickToBottom, previousScrollTop, threadKey) {
+    if (shouldStickToBottom) {
+      messages.scrollTop = messages.scrollHeight;
+    } else {
+      const maxScrollTop = Math.max(0, messages.scrollHeight - messages.clientHeight);
+      messages.scrollTop = Math.min(previousScrollTop, maxScrollTop);
+    }
+    renderedMessageThreadKey = threadKey;
   }
 
   function syncMessageStatusTimer(shouldRun) {
