@@ -1157,17 +1157,15 @@
 
     for (const profile of availableProfiles) {
       const isActive = profile.id === activeId;
-      const versionLabel = formatProviderVersion(profile.version);
       const button = existingButtons.get(profile.id) || document.createElement('button');
 
       button.type = 'button';
       button.dataset.providerId = profile.id;
       button.setAttribute('role', 'tab');
       button.setAttribute('aria-selected', String(isActive));
-      button.title = versionLabel || profile.name || '';
+      button.title = profile.name || '';
       button.disabled = activeIsBusy && !isActive;
       button.className = 'provider-tab-button';
-      button.style.setProperty('--provider-tab-expanded-width', versionLabel ? '74px' : '24px');
       if (isActive) {
         button.classList.add('is-active');
       }
@@ -1188,12 +1186,6 @@
         button.appendChild(fallback);
       }
 
-      if (versionLabel) {
-        const version = document.createElement('span');
-        version.className = 'provider-tab-version';
-        version.textContent = versionLabel;
-        button.appendChild(version);
-      }
 
       providerTabs.appendChild(button);
       existingButtons.delete(profile.id);

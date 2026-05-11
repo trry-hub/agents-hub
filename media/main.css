@@ -343,7 +343,7 @@ select {
 .provider-tabs {
   min-width: 0;
   max-width: min(42vw, 196px);
-  height: 26px;
+  height: 24px;
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
@@ -370,7 +370,6 @@ select {
 
 .provider-tab-button {
   --provider-tab-collapsed-width: 24px;
-  --provider-tab-expanded-width: 112px;
   position: relative;
   width: var(--provider-tab-collapsed-width);
   min-width: var(--provider-tab-collapsed-width);
@@ -418,7 +417,7 @@ select {
 }
 
 .provider-tab-button.is-active {
-  width: var(--provider-tab-expanded-width);
+  width: var(--provider-tab-collapsed-width);
   gap: 6px;
   z-index: 1;
   color: var(--vscode-foreground);
@@ -466,7 +465,6 @@ select {
   min-width: 0;
   max-width: 54px;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 11px;
   line-height: 1;
@@ -1710,6 +1708,9 @@ textarea:focus {
 .message.assistant .message-bubble {
   width: min(100%, 720px);
   max-width: 100%;
+  padding: 0;
+  background: transparent;
+  border: 0;
 }
 
 .message.assistant.is-running .message-bubble {
@@ -1718,8 +1719,9 @@ textarea:focus {
 
 .message.user .message-bubble {
   max-width: min(72%, 520px);
-  padding: 0;
+  padding: 7px 11px;
   color: var(--vscode-foreground, #1f1f1f);
+  border-color: var(--assistant-soft-border);
   background: transparent;
 }
 
@@ -2296,9 +2298,9 @@ textarea:focus {
   min-width: 0;
   width: 100%;
   overflow: visible;
-  padding: 10px;
+  padding: 12px;
   border: 1px solid color-mix(in srgb, var(--assistant-border) 82%, transparent);
-  border-radius: 10px;
+  border-radius: 18px;
   background: color-mix(in srgb, var(--vscode-input-background, var(--assistant-surface)) 92%, var(--assistant-surface));
 }
 
@@ -2311,7 +2313,7 @@ body[data-provider="claude"] .prompt-shell {
   gap: 0;
   padding: 0;
   border-color: #d97757;
-  border-radius: 10px;
+  border-radius: 8px;
   background: var(--vscode-input-background, var(--assistant-surface));
 }
 
@@ -2487,7 +2489,7 @@ body[data-provider="codex"] .codex-terminal-banner[hidden] {
 body[data-provider="codex"] .prompt-shell {
   gap: 0;
   padding: 0;
-  border-radius: 10px;
+  border-radius: 18px;
   background: var(--vscode-input-background, var(--assistant-surface));
 }
 
@@ -2626,9 +2628,9 @@ body[data-provider="opencode"] .composer {
 }
 
 body[data-provider="opencode"] textarea {
-  min-height: 36px;
+  min-height: 38px;
   max-height: 96px;
-  padding: 8px 10px;
+  padding: 6px 8px 2px;
   font-family: var(--vscode-editor-font-family);
   font-size: 13px;
   line-height: 18px;
@@ -2639,7 +2641,7 @@ body[data-provider="opencode"] .prompt-actions {
   grid-template-columns: minmax(0, 1fr) 30px;
   gap: 6px;
   align-items: center;
-  padding: 3px 8px 6px;
+  padding: 1px 6px 5px;
 }
 
 body[data-provider="opencode"] .context-row {
@@ -3709,7 +3711,7 @@ textarea:disabled {
   }
 
   .provider-tab-button.is-active {
-    width: min(var(--provider-tab-expanded-width), calc(100vw - 96px));
+    width: var(--provider-tab-collapsed-width);
   }
 
   .provider-tab-logo {
