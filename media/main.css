@@ -1686,7 +1686,7 @@ textarea:focus {
 
 .message.assistant .message-bubble {
   width: min(100%, 720px);
-  padding: 0 30px 0 0;
+  padding: 0;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -1698,7 +1698,7 @@ textarea:focus {
 
 .message.user .message-bubble {
   max-width: min(72%, 520px);
-  padding: 7px 34px 7px 11px;
+  padding: 7px 11px;
   border-radius: 9px;
   color: var(--vscode-foreground, #1f1f1f);
   background: color-mix(
@@ -1713,7 +1713,7 @@ textarea:focus {
 .message.error .message-bubble {
   position: relative;
   width: min(100%, 720px);
-  padding: 8px 34px 8px 32px;
+  padding: 8px 10px 8px 32px;
   border-radius: 8px;
   color: var(--vscode-errorForeground, #c00);
   background: color-mix(in srgb, var(--vscode-errorForeground, #c00) 7%, var(--assistant-surface));
@@ -1757,10 +1757,14 @@ textarea:focus {
   font-size: 11px;
 }
 
+.message-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-top: 4px;
+}
+
 .message-copy-button {
-  position: absolute;
-  top: 0;
-  right: 0;
   width: 22px;
   height: 22px;
   display: grid;
@@ -1769,9 +1773,9 @@ textarea:focus {
   border: 1px solid transparent;
   border-radius: 5px;
   color: var(--assistant-muted);
-  background: color-mix(in srgb, var(--assistant-surface) 84%, transparent);
+  background: transparent;
   cursor: pointer;
-  opacity: 0;
+  opacity: 0.72;
   transition: opacity 120ms ease, background-color 120ms ease, color 120ms ease;
 }
 
@@ -1786,15 +1790,11 @@ textarea:focus {
   stroke-linejoin: round;
 }
 
-.message-bubble:hover .message-copy-button,
-.message-copy-button:focus-visible {
-  opacity: 1;
-}
-
 .message-copy-button:hover,
 .message-copy-button:focus-visible {
   color: var(--vscode-foreground);
   background: var(--assistant-hover);
+  opacity: 1;
   outline: none;
 }
 

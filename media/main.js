@@ -2101,7 +2101,7 @@
             addMessage(activeId, 'system', i18n.t('slash.copyEmpty'));
             return;
           }
-          vscode.postMessage({ command: 'copyMessageText', text: normalizeMessageText(latest) });
+          vscode.postMessage({ command: 'copyMessageText', text: markdownToCopyPlainText(latest) });
           addMessage(activeId, 'system', i18n.t('slash.copied'));
         }
         return;
@@ -2507,7 +2507,7 @@
     }
 
     let hasVisibleRunningMessage = false;
-    for (const [index, item] of conversation.entries()) {
+    for (const item of conversation) {
       const itemRunning = Boolean(item.running && runningByProvider[activeId]);
       hasVisibleRunningMessage = hasVisibleRunningMessage || itemRunning;
       const wrapper = document.createElement('div');
@@ -2534,9 +2534,12 @@
         appendMessageAttachments(bubble, item.attachments);
       }
 
-      if (item.role !== 'system' && normalizeMessageText(item.text).trim()) {
-        const copyButton = createMessageCopyButton(index);
-        bubble.appendChild(copyButton);
+      if (item.role === 'assistant' && normalizeMessageText(item.text).trim()) {
+        const copyActions = document.createElement('div');
+        copyActions.className = 'message-actions';
+        const copyButton = createMessageCopyButton();
+        copyActions.appendChild(copyButton);
+        bubble.appendChild(copyActions);
       }
 
       if (itemRunning) {
@@ -2585,11 +2588,11 @@
     renderedMessageThreadKey = threadKey;
   }
 
-  function createMessageCopyButton(index) {
+  function createMessageCopyButton() {
     const copyButton = document.createElement('button');
     copyButton.type = 'button';
     copyButton.className = 'message-copy-button';
-    copyButton.dataset.messageCopyIndex = String(index);
+    copyButton.dataset.messageCopy = 'true';
     copyButton.title = i18n.t('message.copy');
     copyButton.setAttribute('aria-label', i18n.t('message.copy'));
     copyButton.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.2 5.2h7v7h-7z"/><path d="M3.8 10.8h-1v-8h8v1"/></svg>';
@@ -3403,6 +3406,125 @@
     }
   }
 
+  function markdownToCopyPlainText(text) {
+    const lines = normalizeMessageText(text).split('\n');
+    const output = [];
+    let inCodeBlock = false;
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+
+      if (trimmed.startsWith('```')) {
+        inCodeBlock = !inCodeBlock;
+        continue;
+      }
+
+      if (inCodeBlock) {
+        output.push(line);
+        continue;
+      }
+
+      if (!trimmed) {
+        output.push('');
+        continue;
+      }
+
+      if (isTableSeparator(trimmed) || /^(-{3,}|\*{3,}|_{3,})$/.test(trimmed)) {
+        continue;
+      }
+
+      const heading = /^(#{1,6})\s+(.+)$/.exec(trimmed);
+      if (heading) {
+        output.push(stripInlineMarkdown(heading[2]));
+        continue;
+      }
+
+      const quote = /^>\s?(.*)$/.exec(trimmed);
+      if (quote) {
+        output.push(stripInlineMarkdown(quote[1]));
+        continue;
+      }
+
+      const task = /^[-*]\s+\[([ xX])\]\s+(.+)$/.exec(trimmed);
+      if (task) {
+        output.push(`${task[1].trim() ? '✓' : '□'} ${stripInlineMarkdown(task[2])}`);
+        continue;
+      }
+
+      const bullet = /^[-*]\s+(.+)$/.exec(trimmed);
+      if (bullet) {
+        output.push(`• ${stripInlineMarkdown(bullet[1])}`);
+        continue;
+      }
+
+      const numbered = /^(\d+)\.\s+(.+)$/.exec(trimmed);
+      if (numbered) {
+        output.push(`${numbered[1]}. ${stripInlineMarkdown(numbered[2])}`);
+        continue;
+      }
+
+      if (isTableRow(line)) {
+        output.push(splitTableCells(line).map(stripInlineMarkdown).join('\t'));
+        continue;
+      }
+
+      output.push(stripInlineMarkdown(line));
+    }
+
+    return output.join('\n').replace(/[ \t]+\n/g, '\n').replace(/\n{4,}/g, '\n\n\n').trim();
+  }
+
+  function stripInlineMarkdown(text) {
+    return String(text || '')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/`([^`]+)`/g, '$1');
+  }
+
+  function renderedMessagePlainText(container) {
+    if (!container) {
+      return '';
+    }
+
+    return Array.from(container.children)
+      .map(renderedMessageLineText)
+      .join('\n')
+      .replace(/[ \t]+\n/g, '\n')
+      .replace(/\n{4,}/g, '\n\n\n')
+      .trim();
+  }
+
+  function renderedMessageLineText(node) {
+    if (!(node instanceof HTMLElement)) {
+      return node?.textContent || '';
+    }
+
+    if (node.classList.contains('md-spacer') || node.classList.contains('md-rule')) {
+      return '';
+    }
+
+    if (node.classList.contains('md-code-wrap')) {
+      return node.querySelector('.md-code-block')?.textContent || '';
+    }
+
+    if (node.classList.contains('md-table-wrap')) {
+      return Array.from(node.querySelectorAll('tr'))
+        .map((row) => Array.from(row.children).map((cell) => cell.textContent || '').join('\t'))
+        .join('\n');
+    }
+
+    if (node.classList.contains('md-list-item') || node.classList.contains('md-numbered-item')) {
+      const marker = node.querySelector('.md-marker')?.textContent || '';
+      const content = Array.from(node.children)
+        .filter((child) => !child.classList.contains('md-marker'))
+        .map((child) => child.textContent || '')
+        .join('');
+      return [marker, content].filter(Boolean).join(' ');
+    }
+
+    return node.textContent || '';
+  }
+
   function appendMarkdownLine(container, line) {
     const trimmed = line.trim();
     if (!trimmed) {
@@ -4010,13 +4132,12 @@
   });
 
   messages.addEventListener('click', (event) => {
-    const copyButton = event.target.closest('[data-message-copy-index]');
+    const copyButton = event.target.closest('[data-message-copy]');
     if (copyButton) {
       event.preventDefault();
       event.stopPropagation();
-      const index = Number(copyButton.dataset.messageCopyIndex);
-      const item = ensureConversation(activeId)[index];
-      const text = normalizeMessageText(item?.text);
+      const body = copyButton.closest('.message-bubble')?.querySelector('.message-content');
+      const text = renderedMessagePlainText(body);
       if (text.trim()) {
         vscode.postMessage({ command: 'copyMessageText', text });
       }
