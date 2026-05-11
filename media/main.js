@@ -2233,9 +2233,9 @@
     contextBudget.classList.toggle('is-unavailable', !isExact);
 
     if (!isExact) {
-      contextBudgetLabel.textContent = 'ctx';
+      contextBudgetLabel.textContent = '';
       contextBudgetPercent.textContent = i18n.t('contextWindow.exactUnavailable', { provider: profile.name });
-      contextBudgetTokens.textContent = tokenUsage.reason || i18n.t('contextWindow.providerManaged', { provider: profile.name });
+      contextBudgetTokens.textContent = i18n.t('contextWindow.providerManaged', { provider: profile.name });
       contextBudgetTokenizer.textContent = tokenUsage.tokenizer
         ? i18n.t('contextWindow.tokenizer', { tokenizer: tokenUsage.tokenizer })
         : '';
@@ -2293,7 +2293,7 @@
 
     const viewportPadding = 10;
     const triggerRect = contextBudget.getBoundingClientRect();
-    const popoverWidth = contextBudgetPopover.offsetWidth;
+    const popoverWidth = Math.min(contextBudgetPopover.offsetWidth || 0, window.innerWidth - viewportPadding * 2);
     let left = 0;
     const rightOverflow = triggerRect.left + left + popoverWidth - (window.innerWidth - viewportPadding);
     if (rightOverflow > 0) {
@@ -2507,7 +2507,8 @@
     }
 
     let hasVisibleRunningMessage = false;
-    for (const item of conversation) {
+    for (let index = 0; index < conversation.length; index += 1) {
+      const item = conversation[index];
       const itemRunning = Boolean(item.running && runningByProvider[activeId]);
       hasVisibleRunningMessage = hasVisibleRunningMessage || itemRunning;
       const wrapper = document.createElement('div');
@@ -2534,10 +2535,13 @@
         appendMessageAttachments(bubble, item.attachments);
       }
 
-      if (item.role === 'assistant' && !itemRunning && normalizeMessageText(item.text).trim()) {
+      if (shouldShowAssistantCopyButton(conversation, index, itemRunning)) {
         const copyActions = document.createElement('div');
         copyActions.className = 'message-actions';
         const copyButton = createMessageCopyButton();
+        const copyGroupStart = assistantCopyGroupStart(conversation, index);
+        copyButton.dataset.messageCopyStart = String(copyGroupStart);
+        copyButton.dataset.messageCopyEnd = String(index);
         copyActions.appendChild(copyButton);
         bubble.appendChild(copyActions);
       }
@@ -2563,6 +2567,44 @@
 
     syncMessageStatusTimer(hasVisibleRunningMessage);
     restoreMessageScroll(shouldStickToBottom, previousScrollTop, messageThreadKey);
+  }
+
+  function shouldShowAssistantCopyButton(conversation, index, itemRunning) {
+    const item = conversation[index];
+    if (item?.role !== 'assistant' || itemRunning || !normalizeMessageText(item.text).trim()) {
+      return false;
+    }
+
+    for (let nextIndex = index + 1; nextIndex < conversation.length; nextIndex += 1) {
+      const next = conversation[nextIndex];
+      if (!next || next.role !== 'assistant') {
+        return true;
+      }
+      const nextRunning = Boolean(next.running && runningByProvider[activeId]);
+      if (nextRunning || normalizeMessageText(next.text).trim()) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  function assistantCopyGroupStart(conversation, index) {
+    let start = index;
+    while (start > 0 && conversation[start - 1]?.role === 'assistant') {
+      start -= 1;
+    }
+    return start;
+  }
+
+  function assistantCopyGroupPlainText(conversation, start, end) {
+    return (conversation || [])
+      .slice(start, end + 1)
+      .filter((item) => item?.role === 'assistant')
+      .map((item) => markdownToCopyPlainText(item.text))
+      .filter(Boolean)
+      .join('\n\n')
+      .trim();
   }
 
   function shouldAutoScrollMessages(threadKey) {
@@ -4857,8 +4899,13 @@
     if (copyButton) {
       event.preventDefault();
       event.stopPropagation();
+      const start = Number(copyButton.dataset.messageCopyStart);
+      const end = Number(copyButton.dataset.messageCopyEnd);
+      const groupText = Number.isInteger(start) && Number.isInteger(end) && end >= start
+        ? assistantCopyGroupPlainText(ensureConversation(activeId), start, end)
+        : '';
       const body = copyButton.closest('.message-bubble')?.querySelector('.message-content');
-      const text = renderedMessagePlainText(body);
+      const text = groupText || renderedMessagePlainText(body);
       if (text.trim()) {
         vscode.postMessage({ command: 'copyMessageText', text });
       }

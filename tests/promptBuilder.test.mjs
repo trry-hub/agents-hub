@@ -1183,7 +1183,7 @@ test('webview keeps provider switching in the header and out of the conversation
   assert.doesNotMatch(css, /\.composer-provider-dock/);
   assert.match(script, /renderProviderTabs/);
   assert.doesNotMatch(css, /\.composer-provider-dock/);
-  assert.match(css, /\.context-budget\s*\{\s*[^}]*height:\s*20px;/s);
+  assert.match(css, /\.context-budget\s*\{\s*[^}]*height:\s*22px;/s);
   assert.match(css, /\.context-budget\s*\{\s*[^}]*max-width:\s*48px;/s);
 });
 
@@ -1528,8 +1528,11 @@ test('webview displays attached context window usage details', () => {
   assert.match(script, /contextWindow\.autoCompact/);
   assert.match(script, /tokenUsage\.precision === 'exact'/);
   assert.match(script, /contextWindow\.exactUnavailable/);
+  assert.match(script, /contextBudgetTokens\.textContent = i18n\.t\('contextWindow\.providerManaged'/);
   assert.match(css, /\.context-budget\s*\{/);
+  assert.match(css, /\.context-budget-ring\s*\{\s*[^}]*width:\s*14px;/s);
   assert.match(css, /\.context-budget-popover\s*\{/);
+  assert.match(css, /\.context-budget-popover\s*\{\s*[^}]*width:\s*min\(220px,\s*calc\(100vw - 20px\)\);/s);
   assert.match(css, /\.context-budget:hover \.context-budget-popover/);
   assert.match(i18nScript, /'contextWindow\.title'/);
   assert.match(i18nScript, /'contextWindow\.usedTotal'/);
@@ -1565,10 +1568,14 @@ test('webview conversation transcript surfaces compact metadata and readable cod
   assert.match(script, /const meta = document\.createElement\('div'\);/);
   assert.match(script, /meta\.className = 'message-meta';/);
   assert.match(script, /bubble\.appendChild\(meta\);/);
-  assert.match(script, /if \(item\.role === 'assistant' && !itemRunning && normalizeMessageText\(item\.text\)\.trim\(\)\) \{/);
+  assert.match(script, /if \(shouldShowAssistantCopyButton\(conversation, index, itemRunning\)\) \{/);
+  assert.match(script, /function shouldShowAssistantCopyButton\(conversation, index, itemRunning\)/);
+  assert.match(script, /function assistantCopyGroupPlainText\(conversation, start, end\)/);
   assert.match(script, /const copyActions = document\.createElement\('div'\);/);
   assert.match(script, /copyActions\.className = 'message-actions';/);
   assert.match(script, /const copyButton = createMessageCopyButton\(\);/);
+  assert.match(script, /copyButton\.dataset\.messageCopyStart = String\(copyGroupStart\);/);
+  assert.match(script, /copyButton\.dataset\.messageCopyEnd = String\(index\);/);
   assert.match(script, /copyActions\.appendChild\(copyButton\);/);
   assert.match(script, /bubble\.appendChild\(copyActions\);/);
   assert.match(script, /function createMessageCopyButton\(\)/);
@@ -1578,8 +1585,9 @@ test('webview conversation transcript surfaces compact metadata and readable cod
   assert.match(script, /function renderedMessagePlainText\(container\)/);
   assert.match(script, /vscode\.postMessage\(\{ command: 'copyMessageText', text: markdownToCopyPlainText\(latest\) \}\);/);
   assert.match(script, /const copyButton = event\.target\.closest\('\[data-message-copy\]'\);/);
+  assert.match(script, /const groupText = Number\.isInteger\(start\) && Number\.isInteger\(end\) && end >= start/);
   assert.match(script, /const body = copyButton\.closest\('\.message-bubble'\)\?\.querySelector\('\.message-content'\);/);
-  assert.match(script, /const text = renderedMessagePlainText\(body\);/);
+  assert.match(script, /const text = groupText \|\| renderedMessagePlainText\(body\);/);
   assert.match(script, /vscode\.postMessage\(\{ command: 'copyMessageText', text \}\);/);
   assert.doesNotMatch(script, /copyButton\.dataset\.messageCopyIndex/);
   assert.doesNotMatch(script, /const item = ensureConversation\(activeId\)\[index\];/);
