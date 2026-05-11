@@ -3384,6 +3384,13 @@
         continue;
       }
 
+      const lineParts = splitAssistantMarkupTags(line);
+      if (lineParts) {
+        appendAssistantMarkupParts(container, lineParts);
+        index += 1;
+        continue;
+      }
+
       if (trimmed.startsWith('```')) {
         const language = trimmed.replace(/^```/, '').trim();
         const codeLines = [];
@@ -3434,6 +3441,19 @@
         continue;
       }
 
+      const lineParts = splitAssistantMarkupTags(line);
+      if (lineParts) {
+        const plainText = lineParts
+          .filter((part) => Object.prototype.hasOwnProperty.call(part, 'text'))
+          .map((part) => part.text)
+          .join('')
+          .trim();
+        if (plainText) {
+          output.push(stripInlineMarkdown(plainText));
+        }
+        continue;
+      }
+
       if (trimmed.startsWith('```')) {
         inCodeBlock = !inCodeBlock;
         continue;
@@ -3456,6 +3476,12 @@
       const heading = /^(#{1,6})\s+(.+)$/.exec(trimmed);
       if (heading) {
         output.push(stripInlineMarkdown(heading[2]));
+        continue;
+      }
+
+      const sectionHeading = parseAssistantSectionHeading(trimmed);
+      if (sectionHeading) {
+        output.push(assistantSectionLabel(sectionHeading));
         continue;
       }
 
@@ -3567,12 +3593,24 @@
       return;
     }
 
+    const lineParts = splitAssistantMarkupTags(line);
+    if (lineParts) {
+      appendAssistantMarkupParts(container, lineParts);
+      return;
+    }
+
     const heading = /^(#{1,6})\s+(.+)$/.exec(trimmed);
     if (heading) {
       const node = document.createElement('div');
       node.className = `md-heading level-${heading[1].length}`;
       appendInlineMarkdown(node, heading[2]);
       container.appendChild(node);
+      return;
+    }
+
+    const sectionHeading = parseAssistantSectionHeading(trimmed);
+    if (sectionHeading) {
+      appendAssistantSectionLabel(container, sectionHeading);
       return;
     }
 
@@ -3617,7 +3655,8 @@
   }
 
   function parseAssistantMarkupTag(line) {
-    const tag = /^<\/?([a-z][\w-]*)>\s*$/i.exec(line);
+    const source = String(line || '').trim();
+    const tag = /^<\/?([a-z][\w-]*)>$/i.exec(source);
     if (!tag) {
       return null;
     }
@@ -3627,7 +3666,68 @@
       return null;
     }
 
-    return { name, closing: line.startsWith('</') };
+    return { name, closing: source.startsWith('</') };
+  }
+
+  function splitAssistantMarkupTags(line) {
+    const source = String(line || '');
+    const pattern = /<\/?([a-z][\w-]*)>/gi;
+    const parts = [];
+    let lastIndex = 0;
+    let found = false;
+    let match;
+
+    while ((match = pattern.exec(source)) !== null) {
+      const tag = parseAssistantMarkupTag(match[0]);
+      if (!tag) {
+        continue;
+      }
+
+      found = true;
+      if (match.index > lastIndex) {
+        parts.push({ text: source.slice(lastIndex, match.index) });
+      }
+      parts.push({ tag });
+      lastIndex = pattern.lastIndex;
+    }
+
+    if (!found) {
+      return null;
+    }
+
+    if (lastIndex < source.length) {
+      parts.push({ text: source.slice(lastIndex) });
+    }
+
+    return parts;
+  }
+
+  function appendAssistantMarkupParts(container, parts) {
+    parts.forEach((part) => {
+      if (part.tag) {
+        if (!part.tag.closing) {
+          appendAssistantSectionLabel(container, part.tag.name);
+        }
+        return;
+      }
+
+      if (normalizeMessageText(part.text).trim()) {
+        appendMarkdownLine(container, part.text);
+      }
+    });
+  }
+
+  function parseAssistantSectionHeading(line) {
+    const key = String(line || '')
+      .trim()
+      .replace(/^[#>*\-\s•]+/, '')
+      .replace(/\*\*/g, '')
+      .replace(/[:：]+$/, '')
+      .toLowerCase()
+      .replace(/[^\w]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+
+    return Object.prototype.hasOwnProperty.call(assistantSectionLabels(), key) ? key : null;
   }
 
   function appendAssistantSectionLabel(container, name) {
@@ -3648,6 +3748,9 @@
       files: 'Files',
       answer: 'Answer',
       next_steps: 'Next steps',
+      root_cause: 'Root cause',
+      check_results: 'Check results',
+      summary: 'Summary',
     };
   }
 
