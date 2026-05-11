@@ -994,6 +994,16 @@
     };
   }
 
+  function splitAgentModeLabel(label) {
+    const value = String(label || '').replace(/\u200b/g, '').trim();
+    const parts = value.split(/\s+-\s+/).map((part) => part.trim()).filter(Boolean);
+    if (parts.length <= 1) {
+      return { title: value, detail: '' };
+    }
+
+    return { title: parts[0], detail: parts.slice(1).join(' - ') };
+  }
+
   function localizedPermissionOption(option) {
     const displayOption = localizedCliOption(option, 'permission');
     if (activeProfile()?.id === 'claude' && option?.id === 'default') {
@@ -2920,7 +2930,9 @@
     const displayMode = localizedCliOption(mode, 'agentMode');
     agentModeSelect.title = displayMode?.description || i18n.t('agentMode.label');
     if (agentModeSummaryLabel) {
-      agentModeSummaryLabel.textContent = displayMode?.label || i18n.t('agentMode.short');
+      agentModeSummaryLabel.textContent = profile?.id === 'opencode'
+        ? splitAgentModeLabel(displayMode?.label || i18n.t('agentMode.short')).title
+        : (displayMode?.label || i18n.t('agentMode.short'));
       agentModeSummaryLabel.closest('.mode-summary')?.setAttribute(
         'title',
         `${profile?.name || i18n.t('provider.label')} · ${displayMode?.description || displayMode?.label || ''}`.trim()
@@ -2935,8 +2947,10 @@
     }
 
     agentModeOptionList.innerHTML = '';
+    const profile = activeProfile();
     modes.forEach((mode) => {
       const displayMode = localizedCliOption(mode, 'agentMode');
+      const splitMode = splitAgentModeLabel(displayMode.label);
       const button = document.createElement('button');
       button.type = 'button';
       button.className = [
@@ -2958,12 +2972,14 @@
 
       const label = document.createElement('span');
       label.className = 'mode-option-text';
-      label.textContent = displayMode.label;
+      label.textContent = profile?.id === 'opencode' ? splitMode.title : displayMode.label;
       button.appendChild(label);
 
       const meta = document.createElement('span');
       meta.className = 'mode-option-meta';
-      meta.textContent = mode.disabled ? i18n.t('agentMode.subagent') : '';
+      meta.textContent = profile?.id === 'opencode'
+        ? splitMode.detail
+        : (mode.disabled ? i18n.t('agentMode.subagent') : '');
       button.appendChild(meta);
 
       agentModeOptionList.appendChild(button);

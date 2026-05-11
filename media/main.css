@@ -2387,25 +2387,24 @@ body[data-provider="opencode"] .prompt-shell:focus-within {
 
 body[data-provider="opencode"] .composer {
   gap: 5px;
-  padding: 6px 16px 7px;
+  padding: 5px 8px;
 }
 
 body[data-provider="opencode"] textarea {
-  min-height: 34px;
+  min-height: 38px;
   max-height: 96px;
-  padding: 8px 14px 4px;
+  padding: 6px 8px 2px;
   font-family: var(--vscode-editor-font-family);
   font-size: 13px;
   line-height: 18px;
 }
 
 body[data-provider="opencode"] .prompt-actions {
-  min-height: 30px;
+  min-height: 28px;
   grid-template-columns: minmax(0, 1fr) 30px;
   gap: 6px;
   align-items: center;
-  padding: 3px 7px 4px 8px;
-  border-top: 1px solid color-mix(in srgb, var(--assistant-border) 82%, transparent);
+  padding: 1px 6px 5px;
 }
 
 body[data-provider="opencode"] .context-row {
@@ -2425,7 +2424,7 @@ body[data-provider="opencode"] .attach-button {
   position: relative;
   width: 24px;
   height: 24px;
-  margin-right: 7px;
+  margin-right: 0;
   border: 0;
   border-radius: 5px;
   color: color-mix(in srgb, var(--vscode-foreground) 58%, var(--assistant-muted));
@@ -2433,14 +2432,7 @@ body[data-provider="opencode"] .attach-button {
 }
 
 body[data-provider="opencode"] .attach-button::after {
-  content: "";
-  position: absolute;
-  right: -5px;
-  top: 5px;
-  bottom: 5px;
-  width: 1px;
-  background: color-mix(in srgb, var(--assistant-border) 82%, transparent);
-  pointer-events: none;
+  display: none;
 }
 
 body[data-provider="opencode"] .attach-button:hover,
@@ -2463,23 +2455,23 @@ body[data-provider="opencode"] .context-menu.is-visible {
 
 body[data-provider="opencode"] .model-menu.is-visible {
   order: 3;
-  flex: 0 1 112px;
+  flex: 0 1 92px;
 }
 
 body[data-provider="opencode"] .mode-menu.is-visible {
   order: 2;
-  flex: 0 1 118px;
-  max-width: 136px;
+  flex: 0 1 104px;
+  max-width: 104px;
 }
 
 body[data-provider="opencode"] .composer-settings-button {
   order: 4;
-  display: inline-grid;
+  display: none;
   color: color-mix(in srgb, var(--vscode-foreground) 58%, var(--assistant-muted));
 }
 
 body[data-provider="opencode"] .composer-meta {
-  order: 5;
+  order: 4;
   margin-left: auto;
   flex: 0 0 auto;
 }
@@ -2518,11 +2510,11 @@ body[data-provider="opencode"] .model-menu .option-summary::before {
 }
 
 body[data-provider="opencode"] .model-menu .option-summary {
-  max-width: 112px;
+  max-width: 92px;
 }
 
 body[data-provider="opencode"] .mode-summary {
-  max-width: 136px;
+  max-width: 104px;
 }
 
 body[data-provider="opencode"] .context-summary {
@@ -2558,9 +2550,7 @@ body[data-provider="opencode"] .context-summary span:not(.chip-prefix) {
 
 body[data-provider="opencode"] .option-summary::after,
 body[data-provider="opencode"] .mode-summary::after {
-  width: 4px;
-  height: 4px;
-  opacity: 0.42;
+  display: none;
 }
 
 body[data-provider="opencode"] .context-summary::after {
@@ -2581,6 +2571,26 @@ body[data-provider="opencode"] .context-summary:hover {
 body[data-provider="opencode"] .prompt-tools {
   width: 30px;
   align-self: center;
+}
+
+body[data-provider="opencode"] .option-popover-single {
+  min-width: 132px;
+  max-width: min(220px, calc(100vw - 16px));
+}
+
+body[data-provider="opencode"] .mode-option-list .option-list-item {
+  grid-template-columns: 10px minmax(0, 1fr);
+}
+
+body[data-provider="opencode"] .mode-option-text {
+  display: grid;
+  gap: 1px;
+}
+
+body[data-provider="opencode"] .mode-option-meta {
+  grid-column: 2;
+  color: var(--assistant-muted);
+  font-weight: 400;
 }
 
 body[data-provider="opencode"] .send-button,
