@@ -1209,6 +1209,9 @@ test('manifest exposes title actions and custom API provider settings', () => {
   assert.ok(properties['agentsHub.home.agentOrder']);
   assert.match(html, /id="settingsNavAgents"/);
   assert.match(html, /id="settingsNavApiProviders"/);
+  assert.match(html, /class="settings-nav-icon"/);
+  assert.match(html, /class="settings-nav-label"[^>]*data-i18n="settings\.agents"/);
+  assert.match(html, /class="settings-nav-label"[^>]*data-i18n="settings\.apiProviders"/);
   assert.match(html, /id="homeAgentList"/);
   assert.match(html, /id="apiProviderSettingsPage"/);
   assert.doesNotMatch(html, /aria-modal="true"/);
@@ -1223,6 +1226,12 @@ test('manifest exposes title actions and custom API provider settings', () => {
   assert.match(sidebarSource, /config\.get<string\[]>\('agentOrder', \[]\)/);
   assert.match(sidebarSource, /config\.update\('agentOrder', settings\.agentOrder/);
   assert.match(css, /body\.is-api-settings-open \.toolbar,\s*body\.is-api-settings-open \.messages,\s*body\.is-api-settings-open \.composer\s*\{\s*[^}]*display:\s*none;/s);
+  assert.match(css, /\.api-settings-panel\s*\{\s*[^}]*container-type:\s*inline-size;/s);
+  assert.match(css, /\.settings-nav-item\s*\{\s*[^}]*grid-template-columns:\s*18px minmax\(0,\s*1fr\);/s);
+  assert.match(css, /\.settings-nav-icon svg\s*\{\s*[^}]*width:\s*15px;/s);
+  assert.match(css, /@container \(max-width:\s*700px\)\s*\{[\s\S]*?\.settings-layout\s*\{[\s\S]*?grid-template-columns:\s*44px minmax\(0,\s*1fr\);/s);
+  assert.match(css, /@container \(max-width:\s*700px\)\s*\{[\s\S]*?\.settings-nav-label\s*\{[\s\S]*?display:\s*none;/s);
+  assert.match(css, /@container \(max-width:\s*700px\)\s*\{[\s\S]*?\.api-settings-body\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\);/s);
   assert.match(css, /\.home-agent-sort\s*\{/);
   assert.match(script, /saveApiProviderSettings/);
   assert.match(script, /saveHomeAgentSettings/);

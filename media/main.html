@@ -51,8 +51,18 @@
 
         <div class="settings-layout">
           <nav class="settings-nav" id="settingsNav" aria-label="Settings sections" data-i18n-aria="settings.sections">
-            <button class="settings-nav-item" id="settingsNavAgents" type="button" data-settings-section="agents" data-i18n="settings.agents"></button>
-            <button class="settings-nav-item" id="settingsNavApiProviders" type="button" data-settings-section="apiProviders" data-i18n="settings.apiProviders"></button>
+            <button class="settings-nav-item" id="settingsNavAgents" type="button" data-settings-section="agents" data-i18n-aria="settings.agents" aria-label="Agents">
+              <span class="settings-nav-icon" aria-hidden="true">
+                <svg viewBox="0 0 16 16"><path d="M8 2.7 3.5 5.2v5.5L8 13.3l4.5-2.6V5.2L8 2.7z"/><path d="M5.7 6.3h4.6M5.7 8h4.6M5.7 9.7h2.7"/></svg>
+              </span>
+              <span class="settings-nav-label" data-i18n="settings.agents"></span>
+            </button>
+            <button class="settings-nav-item" id="settingsNavApiProviders" type="button" data-settings-section="apiProviders" data-i18n-aria="settings.apiProviders" aria-label="API Providers">
+              <span class="settings-nav-icon" aria-hidden="true">
+                <svg viewBox="0 0 16 16"><path d="M3.2 5.2c0-1 2.1-1.9 4.8-1.9s4.8.9 4.8 1.9-2.1 1.9-4.8 1.9-4.8-.9-4.8-1.9z"/><path d="M3.2 5.2v3.1c0 1 2.1 1.9 4.8 1.9s4.8-.9 4.8-1.9V5.2"/><path d="M3.2 8.3v2.5c0 1 2.1 1.9 4.8 1.9s4.8-.9 4.8-1.9V8.3"/></svg>
+              </span>
+              <span class="settings-nav-label" data-i18n="settings.apiProviders"></span>
+            </button>
           </nav>
 
           <div class="settings-content">
