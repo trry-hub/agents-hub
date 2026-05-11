@@ -3368,7 +3368,7 @@
   }
 
   function renderMarkdownLite(container, text) {
-    const lines = String(text || '').split('\n');
+    const lines = preprocessAssistantMessageLines(String(text || '').split('\n'));
     let index = 0;
 
     while (index < lines.length) {
@@ -3430,7 +3430,7 @@
   }
 
   function markdownToCopyPlainText(text) {
-    const lines = normalizeMessageText(text).split('\n');
+    const lines = preprocessAssistantMessageLines(normalizeMessageText(text).split('\n'));
     const output = [];
     let inCodeBlock = false;
 
@@ -3638,6 +3638,11 @@
 
     const bullet = /^[-*•]\s+(.+)$/.exec(trimmed);
     if (bullet) {
+      const fileResult = parseFileResultLine(bullet[1]);
+      if (fileResult) {
+        appendFileResultCard(container, fileResult);
+        return;
+      }
       appendListItem(container, '•', bullet[1], 'md-list-item');
       return;
     }
@@ -3652,6 +3657,30 @@
     paragraph.className = 'md-paragraph';
     appendInlineMarkdown(paragraph, line);
     container.appendChild(paragraph);
+  }
+
+  function preprocessAssistantMessageLines(lines) {
+    return (lines || []).filter((line, index) => {
+      if (isInternalAnalysisHeading(line, lines, index)) {
+        return false;
+      }
+      return !isInternalAnalysisField(line);
+    });
+  }
+
+  function isInternalAnalysisHeading(line, lines, index) {
+    const trimmed = String(line || '').trim();
+    const tag = parseAssistantMarkupTag(trimmed);
+    const section = tag?.name || parseAssistantSectionHeading(trimmed);
+    if (section !== 'analysis') {
+      return false;
+    }
+
+    return (lines || []).slice(index + 1, index + 5).some(isInternalAnalysisField);
+  }
+
+  function isInternalAnalysisField(line) {
+    return /^(?:Literal Request|Actual Need|Success Looks Like)\s*:/i.test(String(line || '').trim());
   }
 
   function parseAssistantMarkupTag(line) {
@@ -3742,16 +3771,30 @@
   }
 
   function assistantSectionLabels() {
-    return {
-      analysis: 'Analysis',
-      results: 'Results',
-      files: 'Files',
-      answer: 'Answer',
-      next_steps: 'Next steps',
-      root_cause: 'Root cause',
-      check_results: 'Check results',
-      summary: 'Summary',
+    const labels = {
+      en: {
+        analysis: 'Analysis',
+        results: 'Results',
+        files: 'Files',
+        answer: 'Answer',
+        next_steps: 'Next steps',
+        root_cause: 'Root cause',
+        check_results: 'Check results',
+        summary: 'Summary',
+      },
+      'zh-CN': {
+        analysis: '分析',
+        results: '结果',
+        files: '文件',
+        answer: '答复',
+        next_steps: '下一步',
+        root_cause: '根因',
+        check_results: '检查结果',
+        summary: '总结',
+      },
     };
+
+    return labels[i18n.locale] || labels.en;
   }
 
   function isTableStart(lines, index) {
@@ -3861,6 +3904,36 @@
     item.appendChild(content);
 
     container.appendChild(item);
+  }
+
+  function parseFileResultLine(text) {
+    const source = normalizeMessageText(text).trim();
+    const match = /^((?:\/|~\/|\.\.?\/|[\w.-]+\/).+?)\s(?:[-–—])\s(.+)$/.exec(source);
+    if (!match) {
+      return null;
+    }
+
+    return {
+      path: match[1].trim(),
+      detail: match[2].trim(),
+    };
+  }
+
+  function appendFileResultCard(container, fileResult) {
+    const card = document.createElement('div');
+    card.className = 'md-file-card';
+
+    const path = document.createElement('code');
+    path.className = 'md-file-path';
+    path.textContent = fileResult.path;
+    card.appendChild(path);
+
+    const detail = document.createElement('span');
+    detail.className = 'md-file-detail';
+    appendInlineMarkdown(detail, fileResult.detail);
+    card.appendChild(detail);
+
+    container.appendChild(card);
   }
 
   function appendCodeBlock(container, code, language) {
