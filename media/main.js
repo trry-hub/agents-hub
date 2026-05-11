@@ -1187,6 +1187,18 @@
         button.appendChild(fallback);
       }
 
+      const label = document.createElement('span');
+      label.className = 'provider-tab-label';
+      label.textContent = profile.name;
+      button.appendChild(label);
+
+      if (versionLabel) {
+        const version = document.createElement('span');
+        version.className = 'provider-tab-version';
+        version.textContent = versionLabel;
+        button.appendChild(version);
+      }
+
       providerTabs.appendChild(button);
       existingButtons.delete(profile.id);
     }

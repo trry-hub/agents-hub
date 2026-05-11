@@ -17,6 +17,7 @@ html {
   --assistant-panel: var(--vscode-editorWidget-background, rgba(128, 128, 128, 0.08));
   --assistant-soft-border: color-mix(in srgb, var(--assistant-border) 68%, transparent);
   --assistant-soft-panel: color-mix(in srgb, var(--assistant-panel) 62%, transparent);
+  --assistant-control-size: 24px;
 }
 
 body {
@@ -69,7 +70,7 @@ select {
 
 .toolbar {
   grid-area: toolbar;
-  padding: 5px 8px;
+  padding: 6px 8px;
   border-bottom: 1px solid var(--assistant-border);
   background: color-mix(in srgb, var(--assistant-surface) 90%, var(--assistant-panel));
 }
@@ -342,17 +343,17 @@ select {
 .provider-tabs {
   min-width: 0;
   max-width: min(42vw, 196px);
-  height: 24px;
+  height: 26px;
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 1px;
-  padding: 1px;
+  gap: 3px;
+  padding: 2px;
   flex: 0 1 auto;
   overflow-x: auto;
   overflow-y: hidden;
   border: 1px solid color-mix(in srgb, var(--assistant-border) 88%, transparent);
-  border-radius: 6px;
+  border-radius: 7px;
   background: color-mix(in srgb, var(--assistant-panel) 56%, var(--assistant-surface));
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--assistant-surface) 40%, transparent);
   scrollbar-width: none;
@@ -369,6 +370,7 @@ select {
 
 .provider-tab-button {
   --provider-tab-collapsed-width: 24px;
+  --provider-tab-expanded-width: 112px;
   position: relative;
   width: var(--provider-tab-collapsed-width);
   min-width: var(--provider-tab-collapsed-width);
@@ -377,9 +379,9 @@ select {
   align-items: center;
   justify-content: center;
   gap: 0;
-  padding: 0;
+  padding: 0 6px;
   border: 0;
-  border-radius: 5px;
+  border-radius: 6px;
   color: var(--assistant-muted);
   background: transparent;
   cursor: pointer;
@@ -416,7 +418,7 @@ select {
 }
 
 .provider-tab-button.is-active {
-  width: var(--provider-tab-collapsed-width);
+  width: var(--provider-tab-expanded-width);
   gap: 6px;
   z-index: 1;
   color: var(--vscode-foreground);
@@ -459,8 +461,34 @@ select {
   opacity: 1;
 }
 
+.provider-tab-label,
 .provider-tab-version {
   display: none;
+  min-width: 0;
+  max-width: 54px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.provider-tab-label {
+  color: var(--vscode-foreground);
+}
+
+.provider-tab-version {
+  color: var(--assistant-muted);
+}
+
+.provider-tab-button .provider-tab-label,
+.provider-tab-button .provider-tab-version {
+  display: none;
+}
+
+.provider-tab-button.is-active .provider-tab-version,
+.provider-tab-button.is-active .provider-tab-label {
+  display: inline;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -535,7 +563,7 @@ body.is-api-settings-open .composer {
 .settings-layout {
   min-height: 0;
   display: grid;
-  grid-template-columns: 148px minmax(0, 1fr);
+  grid-template-columns: 44px minmax(0, 1fr);
 }
 
 .settings-nav {
@@ -543,19 +571,21 @@ body.is-api-settings-open .composer {
   display: grid;
   align-content: start;
   gap: 4px;
-  padding: 10px;
+  padding: 8px 6px;
   border-right: 1px solid var(--assistant-border);
   background: color-mix(in srgb, var(--assistant-panel) 34%, transparent);
 }
 
 .settings-nav-item {
   min-width: 0;
+  width: 100%;
   min-height: 30px;
   display: grid;
-  grid-template-columns: 18px minmax(0, 1fr);
+  grid-template-columns: 1fr;
   align-items: center;
-  gap: 8px;
-  padding: 0 9px;
+  justify-items: center;
+  gap: 0;
+  padding: 0;
   border: 1px solid transparent;
   border-radius: 6px;
   color: var(--assistant-muted);
@@ -584,6 +614,7 @@ body.is-api-settings-open .composer {
 }
 
 .settings-nav-label {
+  display: none;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1686,10 +1717,15 @@ textarea:focus {
 
 .message.assistant .message-bubble {
   width: min(100%, 720px);
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: color-mix(
+    in srgb,
+    var(--assistant-panel) 54%,
+    var(--assistant-surface)
+  );
+  border-color: color-mix(in srgb, var(--assistant-border) 72%, transparent);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--assistant-muted) 10%, transparent);
 }
 
 .message.assistant.is-running .message-bubble {
@@ -1761,12 +1797,12 @@ textarea:focus {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 .message-copy-button {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   display: grid;
   place-items: center;
   padding: 0;
@@ -1780,8 +1816,8 @@ textarea:focus {
 }
 
 .message-copy-button svg {
-  width: 13px;
-  height: 13px;
+  width: 12px;
+  height: 12px;
   display: block;
   fill: none;
   stroke: currentColor;
@@ -2289,9 +2325,9 @@ textarea:focus {
   min-width: 0;
   width: 100%;
   overflow: visible;
-  padding: 12px;
+  padding: 10px;
   border: 1px solid color-mix(in srgb, var(--assistant-border) 82%, transparent);
-  border-radius: 18px;
+  border-radius: 10px;
   background: color-mix(in srgb, var(--vscode-input-background, var(--assistant-surface)) 92%, var(--assistant-surface));
 }
 
@@ -2304,7 +2340,7 @@ body[data-provider="claude"] .prompt-shell {
   gap: 0;
   padding: 0;
   border-color: #d97757;
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--vscode-input-background, var(--assistant-surface));
 }
 
@@ -2329,9 +2365,9 @@ body[data-provider="claude"] .claude-terminal-banner[hidden] {
 }
 
 body[data-provider="claude"] textarea {
-  min-height: 40px;
+  min-height: 36px;
   max-height: 96px;
-  padding: 12px 14px 9px;
+  padding: 8px 10px;
   font-size: 13px;
   line-height: 18px;
 }
@@ -2480,14 +2516,14 @@ body[data-provider="codex"] .codex-terminal-banner[hidden] {
 body[data-provider="codex"] .prompt-shell {
   gap: 0;
   padding: 0;
-  border-radius: 18px;
+  border-radius: 10px;
   background: var(--vscode-input-background, var(--assistant-surface));
 }
 
 body[data-provider="codex"] textarea {
-  min-height: 64px;
+  min-height: 56px;
   max-height: 112px;
-  padding: 12px 12px 6px;
+  padding: 8px 10px;
   color: var(--vscode-input-foreground, var(--vscode-foreground));
   font-size: 13px;
   line-height: 18px;
@@ -2619,9 +2655,9 @@ body[data-provider="opencode"] .composer {
 }
 
 body[data-provider="opencode"] textarea {
-  min-height: 38px;
+  min-height: 36px;
   max-height: 96px;
-  padding: 6px 8px 2px;
+  padding: 8px 10px;
   font-family: var(--vscode-editor-font-family);
   font-size: 13px;
   line-height: 18px;
@@ -2632,7 +2668,7 @@ body[data-provider="opencode"] .prompt-actions {
   grid-template-columns: minmax(0, 1fr) 30px;
   gap: 6px;
   align-items: center;
-  padding: 1px 6px 5px;
+  padding: 3px 8px 6px;
 }
 
 body[data-provider="opencode"] .context-row {
@@ -3478,10 +3514,10 @@ body[data-provider="opencode"] .send-button:disabled svg {
 
 textarea {
   width: 100%;
-  min-height: 48px;
+  min-height: 40px;
   max-height: 104px;
   resize: none;
-  padding: 2px 4px 0;
+  padding: 7px 8px 6px;
   border: 0;
   border-radius: 0;
   outline: none;
@@ -3702,7 +3738,7 @@ textarea:disabled {
   }
 
   .provider-tab-button.is-active {
-    width: var(--provider-tab-collapsed-width);
+    width: min(108px, calc(100vw - 96px));
   }
 
   .provider-tab-logo {
@@ -3727,6 +3763,27 @@ textarea:disabled {
 
   .prompt-tools {
     align-self: end;
+  }
+}
+
+@media (min-width: 760px) {
+  .settings-layout {
+    grid-template-columns: 148px minmax(0, 1fr);
+  }
+
+  .settings-nav {
+    padding: 10px;
+  }
+
+  .settings-nav-item {
+    grid-template-columns: 18px minmax(0, 1fr);
+    justify-items: start;
+    gap: 8px;
+    padding: 0 9px;
+  }
+
+  .settings-nav-label {
+    display: block;
   }
 }
 
