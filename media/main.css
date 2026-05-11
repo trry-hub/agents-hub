@@ -461,7 +461,6 @@ select {
   opacity: 1;
 }
 
-.provider-tab-label,
 .provider-tab-version {
   display: none;
   min-width: 0;
@@ -471,23 +470,14 @@ select {
   white-space: nowrap;
   font-size: 11px;
   line-height: 1;
-}
-
-.provider-tab-label {
-  color: var(--vscode-foreground);
-}
-
-.provider-tab-version {
   color: var(--assistant-muted);
 }
 
-.provider-tab-button .provider-tab-label,
 .provider-tab-button .provider-tab-version {
   display: none;
 }
 
-.provider-tab-button.is-active .provider-tab-version,
-.provider-tab-button.is-active .provider-tab-label {
+.provider-tab-button.is-active .provider-tab-version {
   display: inline;
 }
 
@@ -3719,7 +3709,7 @@ textarea:disabled {
   }
 
   .provider-tab-button.is-active {
-    width: min(108px, calc(100vw - 96px));
+    width: min(var(--provider-tab-expanded-width), calc(100vw - 96px));
   }
 
   .provider-tab-logo {

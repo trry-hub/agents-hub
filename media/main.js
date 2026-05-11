@@ -1164,9 +1164,10 @@
       button.dataset.providerId = profile.id;
       button.setAttribute('role', 'tab');
       button.setAttribute('aria-selected', String(isActive));
-      button.title = `${profile.name}${versionLabel ? ` · ${versionLabel}` : ''}`;
+      button.title = versionLabel || profile.name || '';
       button.disabled = activeIsBusy && !isActive;
       button.className = 'provider-tab-button';
+      button.style.setProperty('--provider-tab-expanded-width', versionLabel ? '74px' : '24px');
       if (isActive) {
         button.classList.add('is-active');
       }
@@ -1186,11 +1187,6 @@
         fallback.textContent = profile.icon || profile.name.slice(0, 1);
         button.appendChild(fallback);
       }
-
-      const label = document.createElement('span');
-      label.className = 'provider-tab-label';
-      label.textContent = profile.name;
-      button.appendChild(label);
 
       if (versionLabel) {
         const version = document.createElement('span');
