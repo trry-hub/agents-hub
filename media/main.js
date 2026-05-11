@@ -2101,7 +2101,7 @@
             addMessage(activeId, 'system', i18n.t('slash.copyEmpty'));
             return;
           }
-          void navigator.clipboard?.writeText(normalizeMessageText(latest));
+          vscode.postMessage({ command: 'copyMessageText', text: normalizeMessageText(latest) });
           addMessage(activeId, 'system', i18n.t('slash.copied'));
         }
         return;
@@ -2507,7 +2507,7 @@
     }
 
     let hasVisibleRunningMessage = false;
-    for (const item of conversation) {
+    for (const [index, item] of conversation.entries()) {
       const itemRunning = Boolean(item.running && runningByProvider[activeId]);
       hasVisibleRunningMessage = hasVisibleRunningMessage || itemRunning;
       const wrapper = document.createElement('div');
@@ -2532,6 +2532,11 @@
 
       if (Array.isArray(item.attachments) && item.attachments.length > 0) {
         appendMessageAttachments(bubble, item.attachments);
+      }
+
+      if (item.role !== 'system' && normalizeMessageText(item.text).trim()) {
+        const copyButton = createMessageCopyButton(index);
+        bubble.appendChild(copyButton);
       }
 
       if (itemRunning) {
@@ -2578,6 +2583,17 @@
       messages.scrollTop = Math.min(previousScrollTop, maxScrollTop);
     }
     renderedMessageThreadKey = threadKey;
+  }
+
+  function createMessageCopyButton(index) {
+    const copyButton = document.createElement('button');
+    copyButton.type = 'button';
+    copyButton.className = 'message-copy-button';
+    copyButton.dataset.messageCopyIndex = String(index);
+    copyButton.title = i18n.t('message.copy');
+    copyButton.setAttribute('aria-label', i18n.t('message.copy'));
+    copyButton.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.2 5.2h7v7h-7z"/><path d="M3.8 10.8h-1v-8h8v1"/></svg>';
+    return copyButton;
   }
 
   function syncMessageStatusTimer(shouldRun) {
@@ -3994,6 +4010,19 @@
   });
 
   messages.addEventListener('click', (event) => {
+    const copyButton = event.target.closest('[data-message-copy-index]');
+    if (copyButton) {
+      event.preventDefault();
+      event.stopPropagation();
+      const index = Number(copyButton.dataset.messageCopyIndex);
+      const item = ensureConversation(activeId)[index];
+      const text = normalizeMessageText(item?.text);
+      if (text.trim()) {
+        vscode.postMessage({ command: 'copyMessageText', text });
+      }
+      return;
+    }
+
     const button = event.target.closest('.suggestion-button');
     if (!button) {
       return;

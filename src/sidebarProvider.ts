@@ -155,6 +155,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case 'copyInstallCommand':
           await this.copyInstallCommand(message.installCommand);
           break;
+        case 'copyMessageText':
+          await this.copyMessageText(message.text);
+          break;
         case 'saveSelectionState':
           await this.saveSelectionState(message);
           break;
@@ -770,6 +773,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     }
     await vscode.env.clipboard.writeText(text);
     vscode.window.showInformationMessage(runtimeT(this.locale, 'notification.installCommandCopied'));
+  }
+
+  private async copyMessageText(messageText: unknown): Promise<void> {
+    const text = typeof messageText === 'string' ? messageText.trim() : '';
+    if (!text) {
+      return;
+    }
+    await vscode.env.clipboard.writeText(text);
+    vscode.window.showInformationMessage(runtimeT(this.locale, 'notification.messageCopied'));
   }
 
   private async saveSelectionState(message: unknown): Promise<void> {

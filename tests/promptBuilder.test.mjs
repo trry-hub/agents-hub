@@ -1551,6 +1551,8 @@ test('webview conversation transcript surfaces compact metadata and readable cod
   const script = readFileSync(new URL('../media/main.js', import.meta.url), 'utf8');
   const css = readFileSync(new URL('../media/main.css', import.meta.url), 'utf8');
   const i18nScript = readFileSync(new URL('../media/i18n.js', import.meta.url), 'utf8');
+  const sidebarSource = readFileSync(new URL('../src/sidebarProvider.ts', import.meta.url), 'utf8');
+  const localizationSource = readFileSync(new URL('../src/localization.ts', import.meta.url), 'utf8');
 
   assert.match(css, /html\s*\{\s*[^}]*padding:\s*0;/s);
   assert.match(css, /body\s*\{\s*[^}]*padding:\s*0;/s);
@@ -1563,14 +1565,28 @@ test('webview conversation transcript surfaces compact metadata and readable cod
   assert.match(script, /const meta = document\.createElement\('div'\);/);
   assert.match(script, /meta\.className = 'message-meta';/);
   assert.match(script, /bubble\.appendChild\(meta\);/);
+  assert.match(script, /const copyButton = createMessageCopyButton\(index\);/);
+  assert.match(script, /function createMessageCopyButton\(index\)/);
+  assert.match(script, /copyButton\.dataset\.messageCopyIndex = String\(index\);/);
+  assert.match(script, /vscode\.postMessage\(\{ command: 'copyMessageText', text: normalizeMessageText\(latest\) \}\);/);
+  assert.match(script, /const copyButton = event\.target\.closest\('\[data-message-copy-index\]'\);/);
+  assert.match(script, /vscode\.postMessage\(\{ command: 'copyMessageText', text \}\);/);
+  assert.match(sidebarSource, /case 'copyMessageText':/);
+  assert.match(sidebarSource, /private async copyMessageText\(messageText: unknown\)/);
+  assert.match(sidebarSource, /vscode\.env\.clipboard\.writeText\(text\)/);
+  assert.match(localizationSource, /'notification\.messageCopied'/);
+  assert.match(i18nScript, /'message\.copy': 'Copy message'/);
+  assert.match(i18nScript, /'message\.copy': '复制消息'/);
   assert.match(css, /\.messages\s*\{\s*[^}]*padding:\s*14px clamp\(16px,\s*2\.8vw,\s*22px\) 24px;/s);
+  assert.match(css, /\.message-copy-button\s*\{/);
+  assert.match(css, /\.message-bubble:hover \.message-copy-button,\s*\.message-copy-button:focus-visible\s*\{\s*[^}]*opacity:\s*1;/s);
   assert.match(css, /\.message-meta\s*\{\s*[^}]*display:\s*flex;/s);
   assert.match(css, /\.message\.assistant \.message-bubble\s*\{\s*[^}]*width:\s*min\(100%,\s*720px\);/s);
   assert.match(css, /\.message\.assistant \.message-bubble\s*\{\s*[^}]*background:\s*transparent;/s);
   assert.match(css, /\.message\.assistant \.message-bubble\s*\{\s*[^}]*border:\s*0;/s);
   assert.doesNotMatch(css, /\.message\.assistant \.message-bubble\s*\{[^}]*border-left-width/s);
   assert.match(css, /\.message\.error \.message-bubble\s*\{\s*[^}]*width:\s*min\(100%,\s*720px\);/s);
-  assert.match(css, /\.message\.error \.message-bubble\s*\{\s*[^}]*padding:\s*8px 10px 8px 32px;/s);
+  assert.match(css, /\.message\.error \.message-bubble\s*\{\s*[^}]*padding:\s*8px 34px 8px 32px;/s);
   assert.match(css, /\.message-status\s*\{\s*[^}]*background:\s*transparent;/s);
   assert.match(css, /\.message-status\s*\{\s*[^}]*border:\s*0;/s);
   assert.match(script, /function syncMessageStatusTimer\(shouldRun\)/);
@@ -1587,6 +1603,7 @@ test('webview conversation transcript surfaces compact metadata and readable cod
   assert.match(script, /item\.runningNotice \|\|[\s\S]*item\.text \? i18n\.t\('message\.generating'\) : i18n\.t\('message\.thinking'\),\s*item\.startedAt/s);
   assert.doesNotMatch(script, /typing-dots/);
   assert.match(css, /\.message\.user \.message-bubble\s*\{\s*[^}]*max-width:\s*min\(72%,\s*520px\);/s);
+  assert.match(css, /\.message\.user \.message-bubble\s*\{\s*[^}]*padding:\s*7px 34px 7px 11px;/s);
   assert.match(css, /\.message\.user \.message-bubble\s*\{\s*[^}]*border-color:\s*var\(--assistant-soft-border\);/s);
   assert.match(css, /\.message-content\s*\{\s*[^}]*gap:\s*2px;/s);
   assert.match(css, /\.message-content\s*\{\s*[^}]*line-height:\s*1\.36;/s);

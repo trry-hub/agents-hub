@@ -7,6 +7,7 @@ type RuntimeMessageKey =
   | 'statusBar.tooltip'
   | 'notification.stoppedAll'
   | 'notification.installCommandCopied'
+  | 'notification.messageCopied'
   | 'error.unknownProvider'
   | 'error.startFailed'
   | 'error.sendFailed'
@@ -24,6 +25,7 @@ const RUNTIME_MESSAGES: Record<RuntimeLocale, Record<RuntimeMessageKey, string>>
     'statusBar.tooltip': 'Open AI Assistant',
     'notification.stoppedAll': 'All AI CLI processes stopped.',
     'notification.installCommandCopied': 'Installation command copied to clipboard.',
+    'notification.messageCopied': 'Message copied to clipboard.',
     'error.unknownProvider': 'Unknown provider: {provider}',
     'error.startFailed': 'Failed to start {provider}',
     'error.sendFailed': 'Failed to send input to CLI process',
@@ -42,6 +44,7 @@ const RUNTIME_MESSAGES: Record<RuntimeLocale, Record<RuntimeMessageKey, string>>
     'statusBar.tooltip': '打开 AI 助手',
     'notification.stoppedAll': '已停止所有 AI CLI 进程。',
     'notification.installCommandCopied': '安装命令已复制到剪贴板。',
+    'notification.messageCopied': '消息已复制到剪贴板。',
     'error.unknownProvider': '未知提供方：{provider}',
     'error.startFailed': '启动 {provider} 失败',
     'error.sendFailed': '无法向 CLI 进程发送输入',
