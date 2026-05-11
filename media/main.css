@@ -2855,12 +2855,14 @@ body[data-provider="opencode"] .context-menu.is-visible {
 
 body[data-provider="opencode"] .model-menu.is-visible {
   order: 3;
-  flex: 0 1 92px;
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 body[data-provider="opencode"] .mode-menu.is-visible {
   order: 2;
-  flex: 0 1 104px;
+  flex: 0 1 auto;
+  min-width: 0;
   max-width: 104px;
 }
 
@@ -2914,7 +2916,7 @@ body[data-provider="opencode"] .model-menu .option-summary {
 }
 
 body[data-provider="opencode"] .mode-summary {
-  max-width: 104px;
+  max-width: 94px;
 }
 
 body[data-provider="opencode"] .context-summary {
@@ -2927,9 +2929,9 @@ body[data-provider="opencode"] .context-summary {
 }
 
 body[data-provider="opencode"] .context-summary .chip-prefix {
-  width: 11px;
-  height: 11px;
-  border: 2px solid color-mix(in srgb, var(--assistant-muted) 48%, transparent);
+  width: 14px;
+  height: 14px;
+  border: 2.25px solid color-mix(in srgb, var(--assistant-muted) 54%, transparent);
   border-radius: 50%;
   color: transparent;
   font-size: 0;
@@ -2998,6 +3000,12 @@ body[data-provider="opencode"] .stop-button {
   width: 24px;
   height: 24px;
   border-radius: 6px;
+}
+
+body[data-provider="opencode"] .stop-button svg {
+  width: 17px;
+  height: 17px;
+  stroke-width: 2;
 }
 
 body[data-provider="opencode"] .send-button {

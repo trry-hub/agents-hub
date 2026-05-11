@@ -917,12 +917,12 @@ test('webview composer follows the selected provider identity', () => {
   assert.match(css, /body\[data-provider="opencode"\] \.composer-settings-button\s*\{\s*[^}]*display:\s*none;/s);
   assert.match(css, /body\[data-provider="opencode"\] \.composer-meta\s*\{\s*[^}]*order:\s*4;/s);
   assert.match(css, /body\[data-provider="opencode"\] #contextBudgetLabel\s*\{\s*[^}]*display:\s*none;/s);
-  assert.match(css, /body\[data-provider="opencode"\] \.model-menu\.is-visible\s*\{\s*[^}]*flex:\s*0 1 92px;/s);
+  assert.match(css, /body\[data-provider="opencode"\] \.model-menu\.is-visible\s*\{\s*[^}]*flex:\s*0 1 auto;/s);
   assert.match(css, /body\[data-provider="opencode"\] \.mode-menu\.is-visible\s*\{\s*[^}]*max-width:\s*104px;/s);
   assert.match(css, /body\[data-provider="opencode"\] \.mode-summary,\s*body\[data-provider="opencode"\] \.option-summary,\s*body\[data-provider="opencode"\] \.context-summary\s*\{[^}]*border:\s*1px solid transparent;/s);
   assert.match(css, /body\[data-provider="opencode"\] \.mode-summary,\s*body\[data-provider="opencode"\] \.option-summary,\s*body\[data-provider="opencode"\] \.context-summary\s*\{[^}]*background:\s*transparent;/s);
-  assert.match(css, /body\[data-provider="opencode"\] \.context-summary \.chip-prefix\s*\{\s*[^}]*width:\s*11px;/s);
-  assert.match(css, /body\[data-provider="opencode"\] \.context-summary \.chip-prefix\s*\{\s*[^}]*border:\s*2px solid color-mix\(in srgb, var\(--assistant-muted\) 48%, transparent\);/s);
+  assert.match(css, /body\[data-provider="opencode"\] \.context-summary \.chip-prefix\s*\{\s*[^}]*width:\s*14px;/s);
+  assert.match(css, /body\[data-provider="opencode"\] \.context-summary \.chip-prefix\s*\{\s*[^}]*border:\s*2\.25px solid color-mix\(in srgb, var\(--assistant-muted\) 54%, transparent\);/s);
   assert.doesNotMatch(css, /body\[data-provider="opencode"\] \.prompt-actions\s*\{[^}]*border-top:/s);
   assert.match(css, /body\[data-provider="opencode"\] \.prompt-actions\s*\{\s*[^}]*min-height:\s*28px;/s);
   assert.match(css, /body\[data-provider="opencode"\] \.prompt-actions\s*\{\s*[^}]*padding:\s*1px 6px 5px;/s);
@@ -1565,7 +1565,7 @@ test('webview conversation transcript surfaces compact metadata and readable cod
   assert.match(script, /const meta = document\.createElement\('div'\);/);
   assert.match(script, /meta\.className = 'message-meta';/);
   assert.match(script, /bubble\.appendChild\(meta\);/);
-  assert.match(script, /if \(item\.role === 'assistant' && normalizeMessageText\(item\.text\)\.trim\(\)\) \{/);
+  assert.match(script, /if \(item\.role === 'assistant' && !itemRunning && normalizeMessageText\(item\.text\)\.trim\(\)\) \{/);
   assert.match(script, /const copyActions = document\.createElement\('div'\);/);
   assert.match(script, /copyActions\.className = 'message-actions';/);
   assert.match(script, /const copyButton = createMessageCopyButton\(\);/);

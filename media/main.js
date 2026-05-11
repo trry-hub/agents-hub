@@ -2534,7 +2534,7 @@
         appendMessageAttachments(bubble, item.attachments);
       }
 
-      if (item.role === 'assistant' && normalizeMessageText(item.text).trim()) {
+      if (item.role === 'assistant' && !itemRunning && normalizeMessageText(item.text).trim()) {
         const copyActions = document.createElement('div');
         copyActions.className = 'message-actions';
         const copyButton = createMessageCopyButton();
