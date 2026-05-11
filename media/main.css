@@ -1712,20 +1712,14 @@ textarea:focus {
   border-radius: 0;
   line-height: 1.5;
   overflow-wrap: anywhere;
-  border: 1px solid transparent;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .message.assistant .message-bubble {
   width: min(100%, 720px);
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: color-mix(
-    in srgb,
-    var(--assistant-panel) 54%,
-    var(--assistant-surface)
-  );
-  border-color: color-mix(in srgb, var(--assistant-border) 72%, transparent);
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--assistant-muted) 10%, transparent);
+  max-width: 100%;
 }
 
 .message.assistant.is-running .message-bubble {
@@ -1734,31 +1728,18 @@ textarea:focus {
 
 .message.user .message-bubble {
   max-width: min(72%, 520px);
-  padding: 7px 11px;
-  border-radius: 9px;
+  padding: 0;
   color: var(--vscode-foreground, #1f1f1f);
-  background: color-mix(
-    in srgb,
-    var(--assistant-panel) 88%,
-    var(--vscode-editor-background, var(--assistant-surface))
-  );
-  border-color: var(--assistant-soft-border);
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--vscode-foreground) 5%, transparent);
+  background: transparent;
 }
 
 .message.error .message-bubble {
   position: relative;
   width: min(100%, 720px);
   padding: 8px 10px 8px 32px;
-  border-radius: 8px;
+  border-radius: 0;
   color: var(--vscode-errorForeground, #c00);
-  background: color-mix(in srgb, var(--vscode-errorForeground, #c00) 7%, var(--assistant-surface));
-  border-color: color-mix(
-    in srgb,
-    var(--vscode-inputValidation-errorBorder, var(--vscode-errorForeground, #c00)) 58%,
-    var(--assistant-border)
-  );
-  border-left-width: 3px;
+  background: transparent;
 }
 
 .message.error .message-bubble::before {
