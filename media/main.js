@@ -3377,7 +3377,7 @@
 
       const structuralTag = parseAssistantMarkupTag(trimmed);
       if (structuralTag) {
-        if (!structuralTag.closing) {
+        if (!structuralTag.closing && !shouldHideAssistantSection(structuralTag.name)) {
           appendAssistantSectionLabel(container, structuralTag.name);
         }
         index += 1;
@@ -3587,7 +3587,7 @@
 
     const structuralTag = parseAssistantMarkupTag(trimmed);
     if (structuralTag) {
-      if (!structuralTag.closing) {
+      if (!structuralTag.closing && !shouldHideAssistantSection(structuralTag.name)) {
         appendAssistantSectionLabel(container, structuralTag.name);
       }
       return;
@@ -3603,7 +3603,7 @@
     if (heading) {
       const node = document.createElement('div');
       node.className = `md-heading level-${heading[1].length}`;
-      appendInlineMarkdown(node, heading[2]);
+      appendInlineMarkdown(node, normalizeAssistantDisplayLine(heading[2]));
       container.appendChild(node);
       return;
     }
@@ -3625,14 +3625,14 @@
     if (quote) {
       const node = document.createElement('div');
       node.className = 'md-blockquote';
-      appendInlineMarkdown(node, quote[1]);
+      appendInlineMarkdown(node, normalizeAssistantDisplayLine(quote[1]));
       container.appendChild(node);
       return;
     }
 
     const task = /^[-*]\s+\[([ xX])\]\s+(.+)$/.exec(trimmed);
     if (task) {
-      appendListItem(container, task[1].trim() ? '✓' : '□', task[2], 'md-list-item');
+      appendListItem(container, task[1].trim() ? '✓' : '□', normalizeAssistantDisplayLine(task[2]), 'md-list-item');
       return;
     }
 
@@ -3643,29 +3643,79 @@
         appendFileResultCard(container, fileResult);
         return;
       }
-      appendListItem(container, '•', bullet[1], 'md-list-item');
+      appendListItem(container, '•', normalizeAssistantDisplayLine(bullet[1]), 'md-list-item');
       return;
     }
 
     const numbered = /^(\d+)\.\s+(.+)$/.exec(trimmed);
     if (numbered) {
-      appendListItem(container, `${numbered[1]}.`, numbered[2], 'md-numbered-item');
+      appendListItem(container, `${numbered[1]}.`, normalizeAssistantDisplayLine(numbered[2]), 'md-numbered-item');
       return;
     }
 
     const paragraph = document.createElement('div');
     paragraph.className = 'md-paragraph';
-    appendInlineMarkdown(paragraph, line);
+    appendInlineMarkdown(paragraph, normalizeAssistantDisplayLine(line));
     container.appendChild(paragraph);
   }
 
   function preprocessAssistantMessageLines(lines) {
-    return (lines || []).filter((line, index) => {
-      if (isInternalAnalysisHeading(line, lines, index)) {
-        return false;
+    const sourceLines = lines || [];
+    const hasInternalSignals = sourceLines.some((line, index) => (
+      isInternalAnalysisHeading(line, sourceLines, index)
+        || isInternalAnalysisField(line)
+        || isAssistantToolNoiseLine(line)
+        || shouldHideAssistantSection(parseAssistantMarkupTag(String(line || '').trim())?.name)
+    ));
+
+    const cleaned = [];
+    let hiddenSection = '';
+    let skippingInternalField = false;
+
+    sourceLines.forEach((line, index) => {
+      const source = stripHiddenAssistantInlineMarkup(line);
+      const trimmed = source.trim();
+      const structuralTag = parseAssistantMarkupTag(trimmed);
+
+      if (structuralTag && shouldHideAssistantSection(structuralTag.name)) {
+        if (structuralTag.closing && hiddenSection === structuralTag.name) {
+          hiddenSection = '';
+        } else if (!structuralTag.closing) {
+          hiddenSection = structuralTag.name;
+        }
+        return;
       }
-      return !isInternalAnalysisField(line);
+
+      if (hiddenSection) {
+        return;
+      }
+
+      if (skippingInternalField) {
+        if (!trimmed) {
+          skippingInternalField = false;
+          return;
+        }
+        if (!structuralTag && !parseAssistantSectionHeading(trimmed)) {
+          return;
+        }
+        skippingInternalField = false;
+      }
+
+      if (isInternalAnalysisHeading(source, sourceLines, index)
+        || isAssistantToolNoiseLine(source)
+        || (hasInternalSignals && isAssistantProgressNoiseLine(source))) {
+        return;
+      }
+
+      if (isInternalAnalysisField(source)) {
+        skippingInternalField = true;
+        return;
+      }
+
+      cleaned.push(source);
     });
+
+    return cleaned;
   }
 
   function isInternalAnalysisHeading(line, lines, index) {
@@ -3680,7 +3730,40 @@
   }
 
   function isInternalAnalysisField(line) {
-    return /^(?:Literal Request|Actual Need|Success Looks Like)\s*:/i.test(String(line || '').trim());
+    return /^(?:Literal Request|Actual Need|Success Looks Like|字面请求|实际需求|成功标准)\s*:/i.test(normalizeAssistantDiagnosticLine(line));
+  }
+
+  function isAssistantToolNoiseLine(line) {
+    const source = normalizeAssistantDiagnosticLine(line);
+    return /^!?\s*permission requested:\s*.+auto-?rejecting\b/i.test(source)
+      || /^!?\s*permission requested:\s*(?:read|write)\b/i.test(source);
+  }
+
+  function isAssistantProgressNoiseLine(line) {
+    const source = normalizeAssistantDiagnosticLine(line);
+    return /^(?:Let me\b|Now let me\b|Good initial sweep\b|The TypeScript check returned no output\b|Now I have all the data\b|Here(?:'|’)s the comprehensive\b|后台分析任务已并行启动|项目规模不小。先并行跑|找到项目了|让我(?:先|进一步|深入|直接|并行))/i.test(source);
+  }
+
+  function normalizeAssistantDiagnosticLine(line) {
+    return normalizeMessageText(line)
+      .trim()
+      .replace(/\*\*/g, '')
+      .replace(/^[-*•]\s+/, '');
+  }
+
+  function stripHiddenAssistantInlineMarkup(line) {
+    return normalizeMessageText(line).replace(/<analysis>[\s\S]*?<\/analysis>/gi, '').trimEnd();
+  }
+
+  function shouldHideAssistantSection(name) {
+    return name === 'analysis';
+  }
+
+  function normalizeAssistantDisplayLine(line) {
+    return normalizeMessageText(line)
+      .replace(/([A-Za-z0-9])([\u3400-\u9fff])/g, '$1 $2')
+      .replace(/([\u3400-\u9fff])([A-Za-z0-9])/g, '$1 $2')
+      .replace(/([.!?])(?=[A-Z])/g, '$1 ');
   }
 
   function parseAssistantMarkupTag(line) {
@@ -3734,7 +3817,7 @@
   function appendAssistantMarkupParts(container, parts) {
     parts.forEach((part) => {
       if (part.tag) {
-        if (!part.tag.closing) {
+        if (!part.tag.closing && !shouldHideAssistantSection(part.tag.name)) {
           appendAssistantSectionLabel(container, part.tag.name);
         }
         return;
@@ -3930,7 +4013,7 @@
 
     const detail = document.createElement('span');
     detail.className = 'md-file-detail';
-    appendInlineMarkdown(detail, fileResult.detail);
+    appendInlineMarkdown(detail, normalizeAssistantDisplayLine(fileResult.detail));
     card.appendChild(detail);
 
     container.appendChild(card);
