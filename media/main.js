@@ -3726,7 +3726,31 @@
       cleaned.push(source);
     });
 
-    return cleaned;
+    return compactAssistantMessageLines(cleaned);
+  }
+
+  function compactAssistantMessageLines(lines) {
+    const compacted = [];
+    let previousBlank = true;
+
+    (lines || []).forEach((line) => {
+      const isBlank = !String(line || '').trim();
+      if (isBlank) {
+        if (!previousBlank) {
+          compacted.push('');
+        }
+        previousBlank = true;
+        return;
+      }
+      compacted.push(line);
+      previousBlank = false;
+    });
+
+    while (compacted.length && !String(compacted[compacted.length - 1] || '').trim()) {
+      compacted.pop();
+    }
+
+    return compacted;
   }
 
   function isInternalAnalysisHeading(line, lines, index) {
@@ -3746,13 +3770,13 @@
 
   function isAssistantToolNoiseLine(line) {
     const source = normalizeAssistantDiagnosticLine(line);
-    return /^!?\s*permission requested:\s*.+auto-?rejecting\b/i.test(source)
+    return /\bpermission requested:\s*.+auto-?rejecting\b/i.test(source)
       || /^!?\s*permission requested:\s*(?:read|write)\b/i.test(source);
   }
 
   function isAssistantProgressNoiseLine(line) {
     const source = normalizeAssistantDiagnosticLine(line);
-    return /^(?:Let me\b|Now let me\b|Good initial sweep\b|The TypeScript check returned no output\b|Now I have all the data\b|Here(?:'|’)s the comprehensive\b|后台分析任务已并行启动|项目规模不小。先并行跑|找到项目了|让我(?:先|进一步|深入|直接|并行))/i.test(source);
+    return /^(?:I(?:'|’)ll start\b|I will start\b|Let me\b|Now let me\b|Let me now\b|Good initial sweep\b|The TypeScript check returned no output\b|Now I have all the data\b|Here(?:'|’)s the comprehensive\b|后台分析任务已并行启动|项目规模不小。先并行跑|找到项目了|让我(?:先|进一步|深入|直接|并行))/i.test(source);
   }
 
   function normalizeAssistantDiagnosticLine(line) {

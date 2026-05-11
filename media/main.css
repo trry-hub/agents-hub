@@ -1581,8 +1581,8 @@ textarea:focus {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 9px;
-  padding: 14px clamp(16px, 2.8vw, 22px) 24px;
+  gap: 6px;
+  padding: 10px clamp(14px, 2.4vw, 18px) 18px;
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--vscode-scrollbarSlider-background) 72%, transparent) transparent;
 }
@@ -1684,7 +1684,7 @@ textarea:focus {
 
 .message.user {
   justify-items: end;
-  margin: 2px 0 4px;
+  margin: 0 0 2px;
 }
 
 .message.assistant,
@@ -1770,7 +1770,7 @@ textarea:focus {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 .message-copy-button {
@@ -1834,10 +1834,10 @@ textarea:focus {
 
 .message-content {
   display: grid;
-  gap: 7px;
+  gap: 4px;
   color: var(--vscode-foreground);
   font-size: 13px;
-  line-height: 1.56;
+  line-height: 1.46;
   letter-spacing: 0;
   overflow-wrap: break-word;
 }
@@ -1864,14 +1864,14 @@ textarea:focus {
 }
 
 .md-spacer {
-  height: 5px;
+  height: 2px;
 }
 
 .md-heading {
-  margin: 9px 0 4px;
+  margin: 7px 0 2px;
   color: var(--vscode-foreground);
   font-weight: 700;
-  line-height: 1.32;
+  line-height: 1.28;
   letter-spacing: 0;
 }
 
@@ -1902,7 +1902,7 @@ textarea:focus {
 .md-list-item,
 .md-numbered-item {
   margin: 0;
-  line-height: 1.54;
+  line-height: 1.46;
 }
 
 .md-section-label {
@@ -1936,10 +1936,11 @@ textarea:focus {
   display: grid;
   margin: 2px 0;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--vscode-foreground) 10%, var(--assistant-border));
+  border: 1px solid color-mix(in srgb, var(--vscode-foreground) 4%, var(--assistant-border));
   border-radius: 8px;
-  background: color-mix(in srgb, var(--vscode-foreground) 4%, var(--assistant-surface));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vscode-foreground) 3%, transparent);
+  background: rgba(128, 128, 128, 0.025);
+  background: color-mix(in srgb, var(--vscode-foreground) 2%, var(--assistant-surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vscode-foreground) 1.5%, transparent);
 }
 
 .md-file-summary,
@@ -1955,8 +1956,8 @@ textarea:focus {
 .md-file-summary {
   min-height: 34px;
   color: var(--vscode-foreground);
-  border-bottom: 1px solid color-mix(in srgb, var(--vscode-foreground) 8%, var(--assistant-border));
-  background: color-mix(in srgb, var(--vscode-foreground) 7%, var(--assistant-surface));
+  border-bottom: 1px solid color-mix(in srgb, var(--vscode-foreground) 4%, var(--assistant-border));
+  background: color-mix(in srgb, var(--vscode-foreground) 2.5%, var(--assistant-surface));
   font-size: 12px;
   font-weight: 500;
 }
@@ -1979,12 +1980,12 @@ textarea:focus {
 
 .md-file-row {
   min-height: 34px;
-  border-top: 1px solid color-mix(in srgb, var(--vscode-foreground) 6%, transparent);
-  background: color-mix(in srgb, var(--vscode-foreground) 3%, var(--assistant-surface));
+  border-top: 1px solid color-mix(in srgb, var(--vscode-foreground) 3%, transparent);
+  background: color-mix(in srgb, var(--vscode-foreground) 1.5%, var(--assistant-surface));
 }
 
 .md-file-row:nth-child(2n + 1) {
-  background: color-mix(in srgb, var(--vscode-foreground) 5%, var(--assistant-surface));
+  background: color-mix(in srgb, var(--vscode-foreground) 2%, var(--assistant-surface));
 }
 
 .md-file-row-summary {
@@ -2000,7 +2001,7 @@ textarea:focus {
 }
 
 .md-file-row[data-collapsible] .md-file-row-summary:hover {
-  background: color-mix(in srgb, var(--vscode-foreground) 8%, var(--assistant-surface));
+  background: color-mix(in srgb, var(--vscode-foreground) 3%, var(--assistant-surface));
 }
 
 .md-file-row-summary:focus-visible {
@@ -2042,9 +2043,9 @@ textarea:focus {
   min-width: 0;
   display: block;
   padding: 7px 34px 9px 10px;
-  border-top: 1px solid color-mix(in srgb, var(--vscode-foreground) 6%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--vscode-foreground) 2.5%, transparent);
   color: var(--assistant-muted);
-  background: color-mix(in srgb, var(--vscode-foreground) 6%, var(--assistant-surface));
+  background: color-mix(in srgb, var(--vscode-foreground) 2%, var(--assistant-surface));
   font-size: 11.5px;
   line-height: 1.4;
 }
