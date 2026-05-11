@@ -1976,6 +1976,52 @@ textarea:focus {
   scrollbar-width: thin;
 }
 
+.md-token.keyword {
+  color: var(--vscode-symbolIcon-keywordForeground, #af65db);
+  font-weight: 650;
+}
+
+.md-token.string {
+  color: var(--vscode-symbolIcon-stringForeground, #0f8a5f);
+}
+
+.md-token.comment {
+  color: var(--assistant-muted);
+  font-style: italic;
+}
+
+.md-token.number {
+  color: var(--vscode-symbolIcon-numberForeground, #b36b00);
+}
+
+.md-token.constant {
+  color: var(--vscode-symbolIcon-numberForeground, #b36b00);
+}
+
+.md-token.property {
+  color: var(--vscode-symbolIcon-propertyForeground, #267f99);
+}
+
+.md-token.function {
+  color: var(--vscode-symbolIcon-functionForeground, #795e26);
+}
+
+.md-token.variable {
+  color: var(--vscode-symbolIcon-variableForeground, #1f6feb);
+}
+
+.md-token.diff-add {
+  color: var(--vscode-gitDecoration-addedResourceForeground, #22863a);
+}
+
+.md-token.diff-remove {
+  color: var(--vscode-gitDecoration-deletedResourceForeground, #cb2431);
+}
+
+.md-token.diff-hunk {
+  color: var(--vscode-editorLineNumber-foreground, var(--assistant-muted));
+}
+
 .md-code-wrap {
   display: grid;
   gap: 0;

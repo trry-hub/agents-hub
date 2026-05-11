@@ -3763,6 +3763,7 @@
   function appendCodeBlock(container, code, language) {
     const wrap = document.createElement('div');
     wrap.className = 'md-code-wrap';
+    const normalizedLanguage = normalizeCodeLanguage(language);
 
     if (language) {
       const label = document.createElement('div');
@@ -3773,9 +3774,165 @@
 
     const pre = document.createElement('pre');
     pre.className = 'md-code-block';
-    pre.textContent = code;
+    if (normalizedLanguage) {
+      pre.classList.add(`language-${normalizedLanguage}`);
+    }
+    appendHighlightedCode(pre, code, normalizedLanguage);
     wrap.appendChild(pre);
     container.appendChild(wrap);
+  }
+
+  function normalizeCodeLanguage(language) {
+    const raw = String(language || '').trim().toLowerCase().replace(/[{}]/g, '');
+    if (!raw) {
+      return '';
+    }
+
+    const aliases = {
+      javascript: 'js',
+      typescript: 'ts',
+      jsonc: 'json',
+      bash: 'shell',
+      sh: 'shell',
+      zsh: 'shell',
+      shellscript: 'shell',
+      patch: 'diff',
+      xml: 'html',
+      html: 'html',
+      css: 'css',
+      scss: 'css',
+    };
+    return aliases[raw] || raw.replace(/[^a-z0-9+#-]/g, '');
+  }
+
+  function appendHighlightedCode(container, code, language) {
+    const source = String(code || '');
+    if (!source) {
+      return;
+    }
+
+    if (language === 'diff') {
+      appendDiffHighlightedCode(container, source);
+      return;
+    }
+
+    const patterns = codeHighlightPatterns(language);
+    if (patterns.length === 0) {
+      container.appendChild(document.createTextNode(source));
+      return;
+    }
+
+    let index = 0;
+    let plainStart = 0;
+    while (index < source.length) {
+      let token = null;
+      for (const pattern of patterns) {
+        pattern.regex.lastIndex = index;
+        const match = pattern.regex.exec(source);
+        if (match && match.index === index && match[0]) {
+          token = { className: pattern.className, text: match[0] };
+          break;
+        }
+      }
+
+      if (!token) {
+        index += 1;
+        continue;
+      }
+
+      if (plainStart < index) {
+        container.appendChild(document.createTextNode(source.slice(plainStart, index)));
+      }
+      appendCodeToken(container, token.className, token.text);
+      index += token.text.length;
+      plainStart = index;
+    }
+
+    if (plainStart < source.length) {
+      container.appendChild(document.createTextNode(source.slice(plainStart)));
+    }
+  }
+
+  function appendCodeToken(container, className, text) {
+    const token = document.createElement('span');
+    token.className = `md-token ${className}`;
+    token.textContent = text;
+    container.appendChild(token);
+  }
+
+  function codeHighlightPatterns(language) {
+    const jsKeywords =
+      'abstract|as|async|await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|export|extends|finally|for|from|function|if|implements|import|in|instanceof|interface|let|new|of|private|protected|public|readonly|return|static|super|switch|this|throw|try|type|typeof|var|void|while|with|yield';
+
+    if (['js', 'jsx', 'ts', 'tsx'].includes(language)) {
+      return [
+        { className: 'comment', regex: /\/\*[\s\S]*?\*\/|\/\/[^\n]*/y },
+        { className: 'string', regex: /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\[\s\S]|[^`\\])*`/y },
+        { className: 'keyword', regex: new RegExp(`\\b(?:${jsKeywords})\\b`, 'y') },
+        { className: 'constant', regex: /\b(?:true|false|null|undefined|NaN|Infinity)\b/y },
+        { className: 'number', regex: /\b(?:0x[\da-f]+|\d+(?:\.\d+)?)\b/iy },
+        { className: 'function', regex: /\b[A-Za-z_$][\w$]*(?=\s*\()/y },
+      ];
+    }
+
+    if (language === 'json') {
+      return [
+        { className: 'property', regex: /"(?:\\.|[^"\\])*"(?=\s*:)/y },
+        { className: 'string', regex: /"(?:\\.|[^"\\])*"/y },
+        { className: 'constant', regex: /\b(?:true|false|null)\b/y },
+        { className: 'number', regex: /-?\b\d+(?:\.\d+)?(?:e[+-]?\d+)?\b/iy },
+      ];
+    }
+
+    if (language === 'shell') {
+      return [
+        { className: 'comment', regex: /#[^\n]*/y },
+        { className: 'string', regex: /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/y },
+        { className: 'variable', regex: /\$\{[^}]+\}|\$[A-Za-z_][\w]*/y },
+        { className: 'keyword', regex: /\b(?:case|cd|do|done|echo|elif|else|esac|export|fi|for|function|git|if|in|npm|pnpm|then|while|yarn)\b/y },
+        { className: 'number', regex: /--?[\w-]+/y },
+      ];
+    }
+
+    if (language === 'css') {
+      return [
+        { className: 'comment', regex: /\/\*[\s\S]*?\*\//y },
+        { className: 'property', regex: /--?[\w-]+(?=\s*:)/y },
+        { className: 'string', regex: /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/y },
+        { className: 'number', regex: /#[\da-f]{3,8}\b|\b\d+(?:\.\d+)?(?:px|rem|em|%|vh|vw|s|ms)?\b/iy },
+        { className: 'keyword', regex: /\b(?:auto|block|flex|grid|inline|none|relative|absolute|fixed|sticky|solid|transparent|var)\b/y },
+      ];
+    }
+
+    if (language === 'html') {
+      return [
+        { className: 'comment', regex: /<!--[\s\S]*?-->/y },
+        { className: 'keyword', regex: /<\/?[A-Za-z][\w:-]*/y },
+        { className: 'property', regex: /\s[A-Za-z_:][\w:.-]*(?=\=)/y },
+        { className: 'string', regex: /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/y },
+      ];
+    }
+
+    return [];
+  }
+
+  function appendDiffHighlightedCode(container, code) {
+    const lines = String(code || '').split('\n');
+    lines.forEach((line, index) => {
+      if (line.startsWith('+') && !line.startsWith('+++')) {
+        appendCodeToken(container, 'diff-add', line);
+      } else if (line.startsWith('-') && !line.startsWith('---')) {
+        appendCodeToken(container, 'diff-remove', line);
+      } else if (line.startsWith('@@')) {
+        appendCodeToken(container, 'diff-hunk', line);
+      } else {
+        container.appendChild(document.createTextNode(line));
+      }
+
+      if (index < lines.length - 1) {
+        container.appendChild(document.createTextNode('\n'));
+      }
+    });
   }
 
   function appendInlineMarkdown(container, text) {
