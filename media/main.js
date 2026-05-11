@@ -3377,7 +3377,7 @@
 
       const structuralTag = parseAssistantMarkupTag(trimmed);
       if (structuralTag) {
-        if (!structuralTag.closing && !shouldHideAssistantSection(structuralTag.name)) {
+        if (!structuralTag.closing && shouldShowAssistantSectionLabel(lines, index, structuralTag.name)) {
           appendAssistantSectionLabel(container, structuralTag.name);
         }
         index += 1;
@@ -3421,6 +3421,22 @@
       if (tabbedTable) {
         appendTable(container, tabbedTable.lines, tabbedTable.kind);
         index += tabbedTable.lines.length;
+        continue;
+      }
+
+      const fileResultBlock = readFileResultBlock(lines, index);
+      if (fileResultBlock) {
+        appendFileResultList(container, fileResultBlock.items);
+        index += fileResultBlock.length;
+        continue;
+      }
+
+      const sectionHeading = parseAssistantSectionHeading(trimmed);
+      if (sectionHeading) {
+        if (shouldShowAssistantSectionLabel(lines, index, sectionHeading)) {
+          appendAssistantSectionLabel(container, sectionHeading);
+        }
+        index += 1;
         continue;
       }
 
@@ -3587,7 +3603,7 @@
 
     const structuralTag = parseAssistantMarkupTag(trimmed);
     if (structuralTag) {
-      if (!structuralTag.closing && !shouldHideAssistantSection(structuralTag.name)) {
+      if (!structuralTag.closing) {
         appendAssistantSectionLabel(container, structuralTag.name);
       }
       return;
@@ -3640,7 +3656,7 @@
     if (bullet) {
       const fileResult = parseFileResultLine(bullet[1]);
       if (fileResult) {
-        appendFileResultCard(container, fileResult);
+        appendFileResultList(container, [fileResult]);
         return;
       }
       appendListItem(container, '•', normalizeAssistantDisplayLine(bullet[1]), 'md-list-item');
@@ -3665,30 +3681,15 @@
       isInternalAnalysisHeading(line, sourceLines, index)
         || isInternalAnalysisField(line)
         || isAssistantToolNoiseLine(line)
-        || shouldHideAssistantSection(parseAssistantMarkupTag(String(line || '').trim())?.name)
     ));
 
     const cleaned = [];
-    let hiddenSection = '';
     let skippingInternalField = false;
 
     sourceLines.forEach((line, index) => {
       const source = stripHiddenAssistantInlineMarkup(line);
       const trimmed = source.trim();
       const structuralTag = parseAssistantMarkupTag(trimmed);
-
-      if (structuralTag && shouldHideAssistantSection(structuralTag.name)) {
-        if (structuralTag.closing && hiddenSection === structuralTag.name) {
-          hiddenSection = '';
-        } else if (!structuralTag.closing) {
-          hiddenSection = structuralTag.name;
-        }
-        return;
-      }
-
-      if (hiddenSection) {
-        return;
-      }
 
       if (skippingInternalField) {
         if (!trimmed) {
@@ -3756,7 +3757,7 @@
   }
 
   function shouldHideAssistantSection(name) {
-    return name === 'analysis';
+    return false;
   }
 
   function normalizeAssistantDisplayLine(line) {
@@ -3842,6 +3843,36 @@
     return Object.prototype.hasOwnProperty.call(assistantSectionLabels(), key) ? key : null;
   }
 
+  function shouldShowAssistantSectionLabel(lines, index, name) {
+    if (shouldHideAssistantSection(name)) {
+      return false;
+    }
+
+    for (let nextIndex = index + 1; nextIndex < lines.length; nextIndex += 1) {
+      const source = normalizeMessageText(lines[nextIndex]).trim();
+      if (!source) {
+        continue;
+      }
+
+      const tag = parseAssistantMarkupTag(source);
+      if (tag) {
+        return tag.closing ? tag.name !== name : false;
+      }
+
+      if (parseAssistantSectionHeading(source)) {
+        return false;
+      }
+
+      if (isInternalAnalysisField(source) || isAssistantToolNoiseLine(source) || isAssistantProgressNoiseLine(source)) {
+        continue;
+      }
+
+      return true;
+    }
+
+    return false;
+  }
+
   function appendAssistantSectionLabel(container, name) {
     const label = document.createElement('div');
     label.className = 'md-section-label';
@@ -3912,6 +3943,29 @@
       .split('\t')
       .map((cell) => cell.trim())
       .filter((cell) => cell.length > 0);
+  }
+
+  function readFileResultBlock(lines, startIndex) {
+    const items = [];
+    let index = startIndex;
+
+    while (index < lines.length) {
+      const trimmed = String(lines[index] || '').trim();
+      const bullet = /^[-*•]\s+(.+)$/.exec(trimmed);
+      if (!bullet) {
+        break;
+      }
+
+      const fileResult = parseFileResultLine(bullet[1]);
+      if (!fileResult) {
+        break;
+      }
+
+      items.push(fileResult);
+      index += 1;
+    }
+
+    return items.length ? { items, length: index - startIndex } : null;
   }
 
   function isTableRow(line) {
@@ -3991,32 +4045,139 @@
 
   function parseFileResultLine(text) {
     const source = normalizeMessageText(text).trim();
-    const match = /^((?:\/|~\/|\.\.?\/|[\w.-]+\/).+?)\s(?:[-–—])\s(.+)$/.exec(source);
-    if (!match) {
+    const withDetail = /^((?:\/|~\/|\.\.?\/|[\w.-]+\/).+?)\s(?:[-–—])\s(.+)$/.exec(source);
+    const withInlineStats = /^((?:\/|~\/|\.\.?\/|[\w.-]+\/).+?)\s+((?:\+\d+|-{1}\d+)(?:\s+(?:\+\d+|-{1}\d+))*)$/.exec(source);
+    const path = (withDetail ? withDetail[1] : withInlineStats ? withInlineStats[1] : source).trim();
+    const detail = (withDetail ? withDetail[2] : withInlineStats ? withInlineStats[2] : '').trim();
+    if (!/^(?:\/|~\/|\.\.?\/|[\w.-]+\/).+/.test(path)) {
       return null;
     }
 
+    const stats = parseFileResultStats(detail);
     return {
-      path: match[1].trim(),
-      detail: match[2].trim(),
+      path,
+      detail,
+      additions: stats.additions,
+      deletions: stats.deletions,
     };
   }
 
-  function appendFileResultCard(container, fileResult) {
-    const card = document.createElement('div');
-    card.className = 'md-file-card';
+  function parseFileResultStats(detail) {
+    const add = /(?:^|\s)\+(\d+)\b/.exec(detail);
+    const remove = /(?:^|\s)-(\d+)\b/.exec(detail);
+    return {
+      additions: add ? Number(add[1]) : 0,
+      deletions: remove ? Number(remove[1]) : 0,
+    };
+  }
+
+  function compactFilePathForDisplay(path) {
+    const source = normalizeMessageText(path).replace(/\\/g, '/');
+    const workspaceIndex = source.indexOf('/src/');
+    if (workspaceIndex >= 0) {
+      return source.slice(workspaceIndex + 1);
+    }
+
+    const parts = source.split('/').filter(Boolean);
+    if (parts.length <= 3) {
+      return source;
+    }
+
+    return `.../${parts.slice(-3).join('/')}`;
+  }
+
+  function appendFileResultList(container, fileResults) {
+    const list = document.createElement('div');
+    list.className = 'md-file-list';
+
+    const summary = document.createElement('div');
+    summary.className = 'md-file-summary';
+
+    const summaryText = document.createElement('span');
+    summaryText.textContent = i18n.locale === 'zh-CN'
+      ? `${fileResults.length} 个文件`
+      : `${fileResults.length} ${fileResults.length === 1 ? 'file' : 'files'}`;
+    summary.appendChild(summaryText);
+
+    appendFileStats(summary, totalFileStats(fileResults), 'md-file-summary-stats');
+    list.appendChild(summary);
+
+    fileResults.forEach((fileResult) => {
+      list.appendChild(createFileResultRow(fileResult));
+    });
+
+    container.appendChild(list);
+  }
+
+  function totalFileStats(fileResults) {
+    return fileResults.reduce((total, fileResult) => ({
+      additions: total.additions + (fileResult.additions || 0),
+      deletions: total.deletions + (fileResult.deletions || 0),
+    }), { additions: 0, deletions: 0 });
+  }
+
+  function createFileResultRow(fileResult) {
+    const row = document.createElement('div');
+    row.className = 'md-file-row';
+
+    const body = document.createElement('div');
+    body.className = 'md-file-body';
+
+    const title = document.createElement('div');
+    title.className = 'md-file-title';
 
     const path = document.createElement('code');
     path.className = 'md-file-path';
-    path.textContent = fileResult.path;
-    card.appendChild(path);
+    path.textContent = compactFilePathForDisplay(fileResult.path);
+    path.title = fileResult.path;
+    title.appendChild(path);
 
-    const detail = document.createElement('span');
-    detail.className = 'md-file-detail';
-    appendInlineMarkdown(detail, normalizeAssistantDisplayLine(fileResult.detail));
-    card.appendChild(detail);
+    appendFileStats(title, fileResult, 'md-file-row-stats');
+    body.appendChild(title);
 
-    container.appendChild(card);
+    if (fileResult.detail && !isFileStatsOnly(fileResult.detail)) {
+      const detail = document.createElement('span');
+      detail.className = 'md-file-detail';
+      appendInlineMarkdown(detail, normalizeAssistantDisplayLine(fileResult.detail));
+      body.appendChild(detail);
+    }
+
+    const chevron = document.createElement('span');
+    chevron.className = 'md-file-chevron';
+    chevron.textContent = '⌄';
+
+    row.appendChild(body);
+    row.appendChild(chevron);
+    return row;
+  }
+
+  function appendFileStats(container, fileResult, className) {
+    if (!fileResult.additions && !fileResult.deletions) {
+      return;
+    }
+
+    const stats = document.createElement('span');
+    stats.className = className;
+
+    if (fileResult.additions) {
+      const additions = document.createElement('span');
+      additions.className = 'md-file-additions';
+      additions.textContent = `+${fileResult.additions}`;
+      stats.appendChild(additions);
+    }
+
+    if (fileResult.deletions) {
+      const deletions = document.createElement('span');
+      deletions.className = 'md-file-deletions';
+      deletions.textContent = `-${fileResult.deletions}`;
+      stats.appendChild(deletions);
+    }
+
+    container.appendChild(stats);
+  }
+
+  function isFileStatsOnly(detail) {
+    return /^(?:(?:\+\d+|-\d+)\s*)+$/.test(normalizeMessageText(detail).trim());
   }
 
   function appendCodeBlock(container, code, language) {

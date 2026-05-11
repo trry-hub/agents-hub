@@ -1931,24 +1931,71 @@ textarea:focus {
   opacity: 0.52;
 }
 
-.md-file-card {
+.md-file-list {
   min-width: 0;
   display: grid;
-  grid-template-columns: 3px minmax(0, 1fr);
-  gap: 3px 9px;
-  padding: 8px 10px;
-  border: 1px solid color-mix(in srgb, var(--assistant-border) 52%, transparent);
-  border-radius: 7px;
-  background: color-mix(in srgb, var(--assistant-panel) 34%, transparent);
+  margin: 2px 0;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--assistant-border) 68%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--assistant-panel) 22%, transparent);
 }
 
-.md-file-card::before {
-  content: "";
-  grid-row: 1 / span 2;
-  width: 3px;
-  min-height: 100%;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--assistant-accent) 58%, var(--assistant-border));
+.md-file-summary,
+.md-file-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 18px;
+  align-items: center;
+  column-gap: 8px;
+  padding: 7px 10px;
+}
+
+.md-file-summary {
+  min-height: 34px;
+  color: var(--vscode-foreground);
+  border-bottom: 1px solid color-mix(in srgb, var(--assistant-border) 62%, transparent);
+  background: color-mix(in srgb, var(--assistant-panel) 34%, transparent);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.md-file-summary-stats,
+.md-file-row-stats {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.md-file-summary-stats {
+  justify-self: end;
+  grid-column: 2;
+}
+
+.md-file-row {
+  min-height: 34px;
+  border-top: 1px solid color-mix(in srgb, var(--assistant-border) 46%, transparent);
+}
+
+.md-file-summary + .md-file-row {
+  border-top: 0;
+}
+
+.md-file-body {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.md-file-title {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
 }
 
 .md-file-path {
@@ -1957,9 +2004,9 @@ textarea:focus {
   color: var(--vscode-foreground);
   background: transparent;
   font-family: var(--vscode-editor-font-family);
-  font-size: 11.5px;
-  font-weight: 650;
-  line-height: 1.4;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1967,8 +2014,23 @@ textarea:focus {
 .md-file-detail {
   min-width: 0;
   color: var(--assistant-muted);
-  font-size: 12px;
-  line-height: 1.42;
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+.md-file-additions {
+  color: var(--vscode-gitDecoration-addedResourceForeground, #22863a);
+}
+
+.md-file-deletions {
+  color: var(--vscode-gitDecoration-deletedResourceForeground, #cb2431);
+}
+
+.md-file-chevron {
+  justify-self: end;
+  color: var(--assistant-muted);
+  font-size: 13px;
+  line-height: 1;
 }
 
 .md-list-item,
