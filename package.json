@@ -4,10 +4,34 @@
   "description": "%extension.description%",
   "version": "0.1.0",
   "publisher": "agents-hub",
+  "license": "MIT",
+  "icon": "media/icon.svg",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/agents-hub/vscode-agents-hub.git"
+  },
+  "bugs": {
+    "url": "https://github.com/agents-hub/vscode-agents-hub/issues"
+  },
+  "homepage": "https://github.com/agents-hub/vscode-agents-hub",
+  "keywords": [
+    "ai",
+    "assistant",
+    "claude",
+    "codex",
+    "gemini",
+    "opencode",
+    "goose",
+    "aider",
+    "multi-agent",
+    "workbench"
+  ],
   "engines": {
     "vscode": "^1.85.0"
   },
   "categories": [
+    "Chat",
+    "Programming Languages",
     "Other"
   ],
   "activationEvents": [

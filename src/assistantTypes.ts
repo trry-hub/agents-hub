@@ -89,6 +89,7 @@ export interface AssistantPromptRequest {
   attachments?: AssistantImageAttachment[];
   conversationHistory?: AssistantConversationHistoryMessage[];
   context: AssistantContextSnapshot;
+  locale?: string;
 }
 
 export interface AssistantWebviewRequest {
@@ -114,6 +115,7 @@ export interface AssistantContextSummary {
   selection?: string;
   diagnostics: number;
   tokenUsage?: AssistantTokenUsage;
+  contextWindowTokens?: number;
 }
 
 export type AssistantTokenPrecision = 'exact' | 'unavailable';

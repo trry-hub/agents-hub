@@ -65,6 +65,7 @@ export function buildAssistantPrompt(request: AssistantPromptRequest): string {
     '- When suggesting code changes, include file paths and minimal patches or snippets.',
     '- If context is missing, say what is missing and proceed with the best available information.',
     DELIVERY_REQUIREMENTS,
+    languageInstructionForLocale(request.locale),
   ];
 
   return lines.filter((line, index, all) => line !== '' || all[index - 1] !== '').join('\n');
@@ -72,12 +73,16 @@ export function buildAssistantPrompt(request: AssistantPromptRequest): string {
 
 function buildOpenCodeFreeformPrompt(request: AssistantPromptRequest): string {
   const message = request.message.trim() || defaultMessageForAction(request.action);
+  const languageDirective = languageInstructionForLocale(request.locale);
   const hasAttachments = Boolean(request.attachments?.length);
   const hasContext = hasSubstantialContext(request.context);
   const hasHistory = Boolean(request.conversationHistory?.length);
 
   if (!hasAttachments && !hasContext && !hasHistory) {
-    return message;
+    if (!languageDirective) {
+      return message;
+    }
+    return `${message}\n\n${languageDirective}`;
   }
 
   const lines: string[] = [message, ''];
@@ -95,6 +100,11 @@ function buildOpenCodeFreeformPrompt(request: AssistantPromptRequest): string {
   if (hasContext) {
     lines.push('IDE context, use only if relevant:');
     lines.push(renderAssistantContext(request.context));
+    lines.push('');
+  }
+
+  if (languageDirective) {
+    lines.push(languageDirective);
     lines.push('');
   }
 
@@ -247,4 +257,14 @@ function formatBytes(size: number): string {
     return `${Math.round(bytes / 1024)} KB`;
   }
   return `${bytes} B`;
+}
+
+function languageInstructionForLocale(locale?: string): string {
+  if (!locale) {
+    return '';
+  }
+  if (locale.startsWith('zh')) {
+    return 'Reply in Chinese (简体中文). Do not mix languages.';
+  }
+  return 'Reply in English. Do not mix languages.';
 }

@@ -26,6 +26,7 @@ import {
   getCliPermissionMode,
   getCliProfile,
   getCliRuntimeMode,
+  inferContextWindowTokens,
   type CliProfile,
 } from './cliProfiles';
 import { AssistantContextCollector } from './contextCollector';
@@ -147,7 +148,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           await this.sendProfiles();
           break;
         case 'refreshContext':
-          await this.sendContextSummary(message.contextOptions, this.resolveCliId(message));
+          await this.sendContextSummary(message.contextOptions, this.resolveCliId(message), message.modelId);
           break;
         case 'openProviderExtension':
           await this.openProviderExtension(this.resolveCliId(message));
@@ -429,7 +430,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   private async sendContextSummary(
     contextOptions: Partial<AssistantContextOptions> = {},
-    cliId = this.getDefaultCliId()
+    cliId = this.getDefaultCliId(),
+    modelId?: string
   ): Promise<void> {
     const options = this.resolveContextOptions(contextOptions);
     const snapshot = await this.contextCollector.collect(options, this.getContextLimits());
@@ -437,7 +439,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     const summary = profile
       ? {
           ...this.contextCollector.summarize(snapshot),
-          tokenUsage: countContextTokens(snapshot, profile),
+          tokenUsage: countContextTokens(snapshot, profile, modelId),
+          contextWindowTokens: profile.contextWindowTokens ?? inferContextWindowTokens(modelId),
         }
       : this.contextCollector.summarize(snapshot);
     this.view?.webview.postMessage({
@@ -486,7 +489,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     const snapshot = await this.contextCollector.collect(contextOptions, this.getContextLimits());
     const contextSummary = {
       ...this.contextCollector.summarize(snapshot),
-      tokenUsage: countContextTokens(snapshot, profile),
+      tokenUsage: countContextTokens(snapshot, profile, modelOption.id),
     };
     if (actionRequiresActiveFile(action) && !snapshot.activeFile) {
       this.postError(cliId, runtimeT(this.locale, 'error.missingActiveFile'));
@@ -512,6 +515,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       attachments,
       conversationHistory: message.conversationHistory,
       context: snapshot,
+      locale: this.locale,
     });
 
     let session = this.activeSessions.get(cliId);
@@ -963,10 +967,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   private getWebviewUri(webview: vscode.Webview, ...paths: string[]): string {
     const uri = webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, ...paths)).toString();
-    if (this.extensionMode !== vscode.ExtensionMode.Development) {
-      return uri;
-    }
-
     const separator = uri.includes('?') ? '&' : '?';
     return `${uri}${separator}v=${this.webviewAssetVersion}`;
   }

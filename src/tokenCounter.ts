@@ -1,16 +1,18 @@
 import { countTokens as countAnthropicTokens } from '@anthropic-ai/tokenizer';
 import { getEncoding, type Tiktoken } from 'js-tiktoken';
 import { AssistantContextSnapshot, AssistantTokenUsage } from './assistantTypes';
-import { CliProfile } from './cliProfiles';
+import { CliProfile, CliTokenizerConfig, inferTokenizerFromModelId } from './cliProfiles';
 import { renderAssistantContext } from './promptBuilder';
 
 const openAiEncoders = new Map<string, Tiktoken>();
 
 export function countContextTokens(
   snapshot: AssistantContextSnapshot,
-  profile: CliProfile
+  profile: CliProfile,
+  modelId?: string
 ): AssistantTokenUsage {
-  if (!profile.tokenizer) {
+  const tokenizer = profile.tokenizer ?? inferTokenizerFromModelId(modelId);
+  if (!tokenizer) {
     return {
       precision: 'unavailable',
       reason: `${profile.name} does not expose a local tokenizer for its current model.`,
@@ -20,24 +22,24 @@ export function countContextTokens(
   const text = renderAssistantContext(snapshot);
 
   try {
-    switch (profile.tokenizer.provider) {
+    switch (tokenizer.provider) {
       case 'openai':
         return {
           precision: 'exact',
-          tokens: getOpenAiEncoding(profile.tokenizer.encoding).encode(text).length,
-          tokenizer: profile.tokenizer.label,
+          tokens: getOpenAiEncoding(tokenizer.encoding).encode(text).length,
+          tokenizer: tokenizer.label,
         };
       case 'anthropic':
         return {
           precision: 'exact',
           tokens: countAnthropicTokens(text),
-          tokenizer: profile.tokenizer.label,
+          tokenizer: tokenizer.label,
         };
     }
   } catch (error) {
     return {
       precision: 'unavailable',
-      tokenizer: profile.tokenizer.label,
+      tokenizer: tokenizer.label,
       reason: error instanceof Error ? error.message : `${profile.name} tokenizer failed.`,
     };
   }

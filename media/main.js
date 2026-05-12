@@ -3,6 +3,18 @@
   const i18n = window.AssistantI18n;
   i18n.apply();
 
+  // Inject critical styles via JS to bypass webview CSS caching
+  (function injectCriticalStyles() {
+    const style = document.createElement('style');
+    style.textContent = [
+      '.message-copy-button { background: var(--assistant-panel) !important; opacity: 1 !important; }',
+      '.message-copy-button:hover, .message-copy-button:focus-visible { background: var(--assistant-hover) !important; }',
+      '.message-copy-button.is-copied { color: var(--vscode-testing-iconPassed, #4ec9b0) !important; }',
+      '.message.user .message-bubble { border: 1px solid var(--assistant-border) !important; background: var(--assistant-panel) !important; }',
+    ].join('\n');
+    document.head.appendChild(style);
+  })();
+
   const ORPHAN_ANSI_PATTERN = /(?:^|(?<=\s))\[(?:\??25[hl]|[0-9;]*[ABCDEFGJKSTfimnsu]|[0-9;]*[hl])/g;
   const CONTROL_PATTERN = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
   const INTERNAL_PROMPT_START = 'You are an AI coding assistant embedded in VS Code.';
@@ -1799,7 +1811,7 @@
     if (!activeId) {
       return;
     }
-    vscode.postMessage({ command: 'refreshContext', cliId: activeId, contextOptions });
+    vscode.postMessage({ command: 'refreshContext', cliId: activeId, contextOptions, modelId: activeModelId() });
   }
 
   function switchActiveProvider(providerId) {
@@ -2085,7 +2097,7 @@
         return;
       case 'refresh':
         vscode.postMessage({ command: 'checkProfiles' });
-        vscode.postMessage({ command: 'refreshContext', cliId: activeId, contextOptions });
+        vscode.postMessage({ command: 'refreshContext', cliId: activeId, contextOptions, modelId: activeModelId() });
         return;
       case 'stop':
         if (runningByProvider[activeId]) {
@@ -2229,17 +2241,15 @@
 
     contextBudget.hidden = false;
     const isExact = tokenUsage.precision === 'exact' && Number.isFinite(Number(tokenUsage.tokens));
-    contextBudget.classList.toggle('has-total', Boolean(isExact && profile.contextWindowTokens));
+    contextBudget.classList.toggle('has-total', Boolean(isExact && (contextSummary.contextWindowTokens || profile.contextWindowTokens)));
     contextBudget.classList.toggle('is-unavailable', !isExact);
 
     if (!isExact) {
       contextBudgetLabel.textContent = '';
       contextBudgetPercent.textContent = i18n.t('contextWindow.exactUnavailable', { provider: profile.name });
       contextBudgetTokens.textContent = i18n.t('contextWindow.providerManaged', { provider: profile.name });
-      contextBudgetTokenizer.textContent = tokenUsage.tokenizer
-        ? i18n.t('contextWindow.tokenizer', { tokenizer: tokenUsage.tokenizer })
-        : '';
-      contextBudgetPolicy.textContent = i18n.t('contextWindow.providerManaged', { provider: profile.name });
+      contextBudgetTokenizer.textContent = '';
+      contextBudgetPolicy.textContent = '';
       contextBudget.title = [
         i18n.t('contextWindow.title'),
         contextBudgetPercent.textContent,
@@ -2250,32 +2260,31 @@
     }
 
     const usedTokens = Math.max(0, Math.round(Number(tokenUsage.tokens) || 0));
-    const totalTokens = Math.max(0, Math.round(Number(profile.contextWindowTokens) || 0));
+    const totalTokens = Math.max(0, Math.round(Number(contextSummary.contextWindowTokens) || Number(profile.contextWindowTokens) || 0));
     const hasTotal = totalTokens > 0;
     const used = formatTokenCount(usedTokens);
 
     if (hasTotal) {
       const usedPercent = Math.min(100, Math.max(usedTokens > 0 ? 1 : 0, Math.round((usedTokens / totalTokens) * 100)));
-      const remainingPercent = Math.max(0, 100 - usedPercent);
       const total = formatTokenCount(totalTokens);
+      const remaining = formatTokenCount(Math.max(0, totalTokens - usedTokens));
       contextBudgetLabel.textContent = `${usedPercent}%`;
-      contextBudgetPercent.textContent = i18n.t('contextWindow.usedRemaining', {
-        usedPercent: String(usedPercent),
-        remainingPercent: String(remainingPercent),
-      });
-      contextBudgetTokens.textContent = i18n.t('contextWindow.usedTotal', { used, total });
+      contextBudgetPercent.textContent = i18n.t('contextWindow.usedPercent', { percent: String(usedPercent) });
+      contextBudgetTokens.textContent = i18n.t('contextWindow.usedTokens', { used });
+      contextBudgetTokenizer.textContent = i18n.t('contextWindow.totalTokens', { total });
+      contextBudgetPolicy.textContent = [
+        i18n.t('contextWindow.remaining', { remaining }),
+        profile.autoCompactsContext ? i18n.t('contextWindow.autoCompact') : '',
+      ].filter(Boolean).join(' · ');
     } else {
       contextBudgetLabel.textContent = used;
-      contextBudgetPercent.textContent = i18n.t('contextWindow.usedOnly', { used });
-      contextBudgetTokens.textContent = '';
+      contextBudgetPercent.textContent = i18n.t('contextWindow.usedTokens', { used });
+      contextBudgetTokens.textContent = contextSummary.workspace || '';
+      contextBudgetTokenizer.textContent = contextSummary.activeFile || '';
+      contextBudgetPolicy.textContent = profile.autoCompactsContext
+        ? i18n.t('contextWindow.autoCompact')
+        : '';
     }
-
-    contextBudgetTokenizer.textContent = tokenUsage.tokenizer
-      ? i18n.t('contextWindow.tokenizer', { tokenizer: tokenUsage.tokenizer })
-      : '';
-    contextBudgetPolicy.textContent = profile.autoCompactsContext
-      ? i18n.t('contextWindow.autoCompact', { provider: profile.name })
-      : i18n.t('contextWindow.providerManaged', { provider: profile.name });
     contextBudget.title = [
       i18n.t('contextWindow.title'),
       contextBudgetPercent.textContent,
@@ -2542,6 +2551,9 @@
         const copyGroupStart = assistantCopyGroupStart(conversation, index);
         copyButton.dataset.messageCopyStart = String(copyGroupStart);
         copyButton.dataset.messageCopyEnd = String(index);
+        if (isCopiedFeedbackActive(copyGroupStart, index)) {
+          applyCopiedFeedback(copyButton);
+        }
         copyActions.appendChild(copyButton);
         bubble.appendChild(copyActions);
       }
@@ -2630,6 +2642,9 @@
     renderedMessageThreadKey = threadKey;
   }
 
+  var COPY_CLIPBOARD_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2M16 4h2a2 2 0 0 1 2 2v4m1 4H11"/><path d="m15 10l-4 4l4 4"/></g></svg>';
+  var COPY_CHECK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14l2 2l4-4"/></g></svg>';
+
   function createMessageCopyButton() {
     const copyButton = document.createElement('button');
     copyButton.type = 'button';
@@ -2637,8 +2652,45 @@
     copyButton.dataset.messageCopy = 'true';
     copyButton.title = i18n.t('message.copy');
     copyButton.setAttribute('aria-label', i18n.t('message.copy'));
-    copyButton.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.2 5.2h7v7h-7z"/><path d="M3.8 10.8h-1v-8h8v1"/></svg>';
+    copyButton.innerHTML = COPY_CLIPBOARD_SVG + '<span class="message-copy-label">' + i18n.t('message.copy') + '</span>';
     return copyButton;
+  }
+
+  var copiedFeedbackState = { start: -1, end: -1, at: 0 };
+  var copiedFeedbackTimer = 0;
+  var COPIED_FEEDBACK_DURATION = 2000;
+
+  function showCopiedFeedback(button) {
+    var start = Number(button.dataset.messageCopyStart);
+    var end = Number(button.dataset.messageCopyEnd);
+    copiedFeedbackState = { start: start, end: end, at: Date.now() };
+    if (copiedFeedbackTimer) { clearTimeout(copiedFeedbackTimer); }
+    applyCopiedFeedback(button);
+    copiedFeedbackTimer = setTimeout(function() {
+      copiedFeedbackState = { start: -1, end: -1, at: 0 };
+      copiedFeedbackTimer = 0;
+    }, COPIED_FEEDBACK_DURATION);
+  }
+
+  function applyCopiedFeedback(button) {
+    button.classList.add('is-copied');
+    button.innerHTML = COPY_CHECK_SVG + '<span class="message-copy-label">' + i18n.t('message.copied') + '</span>';
+    button.title = i18n.t('message.copied');
+    button.setAttribute('aria-label', i18n.t('message.copied'));
+  }
+
+  function restoreCopyDefault(button) {
+    button.classList.remove('is-copied');
+    button.innerHTML = COPY_CLIPBOARD_SVG + '<span class="message-copy-label">' + i18n.t('message.copy') + '</span>';
+    button.title = i18n.t('message.copy');
+    button.setAttribute('aria-label', i18n.t('message.copy'));
+  }
+
+  function isCopiedFeedbackActive(start, end) {
+    return copiedFeedbackState.at > 0
+      && Date.now() - copiedFeedbackState.at < COPIED_FEEDBACK_DURATION
+      && copiedFeedbackState.start === start
+      && copiedFeedbackState.end === end;
   }
 
   function syncMessageStatusTimer(shouldRun) {
@@ -4908,6 +4960,7 @@
       const text = groupText || renderedMessagePlainText(body);
       if (text.trim()) {
         vscode.postMessage({ command: 'copyMessageText', text });
+        showCopiedFeedback(copyButton);
       }
       return;
     }

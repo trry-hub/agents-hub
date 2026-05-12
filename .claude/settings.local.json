@@ -22,7 +22,15 @@
       "WebFetch(domain:developers.openai.com)",
       "WebFetch(domain:goose-docs.ai)",
       "Bash(git reset *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "WebFetch(domain:icon-sets.iconify.design)",
+      "mcp__fetch__fetch",
+      "Bash(curl -s \"https://api.iconify.design/lucide/clipboard-copy.svg?width=16&height=16&color=currentColor\")",
+      "Bash(curl -s \"https://api.iconify.design/lucide/clipboard-check.svg?width=16&height=16&color=currentColor\")",
+      "mcp__neural-memory__nmem_recall",
+      "mcp__neural-memory__nmem_recap",
+      "Bash(npm test *)",
+      "Bash(node --test --test-name-pattern=\"buildAssistantPrompt\" tests/promptBuilder.test.mjs)"
     ]
   }
 }

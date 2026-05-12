@@ -418,6 +418,8 @@ export const CLI_PROFILES: CliProfile[] = [
     name: 'OpenCode',
     description: 'Terminal-native coding agent for fast codebase operations.',
     command: 'opencode',
+    contextWindowTokens: 128000,
+    autoCompactsContext: true,
     promptArgs: ['run', '--format', 'json', '--thinking'],
     backgroundServer: {
       args: ['serve', '--hostname', '127.0.0.1', '--port', '{port}'],
@@ -620,4 +622,74 @@ export function buildCliOptionArgs(
     ...modelArgs,
     ...(permission.args ?? []),
   ];
+}
+
+const OPENAI_CONTEXT_WINDOW_TOKENS: Record<string, number> = {
+  'gpt-4o': 128000,
+  'gpt-4.1': 1048576,
+  'gpt-4.1-mini': 1048576,
+  'gpt-4.1-nano': 1048576,
+  'gpt-5.4': 128000,
+  'gpt-5.5': 128000,
+  o3: 200000,
+  'o3-mini': 200000,
+  'o4-mini': 200000,
+};
+
+const ANTHROPIC_CONTEXT_WINDOW_TOKENS: Record<string, number> = {
+  'claude-sonnet-4-20250514': 200000,
+  'claude-opus-4-20250514': 200000,
+  'claude-haiku-3.5': 200000,
+};
+
+export function inferTokenizerFromModelId(
+  modelId: string | undefined
+): CliTokenizerConfig | undefined {
+  if (!modelId) {
+    return undefined;
+  }
+
+  const [provider, ...rest] = modelId.split('/');
+  const modelName = rest.join('/') || modelId;
+
+  if (provider === 'openai' || provider === 'azure') {
+    return { provider: 'openai', encoding: 'o200k_base', label: 'OpenAI o200k' };
+  }
+
+  if (provider === 'anthropic') {
+    return { provider: 'anthropic', label: 'Claude tokenizer' };
+  }
+
+  if (provider === 'google' || provider === 'gemini') {
+    return { provider: 'openai', encoding: 'cl100k_base', label: 'SentencePiece (approx)' };
+  }
+
+  if (modelName.includes('gpt-') || modelName.includes('o3') || modelName.includes('o4')) {
+    return { provider: 'openai', encoding: 'o200k_base', label: 'OpenAI o200k' };
+  }
+
+  if (modelName.includes('claude')) {
+    return { provider: 'anthropic', label: 'Claude tokenizer' };
+  }
+
+  return { provider: 'openai', encoding: 'o200k_base', label: 'o200k (default)' };
+}
+
+export function inferContextWindowTokens(modelId: string | undefined): number | undefined {
+  if (!modelId) {
+    return undefined;
+  }
+
+  const [provider, ...rest] = modelId.split('/');
+  const modelName = rest.join('/') || modelId;
+
+  if (provider === 'openai' || provider === 'azure') {
+    return OPENAI_CONTEXT_WINDOW_TOKENS[modelName] ?? 128000;
+  }
+
+  if (provider === 'anthropic') {
+    return ANTHROPIC_CONTEXT_WINDOW_TOKENS[modelName] ?? 200000;
+  }
+
+  return undefined;
 }
